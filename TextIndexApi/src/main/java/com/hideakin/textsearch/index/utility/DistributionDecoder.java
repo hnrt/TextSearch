@@ -42,7 +42,7 @@ public class DistributionDecoder {
 		startIndex = nextIndex;
 		if (nextIndex + 1 <= data.length) {
 			byte b0 = data[nextIndex++];
-			if (b0 < 0x80) {
+			if ((b0 & 0x80) == 0) {
 				return (int)b0;
 			}
 			else if ((b0 & 0xE0) == 0xC0) {
