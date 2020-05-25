@@ -7,10 +7,11 @@ import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
 
+import com.hideakin.textsearch.index.model.Distribution;
 import com.hideakin.textsearch.index.utility.DistributionDecoder;
 import com.hideakin.textsearch.index.utility.DistributionEncoder;
 
-@Entity
+@Entity(name = "texts")
 @Table(name = "texts")
 public class TextEntity {
 
@@ -43,6 +44,20 @@ public class TextEntity {
 			enc.write(fid);
 			enc.write(positions.size());
 			for (int position : positions) {
+				enc.write(position);
+			}
+			appendDist(enc.getBuf());
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+
+	public void appendDist(Distribution d) {
+		DistributionEncoder enc = new DistributionEncoder();
+		try {
+			enc.write(d.getFid());
+			enc.write(d.getPositions().length);
+			for (int position : d.getPositions()) {
 				enc.write(position);
 			}
 			appendDist(enc.getBuf());
@@ -96,7 +111,7 @@ public class TextEntity {
 			}
 		}
 	}
-	
+
 	private void removeDist(int startIndex, int endIndex) {
 		byte[] next = new byte[dist.length - (endIndex - startIndex)];
 		System.arraycopy(dist, 0, next, 0, startIndex);

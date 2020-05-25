@@ -10,6 +10,7 @@ import com.hideakin.textsearch.index.entity.FileEntity;
 public interface FileRepository extends JpaRepository<FileEntity,Integer> {
 
 	public FileEntity findByFid(int fid);
-	public List<FileEntity> findByPath(String path);
+	public List<FileEntity> findAllByPath(String path);
+	public List<FileEntity> findAllByGid(int gid);
 
 }

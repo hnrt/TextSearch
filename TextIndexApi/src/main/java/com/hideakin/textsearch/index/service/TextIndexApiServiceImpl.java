@@ -16,6 +16,7 @@ import com.hideakin.textsearch.index.data.SearchOptions;
 import com.hideakin.textsearch.index.entity.FileEntity;
 import com.hideakin.textsearch.index.entity.FileGroupEntity;
 import com.hideakin.textsearch.index.entity.TextEntity;
+import com.hideakin.textsearch.index.model.DeleteIndexResponse;
 import com.hideakin.textsearch.index.model.Distribution;
 import com.hideakin.textsearch.index.model.FindTextResponse;
 import com.hideakin.textsearch.index.model.PathPositions;
@@ -59,6 +60,21 @@ public class TextIndexApiServiceImpl implements TextIndexApiService {
 		rsp.setStatus("OK");
 		rsp.setPath(req.getPath());
 		rsp.setTextCount(req.getTexts().length);
+		return rsp;
+	}
+
+	@Override
+	public DeleteIndexResponse deleteIndex(String group) {
+		DeleteIndexResponse rsp = new DeleteIndexResponse();
+		int gid = getGidByName(group);
+		if (gid < 0) {
+			rsp.setStatus("OK (group not exist)");
+			return rsp;
+		}
+		List<FileEntity> fileEntities = fileRepository.findAllByGid(gid);
+		removeDistribution(fileEntities);
+		fileRepository.deleteAll(fileEntities);
+		rsp.setStatus("OK");
 		return rsp;
 	}
 	
@@ -121,7 +137,7 @@ public class TextIndexApiServiceImpl implements TextIndexApiService {
 	}
 
 	private int getFidByPathGid(String path, int gid) {
-		List<FileEntity> entities = fileRepository.findByPath(path);
+		List<FileEntity> entities = fileRepository.findAllByPath(path);
 		for (FileEntity entity : entities) {
 			if (entity.getGid() == gid) {
 				return entity.getFid();
@@ -143,15 +159,52 @@ public class TextIndexApiServiceImpl implements TextIndexApiService {
 		return maxFid != null ? maxFid : -1;
 	}
 	
+	@SuppressWarnings("unchecked")
+	private List<String> getAllTexts() {
+		return (List<String>)em.createQuery("SELECT text FROM texts").getResultList();
+	}
+
 	private void removeDistribution(int fid) {
-		List<TextEntity> entities = textRepository.findAll();
-		for (TextEntity entity : entities) {
-			if (entity.removeDistByFid(fid)) {
-				if (entity.getDist().length > 0) {
-					textRepository.save(entity);
-				} else {
-					textRepository.delete(entity);
+		List<String> texts = getAllTexts();
+		for (String text : texts) {
+			TextEntity textEntity = textRepository.findByText(text);
+			DistributionDecoder dec = new DistributionDecoder(textEntity.getDist());
+			textEntity.setDist(null);
+			for (Distribution dist = dec.get(); dist != null; dist = dec.get()) {
+				if (dist.getFid() != fid) {
+					textEntity.appendDist(dist);
 				}
+			}
+			if (textEntity.getDist() != null && textEntity.getDist().length > 0) {
+				textRepository.save(textEntity);
+			} else {
+				textRepository.delete(textEntity);
+			}
+		}
+	}
+
+	private void removeDistribution(List<FileEntity> fileEntities) {
+		List<String> texts = getAllTexts();
+		for (String text : texts) {
+			TextEntity textEntity = textRepository.findByText(text);
+			DistributionDecoder dec = new DistributionDecoder(textEntity.getDist());
+			textEntity.setDist(null);
+			for (Distribution dist = dec.get(); dist != null; dist = dec.get()) {
+				boolean found = false;
+				for (FileEntity fileEntity : fileEntities) {
+					if (fileEntity.getFid() == dist.getFid()) {
+						found = true;
+						break;
+					}
+				}
+				if (!found) {
+					textEntity.appendDist(dist);
+				}
+			}
+			if (textEntity.getDist() != null && textEntity.getDist().length > 0) {
+				textRepository.save(textEntity);
+			} else {
+				textRepository.delete(textEntity);
 			}
 		}
 	}
