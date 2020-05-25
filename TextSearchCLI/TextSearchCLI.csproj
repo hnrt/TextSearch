@@ -47,6 +47,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="data\SearchOptions.cs" />
+    <Compile Include="model\DeleteIndexResponse.cs" />
     <Compile Include="model\FindTextResponse.cs" />
     <Compile Include="model\PathLines.cs" />
     <Compile Include="model\PathPositions.cs" />

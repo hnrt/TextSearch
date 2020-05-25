@@ -13,7 +13,8 @@ namespace com.hideakin.textsearch
     {
         None,
         Help,
-        Index,
+        UpdateIndex,
+        DeleteIndex,
         Query
     }
 
@@ -45,7 +46,8 @@ namespace com.hideakin.textsearch
             CommandMap = new Dictionary<CommandType, Action>();
             CommandMap.Add(CommandType.None, Help);
             CommandMap.Add(CommandType.Help, Help);
-            CommandMap.Add(CommandType.Index, Index);
+            CommandMap.Add(CommandType.UpdateIndex, UpdateIndex);
+            CommandMap.Add(CommandType.DeleteIndex, DeleteIndex);
             CommandMap.Add(CommandType.Query, Query);
         }
 
@@ -77,7 +79,7 @@ namespace com.hideakin.textsearch
                     {
                         throw new Exception(BAD_COMMAND_LINE_SYNTAX);
                     }
-                    commandType = CommandType.Index;
+                    commandType = CommandType.UpdateIndex;
                     if (i == args.Length)
                     {
                         throw new Exception(BAD_COMMAND_LINE_SYNTAX);
@@ -112,6 +114,14 @@ namespace com.hideakin.textsearch
                         ExtsToExclude.Add(s.StartsWith(".") ? s : ("." + s));
                     }
                 }
+                else if (a == "-delete-index")
+                {
+                    if (commandType != CommandType.None)
+                    {
+                        throw new Exception(BAD_COMMAND_LINE_SYNTAX);
+                    }
+                    commandType = CommandType.DeleteIndex;
+                }
                 else if (a == "-query" || a == "-q")
                 {
                     if (commandType != CommandType.None)
@@ -141,12 +151,14 @@ namespace com.hideakin.textsearch
         {
             Console.WriteLine("Usage:");
             Console.WriteLine("  {0} -group FILEGROUP -index PATH [options]", Name);
+            Console.WriteLine("  {0} -group FILEGROUP -delete-index", Name);
+            Console.WriteLine("  {0} -group FILEGROUP -query EXPR", Name);
             Console.WriteLine("Options:");
             Console.WriteLine("  -exclude-dir DIR1[,DIR2,...]");
             Console.WriteLine("  -exclude-ext EXT1[,EXT2,...]");
         }
 
-        public void Index()
+        public void UpdateIndex()
         {
             Console.WriteLine("Started indexing...");
             foreach (string path in PathsToIndex)
@@ -217,6 +229,13 @@ namespace com.hideakin.textsearch
             {
                 Console.WriteLine("  FAILURE");
             }
+        }
+
+        public void DeleteIndex()
+        {
+            Console.WriteLine("Started deleting index...");
+            IndexSvc.DeleteIndex(groupName);
+            Console.WriteLine("Done.");
         }
 
         private void Query()

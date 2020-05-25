@@ -16,7 +16,6 @@ namespace com.hideakin.textsearch.service
 
         public IndexService()
         {
-            netClient.Url = @"http://localhost:8080";
         }
 
         public bool UpdateIndex(string group, string path)
@@ -34,6 +33,15 @@ namespace com.hideakin.textsearch.service
                 var rsp = task.Result;
                 return rsp != null;
             }
+        }
+
+        public bool DeleteIndex(string group)
+        {
+            netClient.GroupName = group;
+            var task = netClient.DeleteIndex();
+            task.Wait();
+            var rsp = task.Result;
+            return rsp != null;
         }
 
         public PathLines[] FindText(string group, string text)

@@ -16,7 +16,7 @@ namespace com.hideakin.textsearch.net
     {
         private static readonly HttpClient httpClient = new HttpClient();
 
-        public string Url { get; set; } = "http:://localhost:8080";
+        public string Url { get; set; } = @"http://localhost:8080";
 
         public string GroupName { get; set; } = "default";
 
@@ -24,6 +24,11 @@ namespace com.hideakin.textsearch.net
 
         public IndexNetClient()
         {
+            var envUrl = Environment.GetEnvironmentVariable("TEXTINDEXAPI_URL");
+            if (envUrl != null)
+            {
+                 Url= envUrl;
+            }
         }
 
         public async Task<UpdateIndexResponse> UpdateIndex(UpdateIndexRequest input)
@@ -36,6 +41,22 @@ namespace com.hideakin.textsearch.net
             if (response.StatusCode == HttpStatusCode.OK)
             {
                 return JsonConvert.DeserializeObject<UpdateIndexResponse>(responseBody);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        public async Task<DeleteIndexResponse> DeleteIndex()
+        {
+            var uri = string.Format("{0}/index/{1}", Url, GroupName);
+            var request = new HttpRequestMessage(HttpMethod.Delete, uri);
+            var response = await httpClient.SendAsync(request, cts.Token);
+            var responseBody = await response.Content.ReadAsStringAsync();
+            if (response.StatusCode == HttpStatusCode.OK)
+            {
+                return JsonConvert.DeserializeObject<DeleteIndexResponse>(responseBody);
             }
             else
             {
