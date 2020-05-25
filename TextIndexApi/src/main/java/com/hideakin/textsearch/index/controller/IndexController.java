@@ -28,8 +28,9 @@ public class IndexController {
 	}
 
 	@RequestMapping(value="/index",method=RequestMethod.POST)
-	public UpdateIndexResponse updateIndex(@RequestBody UpdateIndexRequest ts) {
-		return service.updateTexts("default", ts);
+	public UpdateIndexResponse updateIndex(
+			@RequestBody UpdateIndexRequest req) {
+		return service.updateIndex("default", req);
 	}
 
 	@RequestMapping(value="/index/{group}",method=RequestMethod.GET)
@@ -43,8 +44,8 @@ public class IndexController {
 	@RequestMapping(value="/index/{group}",method=RequestMethod.POST)
 	public UpdateIndexResponse updateIndexByGroup(
 			@PathVariable String group,
-			@RequestBody UpdateIndexRequest ts) {
-		return service.updateTexts(group, ts);
+			@RequestBody UpdateIndexRequest req) {
+		return service.updateIndex(group, req);
 	}
 
 }

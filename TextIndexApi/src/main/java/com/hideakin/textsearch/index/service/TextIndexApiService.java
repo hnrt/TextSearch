@@ -7,7 +7,7 @@ import com.hideakin.textsearch.index.model.UpdateIndexResponse;
 
 public interface TextIndexApiService {
 
-	UpdateIndexResponse updateTexts(String group, UpdateIndexRequest ts);
+	UpdateIndexResponse updateIndex(String group, UpdateIndexRequest req);
 	FindTextResponse findText(String group, String text, SearchOptions option);
 
 }

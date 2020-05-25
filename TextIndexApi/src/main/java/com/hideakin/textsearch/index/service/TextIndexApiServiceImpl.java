@@ -43,22 +43,22 @@ public class TextIndexApiServiceImpl implements TextIndexApiService {
 	TextRepository textRepository;
 
 	@Override
-	public UpdateIndexResponse updateTexts(String group, UpdateIndexRequest ts) {
+	public UpdateIndexResponse updateIndex(String group, UpdateIndexRequest req) {
 		UpdateIndexResponse rsp = new UpdateIndexResponse();
 		int gid = getGidByName(group);
 		if (gid < 0) {
 			gid = addFileGroup(group);
 		}
-		int fid = getFidByPathGid(ts.getPath(), gid);
+		int fid = getFidByPathGid(req.getPath(), gid);
 		if (fid < 0) {
-			fid = addFile(ts.getPath(), gid);
+			fid = addFile(req.getPath(), gid);
 		}
 		removeDistribution(fid);
-		Map<String,List<Integer>> map = populateTextMap(ts.getTexts());
+		Map<String,List<Integer>> map = populateTextMap(req.getTexts());
 		applyTextMap(fid, map);
 		rsp.setStatus("OK");
-		rsp.setPath(ts.getPath());
-		rsp.setTextCount(ts.getTexts().length);
+		rsp.setPath(req.getPath());
+		rsp.setTextCount(req.getTexts().length);
 		return rsp;
 	}
 	
@@ -160,6 +160,9 @@ public class TextIndexApiServiceImpl implements TextIndexApiService {
 		Map<String, List<Integer>> map = new HashMap<String,List<Integer>>();
 		for (int i = 0; i < tt.length; i++) {
 			String t = tt[i];
+			if (t.equals("\n")) {
+				continue;
+			}
 			List<Integer> positions = map.get(t);
 			if (positions == null) {
 				positions = new ArrayList<Integer>();
