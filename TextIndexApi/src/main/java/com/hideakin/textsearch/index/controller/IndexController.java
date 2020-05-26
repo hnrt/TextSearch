@@ -9,17 +9,16 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.hideakin.textsearch.index.data.SearchOptions;
-import com.hideakin.textsearch.index.model.StatusResponse;
 import com.hideakin.textsearch.index.model.FindTextResponse;
 import com.hideakin.textsearch.index.model.UpdateIndexRequest;
 import com.hideakin.textsearch.index.model.UpdateIndexResponse;
-import com.hideakin.textsearch.index.service.TextIndexApiService;
+import com.hideakin.textsearch.index.service.IndexService;
 
 @RestController
 public class IndexController {
 
 	@Autowired
-	TextIndexApiService service;
+	IndexService service;
 	
 	@RequestMapping(value="/index",method=RequestMethod.GET)
 	public FindTextResponse findText(
@@ -35,8 +34,8 @@ public class IndexController {
 	}
 
 	@RequestMapping(value="/index",method=RequestMethod.DELETE)
-	public StatusResponse deleteIndex() {
-		return service.deleteIndex("default");
+	public void deleteIndex() {
+		service.deleteIndex("default");
 	}
 
 	@RequestMapping(value="/index/{group}",method=RequestMethod.GET)
@@ -55,9 +54,9 @@ public class IndexController {
 	}
 
 	@RequestMapping(value="/index/{group}",method=RequestMethod.DELETE)
-	public StatusResponse deleteIndexByGroup(
+	public void deleteIndexByGroup(
 			@PathVariable String group) {
-		return service.deleteIndex(group);
+		service.deleteIndex(group);
 	}
 
 }

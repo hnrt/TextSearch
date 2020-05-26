@@ -2,20 +2,10 @@ package com.hideakin.textsearch.index.model;
 
 public class UpdateIndexResponse {
 
-	private String status;
-	
 	private String path;
 	
-	private int textCount;
+	private String[] texts;
 	
-	public String getStatus() {
-		return status;
-	}
-
-	public void setStatus(String status) {
-		this.status = status;
-	}
-
 	public String getPath() {
 		return path;
 	}
@@ -24,12 +14,12 @@ public class UpdateIndexResponse {
 		this.path = path;
 	}
 
-	public int getTextCount() {
-		return textCount;
+	public String[] getTexts() {
+		return texts;
 	}
 
-	public void setTextCount(int textCount) {
-		this.textCount = textCount;
+	public void setTexts(String[] texts) {
+		this.texts = texts;
 	}
 
 }

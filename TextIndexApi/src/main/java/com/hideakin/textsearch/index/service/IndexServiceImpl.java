@@ -16,7 +16,6 @@ import com.hideakin.textsearch.index.data.SearchOptions;
 import com.hideakin.textsearch.index.entity.FileEntity;
 import com.hideakin.textsearch.index.entity.FileGroupEntity;
 import com.hideakin.textsearch.index.entity.TextEntity;
-import com.hideakin.textsearch.index.model.StatusResponse;
 import com.hideakin.textsearch.index.model.Distribution;
 import com.hideakin.textsearch.index.model.FindTextResponse;
 import com.hideakin.textsearch.index.model.PathPositions;
@@ -29,7 +28,7 @@ import com.hideakin.textsearch.index.utility.DistributionDecoder;
 
 @Service
 @Transactional
-public class TextIndexApiServiceImpl implements TextIndexApiService {
+public class IndexServiceImpl implements IndexService {
 
 	@PersistenceContext
 	private EntityManager em;
@@ -57,25 +56,20 @@ public class TextIndexApiServiceImpl implements TextIndexApiService {
 		removeDistribution(fid);
 		Map<String,List<Integer>> map = populateTextMap(req.getTexts());
 		applyTextMap(fid, map);
-		rsp.setStatus("OK");
 		rsp.setPath(req.getPath());
-		rsp.setTextCount(req.getTexts().length);
+		rsp.setTexts(map.keySet().toArray(new String[map.size()]));
 		return rsp;
 	}
 
 	@Override
-	public StatusResponse deleteIndex(String group) {
-		StatusResponse rsp = new StatusResponse();
+	public void deleteIndex(String group) {
 		int gid = getGidByName(group);
 		if (gid < 0) {
-			rsp.setStatus("OK (group not exist)");
-			return rsp;
+			return;
 		}
 		List<FileEntity> fileEntities = fileRepository.findAllByGid(gid);
 		removeDistribution(fileEntities);
 		fileRepository.deleteAll(fileEntities);
-		rsp.setStatus("OK");
-		return rsp;
 	}
 	
 	@Override
