@@ -1,47 +1,18 @@
 ﻿using com.hideakin.textsearch.data;
 using com.hideakin.textsearch.model;
 using com.hideakin.textsearch.net;
-using System;
-using System.Collections.Generic;
+using com.hideakin.textsearch.utility;
 using System.IO;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace com.hideakin.textsearch.service
 {
     internal class IndexService
     {
-        private IndexNetClient netClient = new IndexNetClient();
+        private IndexNetClient netClient = IndexNetClient.Instance;
 
         public IndexService()
         {
-        }
-
-        public bool UpdateIndex(string group, string path)
-        {
-            netClient.GroupName = group;
-            using (var sr = new StreamReader(path, true))
-            {
-                var tokenizer = new Tokenizer();
-                var texts = tokenizer.Run(sr);
-                var req = new UpdateIndexRequest();
-                req.Path = path;
-                req.Texts = texts.ToArray();
-                var task = netClient.UpdateIndex(req);
-                task.Wait();
-                var rsp = task.Result;
-                return rsp != null;
-            }
-        }
-
-        public bool DeleteIndex(string group)
-        {
-            netClient.GroupName = group;
-            var task = netClient.DeleteIndex();
-            task.Wait();
-            var rsp = task.Result;
-            return rsp != null;
         }
 
         public PathLines[] FindText(string group, string text)
@@ -81,55 +52,33 @@ namespace com.hideakin.textsearch.service
                         }
                     }
                 }
-                return ToPathLines(rsp.Hits);
+                return SearchResult.ToPathLines(rsp.Hits);
             }
         }
 
-        private PathLines[] ToPathLines(PathPositions[] pathPositions)
+        public bool UpdateIndex(string group, string path)
         {
-            var pathLines = new PathLines[pathPositions.Length];
-            for (int i = 0; i < pathLines.Length; i++)
+            netClient.GroupName = group;
+            using (var sr = new StreamReader(path, true))
             {
-                pathLines[i] = new PathLines(pathPositions[i].Path, ToLines(pathPositions[i].Path, pathPositions[i].Positions));
+                var tokenizer = new Tokenizer();
+                var texts = tokenizer.Run(sr);
+                var req = new UpdateIndexRequest();
+                req.Path = path;
+                req.Texts = texts.ToArray();
+                var task = netClient.UpdateIndex(req);
+                task.Wait();
+                var rsp = task.Result;
+                return rsp != null;
             }
-            return pathLines;
         }
 
-        private int[] ToLines(string path, int[] positions)
+        public bool DeleteIndex(string group)
         {
-            try
-            {
-                using (var sr = new StreamReader(path, true))
-                {
-                    var tokenizer = new Tokenizer();
-                    var texts = tokenizer.Run(sr);
-                    var lines = new List<int>();
-                    int line = 0;
-                    int found = 0;
-                    for (int txtIdx = 0, posIdx = 0; txtIdx < texts.Count && posIdx < positions.Length; txtIdx++)
-                    {
-                        if (txtIdx == positions[posIdx])
-                        {
-                            posIdx++;
-                            if (found == 0)
-                            {
-                                lines.Add(line);
-                            }
-                            found++;
-                        }
-                        if (texts[txtIdx] == Tokenizer.NEW_LINE)
-                        {
-                            line++;
-                            found = 0;
-                        }
-                    }
-                    return lines.ToArray();
-                }
-            }
-            catch (Exception)
-            {
-                return new int[0];
-            }
+            netClient.GroupName = group;
+            var task = netClient.DeleteIndex();
+            task.Wait();
+            return task.Result;
         }
     }
 }
