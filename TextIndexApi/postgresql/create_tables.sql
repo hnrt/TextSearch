@@ -15,3 +15,8 @@ CREATE TABLE IF NOT EXISTS texts (
 	txt varchar(260) PRIMARY KEY,
 	dst bytea
 );
+
+CREATE TABLE IF NOT EXISTS preferences (
+	name varchar(260) PRIMARY KEY,
+	value varchar(8192)
+);

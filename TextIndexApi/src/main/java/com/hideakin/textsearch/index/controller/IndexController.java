@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.hideakin.textsearch.index.data.SearchOptions;
-import com.hideakin.textsearch.index.model.DeleteIndexResponse;
+import com.hideakin.textsearch.index.model.StatusResponse;
 import com.hideakin.textsearch.index.model.FindTextResponse;
 import com.hideakin.textsearch.index.model.UpdateIndexRequest;
 import com.hideakin.textsearch.index.model.UpdateIndexResponse;
@@ -35,7 +35,7 @@ public class IndexController {
 	}
 
 	@RequestMapping(value="/index",method=RequestMethod.DELETE)
-	public DeleteIndexResponse deleteIndex() {
+	public StatusResponse deleteIndex() {
 		return service.deleteIndex("default");
 	}
 
@@ -55,7 +55,7 @@ public class IndexController {
 	}
 
 	@RequestMapping(value="/index/{group}",method=RequestMethod.DELETE)
-	public DeleteIndexResponse deleteIndexByGroup(
+	public StatusResponse deleteIndexByGroup(
 			@PathVariable String group) {
 		return service.deleteIndex(group);
 	}

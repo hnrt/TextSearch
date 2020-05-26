@@ -16,7 +16,7 @@ import com.hideakin.textsearch.index.data.SearchOptions;
 import com.hideakin.textsearch.index.entity.FileEntity;
 import com.hideakin.textsearch.index.entity.FileGroupEntity;
 import com.hideakin.textsearch.index.entity.TextEntity;
-import com.hideakin.textsearch.index.model.DeleteIndexResponse;
+import com.hideakin.textsearch.index.model.StatusResponse;
 import com.hideakin.textsearch.index.model.Distribution;
 import com.hideakin.textsearch.index.model.FindTextResponse;
 import com.hideakin.textsearch.index.model.PathPositions;
@@ -64,8 +64,8 @@ public class TextIndexApiServiceImpl implements TextIndexApiService {
 	}
 
 	@Override
-	public DeleteIndexResponse deleteIndex(String group) {
-		DeleteIndexResponse rsp = new DeleteIndexResponse();
+	public StatusResponse deleteIndex(String group) {
+		StatusResponse rsp = new StatusResponse();
 		int gid = getGidByName(group);
 		if (gid < 0) {
 			rsp.setStatus("OK (group not exist)");

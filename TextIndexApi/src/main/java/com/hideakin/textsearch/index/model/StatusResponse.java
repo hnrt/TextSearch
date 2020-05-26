@@ -1,6 +1,6 @@
 package com.hideakin.textsearch.index.model;
 
-public class DeleteIndexResponse {
+public class StatusResponse {
 
 	public String status;
 
