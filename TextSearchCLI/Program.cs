@@ -245,10 +245,9 @@ namespace com.hideakin.textsearch
             {
                 Console.WriteLine("{0}", pathLines.Path);
                 var lineTexts = File.ReadAllLines(pathLines.Path);
-                var fmt = string.Format("{{0,{0}}}: {{1}}", pathLines.Lines[pathLines.Lines.Length - 1].ToString().Length);
                 foreach (int line in pathLines.Lines)
                 {
-                    Console.WriteLine(fmt, line + 1, lineTexts[line]);
+                    Console.WriteLine("{0,6}: {1}", line + 1, lineTexts[line]);
                 }
             }
         }
