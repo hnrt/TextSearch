@@ -2,9 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace com.hideakin.textsearch.service
 {
@@ -16,33 +14,31 @@ namespace com.hideakin.textsearch.service
 
         private int c;
 
+        private int line;
+
+        public List<string> Texts { get; } = new List<string>();
+
+        public List<int> Lines { get; } = new List<int>();
+
         public Tokenizer()
         {
         }
 
-        public List<string> Run(TextReader tr)
+        public void Run(TextReader tr)
         {
-            var texts = new List<string>();
+            Texts.Clear();
+            Lines.Clear();
             var sb = new StringBuilder();
             c = tr.Read();
+            line = 0;
             while (c != -1)
             {
-                if (c == '\n')
+                if (Char.IsWhiteSpace((char)c))
                 {
-                    c = tr.Read();
-                    texts.Add(NEW_LINE);
-                }
-                else if (c == '\r')
-                {
-                    c = tr.Read();
                     if (c == '\n')
                     {
-                        c = tr.Read();
+                        line++;
                     }
-                    texts.Add(NEW_LINE);
-                }
-                else if (Char.IsWhiteSpace((char)c))
-                {
                     c = tr.Read();
                 }
                 else if (UnicodeClassifier.IsJapaneseLetter(c))
@@ -54,7 +50,8 @@ namespace com.hideakin.textsearch.service
                     {
                         sb.Append((char)c);
                     }
-                    texts.Add(sb.ToString());
+                    Texts.Add(sb.ToString());
+                    Lines.Add(line);
                 }
                 else if (UnicodeClassifier.IsFullwidthAlphaNumeric(c))
                 {
@@ -66,7 +63,8 @@ namespace com.hideakin.textsearch.service
                         sb.Append((char)c);
                         c = tr.Read();
                     }
-                    texts.Add(sb.ToString());
+                    Texts.Add(sb.ToString());
+                    Lines.Add(line);
                 }
                 else if (Char.IsLetterOrDigit((char)c))
                 {
@@ -78,14 +76,14 @@ namespace com.hideakin.textsearch.service
                         sb.Append((char)c);
                         c = tr.Read();
                     }
-                    texts.Add(sb.ToString().ToUpperInvariant());
+                    Texts.Add(sb.ToString().ToUpperInvariant());
+                    Lines.Add(line);
                 }
                 else 
                 {
                     c = tr.Read();
                 }
             }
-            return texts;
         }
     }
 }

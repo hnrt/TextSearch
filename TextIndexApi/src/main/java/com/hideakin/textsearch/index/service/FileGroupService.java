@@ -4,5 +4,9 @@ import com.hideakin.textsearch.index.model.ValuesResponse;
 
 public interface FileGroupService {
 
-	ValuesResponse getFileGroups();
+	ValuesResponse getGroups();
+	int getGid(String group);
+	int addGroup(String group);
+	void delete(int gid);
+
 }

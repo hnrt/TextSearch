@@ -12,11 +12,11 @@ import com.hideakin.textsearch.index.service.FileGroupService;
 public class FileGroupController {
 
 	@Autowired
-	FileGroupService service;
+	private FileGroupService service;
 
-	@RequestMapping(value="/filegroup",method=RequestMethod.GET)
-	public ValuesResponse getFileGroups() {
-		return service.getFileGroups();
+	@RequestMapping(value="/groups",method=RequestMethod.GET)
+	public ValuesResponse getGroups() {
+		return service.getGroups();
 	}
 
 }

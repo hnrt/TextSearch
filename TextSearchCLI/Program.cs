@@ -12,6 +12,7 @@ namespace com.hideakin.textsearch
         None,
         Help,
         PrintGroups,
+        PrintFiles,
         UpdateIndex,
         DeleteIndex,
         Query,
@@ -43,6 +44,8 @@ namespace com.hideakin.textsearch
 
         private FileGroupService FileGrpSvc { get; } = new FileGroupService();
 
+        private FileService FileSvc { get; } = new FileService();
+
         private IndexService IndexSvc { get; } = new IndexService();
 
         private PreferenceService PrefSvc { get; } = new PreferenceService();
@@ -50,6 +53,8 @@ namespace com.hideakin.textsearch
         private List<string> extensions;
 
         private List<string> skipDirs;
+
+        public static int DebugLevel { get; set; } = 0;
 
         public Program()
         {
@@ -70,6 +75,14 @@ namespace com.hideakin.textsearch
                     throw new Exception(BAD_COMMAND_LINE_SYNTAX);
                 }
                 commandType = CommandType.PrintGroups;
+            });
+            OptionMap.Add("-print-files", (e) =>
+            {
+                if (commandType != CommandType.None)
+                {
+                    throw new Exception(BAD_COMMAND_LINE_SYNTAX);
+                }
+                commandType = CommandType.PrintFiles;
             });
             OptionMap.Add("-group", (e) =>
             {
@@ -187,11 +200,16 @@ namespace com.hideakin.textsearch
                 }
                 commandType = CommandType.ClearSkipDirs;
             });
+            OptionMap.Add("-debug", (e) =>
+            {
+                DebugLevel++;
+            });
 
             OptionAltMap.Add("-h", "-help");
             OptionAltMap.Add("-?", "-help");
             OptionAltMap.Add("-pg", "-print-groups");
             OptionAltMap.Add("-print-grp", "-print-groups");
+            OptionAltMap.Add("-pf", "-print-files");
             OptionAltMap.Add("-g", "-group");
             OptionAltMap.Add("-q", "-query");
             OptionAltMap.Add("-i", "-index");
@@ -211,6 +229,7 @@ namespace com.hideakin.textsearch
             CommandMap.Add(CommandType.None, Help);
             CommandMap.Add(CommandType.Help, Help);
             CommandMap.Add(CommandType.PrintGroups, PrintGroups);
+            CommandMap.Add(CommandType.PrintFiles, PrintFiles);
             CommandMap.Add(CommandType.UpdateIndex, UpdateIndex);
             CommandMap.Add(CommandType.DeleteIndex, DeleteIndex);
             CommandMap.Add(CommandType.Query, Query);
@@ -266,6 +285,19 @@ namespace com.hideakin.textsearch
         private void PrintGroups()
         {
             var names = FileGrpSvc.GetFileGroups();
+            if (names == null)
+            {
+                return;
+            }
+            foreach (string name in names)
+            {
+                Console.WriteLine("{0}", name);
+            }
+        }
+
+        private void PrintFiles()
+        {
+            var names = FileSvc.GetFiles(groupName);
             if (names == null)
             {
                 return;

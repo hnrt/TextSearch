@@ -18,7 +18,7 @@ import com.hideakin.textsearch.index.service.IndexService;
 public class IndexController {
 
 	@Autowired
-	IndexService service;
+	private IndexService service;
 	
 	@RequestMapping(value="/index",method=RequestMethod.GET)
 	public FindTextResponse findText(

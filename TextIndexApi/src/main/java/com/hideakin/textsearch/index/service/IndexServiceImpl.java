@@ -1,6 +1,7 @@
 package com.hideakin.textsearch.index.service;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -13,16 +14,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.hideakin.textsearch.index.data.SearchOptions;
-import com.hideakin.textsearch.index.entity.FileEntity;
-import com.hideakin.textsearch.index.entity.FileGroupEntity;
 import com.hideakin.textsearch.index.entity.TextEntity;
 import com.hideakin.textsearch.index.model.Distribution;
 import com.hideakin.textsearch.index.model.FindTextResponse;
 import com.hideakin.textsearch.index.model.PathPositions;
 import com.hideakin.textsearch.index.model.UpdateIndexRequest;
 import com.hideakin.textsearch.index.model.UpdateIndexResponse;
-import com.hideakin.textsearch.index.repository.FileGroupRepository;
-import com.hideakin.textsearch.index.repository.FileRepository;
 import com.hideakin.textsearch.index.repository.TextRepository;
 import com.hideakin.textsearch.index.utility.DistributionDecoder;
 
@@ -34,24 +31,24 @@ public class IndexServiceImpl implements IndexService {
 	private EntityManager em;
 
 	@Autowired
-	FileGroupRepository fileGroupRepository;
-	
-	@Autowired
-	FileRepository fileRepository;
+	private FileGroupService fileGroupService;
 
 	@Autowired
-	TextRepository textRepository;
+	private FileService fileService;
+
+	@Autowired
+	private TextRepository textRepository;
 
 	@Override
 	public UpdateIndexResponse updateIndex(String group, UpdateIndexRequest req) {
 		UpdateIndexResponse rsp = new UpdateIndexResponse();
-		int gid = getGidByName(group);
+		int gid = fileGroupService.getGid(group);
 		if (gid < 0) {
-			gid = addFileGroup(group);
+			gid = fileGroupService.addGroup(group);
 		}
-		int fid = getFidByPathGid(req.getPath(), gid);
+		int fid = fileService.getFid(req.getPath(), gid);
 		if (fid < 0) {
-			fid = addFile(req.getPath(), gid);
+			fid = fileService.addFile(req.getPath(), gid);
 		}
 		removeDistribution(fid);
 		Map<String,List<Integer>> map = populateTextMap(req.getTexts());
@@ -63,19 +60,20 @@ public class IndexServiceImpl implements IndexService {
 
 	@Override
 	public void deleteIndex(String group) {
-		int gid = getGidByName(group);
+		int gid = fileGroupService.getGid(group);
 		if (gid < 0) {
 			return;
 		}
-		List<FileEntity> fileEntities = fileRepository.findAllByGid(gid);
-		removeDistribution(fileEntities);
-		fileRepository.deleteAll(fileEntities);
+		List<Integer> fids = fileService.getFids(gid);
+		removeDistribution(fids);
+		fileService.delete(fids);
+		fileGroupService.delete(gid);
 	}
 	
 	@Override
 	public FindTextResponse findText(String group, String text, SearchOptions option) {
 		FindTextResponse rsp = new FindTextResponse();
-		int gid = getGidByName(group);
+		int gid = fileGroupService.getGid(group);
 		if (gid < 0) {
 			rsp.setHits(new PathPositions[0]);
 			return rsp;
@@ -110,88 +108,23 @@ public class IndexServiceImpl implements IndexService {
 		return rsp;
 	}
 
-	private int getGidByName(String name) {
-		FileGroupEntity entity = fileGroupRepository.findByName(name);
-		if (entity != null) {
-			return entity.getGid();
-		}
-		return -1;
-	}
-	
-	private int addFileGroup(String name) {
-		FileGroupEntity entity = new FileGroupEntity();
-		entity.setGid(getMaxGid() + 1);
-		entity.setName(name);
-		return fileGroupRepository.save(entity).getGid();
-	}
-
-	private int getMaxGid() {
-		Integer maxGid = (Integer)em.createQuery("SELECT max(gid) FROM filegroups").getSingleResult();
-		return maxGid != null ? maxGid : -1;
-	}
-
-	private int getFidByPathGid(String path, int gid) {
-		List<FileEntity> entities = fileRepository.findAllByPath(path);
-		for (FileEntity entity : entities) {
-			if (entity.getGid() == gid) {
-				return entity.getFid();
-			}
-		}
-		return -1;
-	}
-	
-	private int addFile(String path, int gid) {
-		FileEntity entity = new FileEntity();
-		entity.setFid(getMaxFid() + 1);
-		entity.setPath(path);
-		entity.setGid(gid);
-		return fileRepository.save(entity).getFid();
-	}
-	
-	private int getMaxFid() {
-		Integer maxFid = (Integer)em.createQuery("SELECT max(fid) FROM files").getSingleResult();
-		return maxFid != null ? maxFid : -1;
-	}
-	
 	@SuppressWarnings("unchecked")
 	private List<String> getAllTexts() {
 		return (List<String>)em.createQuery("SELECT text FROM texts").getResultList();
 	}
 
 	private void removeDistribution(int fid) {
-		List<String> texts = getAllTexts();
-		for (String text : texts) {
-			TextEntity textEntity = textRepository.findByText(text);
-			DistributionDecoder dec = new DistributionDecoder(textEntity.getDist());
-			textEntity.setDist(null);
-			for (Distribution dist = dec.get(); dist != null; dist = dec.get()) {
-				if (dist.getFid() != fid) {
-					textEntity.appendDist(dist);
-				}
-			}
-			if (textEntity.getDist() != null && textEntity.getDist().length > 0) {
-				textRepository.save(textEntity);
-			} else {
-				textRepository.delete(textEntity);
-			}
-		}
+		removeDistribution(Arrays.asList(fid));
 	}
 
-	private void removeDistribution(List<FileEntity> fileEntities) {
+	private void removeDistribution(List<Integer> fids) {
 		List<String> texts = getAllTexts();
 		for (String text : texts) {
 			TextEntity textEntity = textRepository.findByText(text);
 			DistributionDecoder dec = new DistributionDecoder(textEntity.getDist());
 			textEntity.setDist(null);
 			for (Distribution dist = dec.get(); dist != null; dist = dec.get()) {
-				boolean found = false;
-				for (FileEntity fileEntity : fileEntities) {
-					if (fileEntity.getFid() == dist.getFid()) {
-						found = true;
-						break;
-					}
-				}
-				if (!found) {
+				if (!fids.contains(dist.getFid())) {
 					textEntity.appendDist(dist);
 				}
 			}
@@ -207,9 +140,6 @@ public class IndexServiceImpl implements IndexService {
 		Map<String, List<Integer>> map = new HashMap<String,List<Integer>>();
 		for (int i = 0; i < tt.length; i++) {
 			String t = tt[i];
-			if (t.equals("\n")) {
-				continue;
-			}
 			List<Integer> positions = map.get(t);
 			if (positions == null) {
 				positions = new ArrayList<Integer>();
@@ -243,14 +173,14 @@ public class IndexServiceImpl implements IndexService {
 		DistributionDecoder dec = new DistributionDecoder(textEntity.getDist());
 		for (Distribution dist = dec.get(); dist != null; dist = dec.get()) {
 			int fid = dist.getFid();
-			FileEntity fileEntity = fileRepository.findByFid(fid);
-			if (fileEntity != null && fileEntity.getGid() == gid) {
-				PathPositions pp = map.get(fid);
-				if (pp != null) {
-					pp.addPositions(dist.getPositions());
-				} else {
+			PathPositions pp = map.get(fid);
+			if (pp != null) {
+				pp.addPositions(dist.getPositions());
+			} else {
+				String path = fileService.getPath(fid, gid);
+				if (path != null) {
 					pp = new PathPositions();
-					pp.setPath(fileEntity.getPath());
+					pp.setPath(path);
 					pp.setPositions(dist.getPositions());
 					map.put(fid, pp);
 				}

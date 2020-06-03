@@ -8,51 +8,50 @@ namespace com.hideakin.textsearch.utility
 {
     internal static class SearchResult
     {
-        public static PathLines[] ToPathLines(PathPositions[] pathPositions)
+        public static PathLines[] ToPathLines(List<PathRanges> rangesList)
         {
-            var pathLines = new PathLines[pathPositions.Length];
-            for (int i = 0; i < pathLines.Length; i++)
+            var linesList = new List<PathLines>();
+            foreach (var ranges in rangesList)
             {
-                pathLines[i] = new PathLines(pathPositions[i].Path, ToLines(pathPositions[i].Path, pathPositions[i].Positions));
+                List<int> lines = ToLines(ranges.Path, ranges.Ranges);
+                if (lines.Count > 0)
+                {
+                    linesList.Add(new PathLines(ranges.Path, lines.ToArray()));
+                }
             }
-            return pathLines;
+            return linesList.ToArray();
         }
 
-        private static int[] ToLines(string path, int[] positions)
+        private static List<int> ToLines(string path, List<Range> ranges)
         {
+            var lines = new List<int>();
             try
             {
                 using (var sr = new StreamReader(path, true))
                 {
                     var tokenizer = new Tokenizer();
-                    var texts = tokenizer.Run(sr);
-                    var lines = new List<int>();
-                    int line = 0;
-                    int found = 0;
-                    for (int txtIdx = 0, posIdx = 0; txtIdx < texts.Count && posIdx < positions.Length; txtIdx++)
+                    tokenizer.Run(sr);
+                    foreach (var range in ranges)
                     {
-                        if (txtIdx == positions[posIdx])
+                        if (range.End < tokenizer.Texts.Count)
                         {
-                            posIdx++;
-                            if (found == 0)
+                            int lineStart = tokenizer.Lines[range.Start];
+                            int lineEnd = tokenizer.Lines[range.End];
+                            if (lineStart == lineEnd)
                             {
-                                lines.Add(line);
+                                if (!lines.Contains(lineStart))
+                                {
+                                    lines.Add(lineStart);
+                                }
                             }
-                            found++;
-                        }
-                        if (texts[txtIdx] == Tokenizer.NEW_LINE)
-                        {
-                            line++;
-                            found = 0;
                         }
                     }
-                    return lines.ToArray();
                 }
             }
             catch (Exception)
             {
-                return new int[0];
             }
+            return lines;
         }
     }
 }

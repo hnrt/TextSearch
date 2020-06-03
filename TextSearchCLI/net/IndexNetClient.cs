@@ -82,7 +82,7 @@ namespace com.hideakin.textsearch.net
 
         public async Task<string> GetPreference(string name)
         {
-            var uri = string.Format("{0}/preference/{1}", Url, name);
+            var uri = string.Format("{0}/preferences/{1}", Url, name);
             var request = new HttpRequestMessage(HttpMethod.Get, uri);
             var response = await httpClient.SendAsync(request, cts.Token);
             var responseBody = await response.Content.ReadAsStringAsync();
@@ -99,7 +99,7 @@ namespace com.hideakin.textsearch.net
 
         public async Task<bool> UpdatePreference(string name, string value)
         {
-            var uri = string.Format("{0}/preference", Url);
+            var uri = string.Format("{0}/preferences", Url);
             var request = new HttpRequestMessage(HttpMethod.Post, uri);
             var input = new UpdatePreferencesRequest();
             input.Prefs = new NameValuePair[1];
@@ -119,7 +119,7 @@ namespace com.hideakin.textsearch.net
 
         public async Task<bool> DeletePreference(string name)
         {
-            var uri = string.Format("{0}/preference/{1}", Url, name);
+            var uri = string.Format("{0}/preferences/{1}", Url, name);
             var request = new HttpRequestMessage(HttpMethod.Delete, uri);
             var response = await httpClient.SendAsync(request, cts.Token);
             var responseBody = await response.Content.ReadAsStringAsync();
@@ -135,7 +135,24 @@ namespace com.hideakin.textsearch.net
 
         public async Task<string[]> GetFileGroups()
         {
-            var uri = string.Format("{0}/filegroup", Url);
+            var uri = string.Format("{0}/groups", Url);
+            var request = new HttpRequestMessage(HttpMethod.Get, uri);
+            var response = await httpClient.SendAsync(request, cts.Token);
+            var responseBody = await response.Content.ReadAsStringAsync();
+            if (response.StatusCode == HttpStatusCode.OK)
+            {
+                var rsp = JsonConvert.DeserializeObject<ValuesResponse>(responseBody);
+                return rsp.Values;
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        public async Task<string[]> GetFiles(string group)
+        {
+            var uri = string.Format("{0}/files/{1}", Url, group);
             var request = new HttpRequestMessage(HttpMethod.Get, uri);
             var response = await httpClient.SendAsync(request, cts.Token);
             var responseBody = await response.Content.ReadAsStringAsync();
