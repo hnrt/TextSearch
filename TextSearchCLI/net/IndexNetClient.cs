@@ -132,5 +132,22 @@ namespace com.hideakin.textsearch.net
                 return false;
             }
         }
+
+        public async Task<string[]> GetFileGroups()
+        {
+            var uri = string.Format("{0}/filegroup", Url);
+            var request = new HttpRequestMessage(HttpMethod.Get, uri);
+            var response = await httpClient.SendAsync(request, cts.Token);
+            var responseBody = await response.Content.ReadAsStringAsync();
+            if (response.StatusCode == HttpStatusCode.OK)
+            {
+                var rsp = JsonConvert.DeserializeObject<ValuesResponse>(responseBody);
+                return rsp.Values;
+            }
+            else
+            {
+                return null;
+            }
+        }
     }
 }

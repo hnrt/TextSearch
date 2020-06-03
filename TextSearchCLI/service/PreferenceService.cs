@@ -13,7 +13,7 @@ namespace com.hideakin.textsearch.service
 
         private static readonly string SKIPDIRS = "skipdirs";
 
-        private IndexNetClient netClient = IndexNetClient.Instance;
+        private IndexNetClient NetClient { get; } = IndexNetClient.Instance;
 
         public PreferenceService()
         {
@@ -21,21 +21,21 @@ namespace com.hideakin.textsearch.service
 
         public string GetPreference(string name)
         {
-            var task = netClient.GetPreference(name);
+            var task = NetClient.GetPreference(name);
             task.Wait();
             return task.Result;
         }
 
         public bool UpdatePreference(string name, string value)
         {
-            var task = netClient.UpdatePreference(name, value);
+            var task = NetClient.UpdatePreference(name, value);
             task.Wait();
             return task.Result;
         }
 
         public bool DeletePreference(string name)
         {
-            var task = netClient.DeletePreference(name);
+            var task = NetClient.DeletePreference(name);
             task.Wait();
             return task.Result;
         }

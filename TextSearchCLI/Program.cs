@@ -11,6 +11,7 @@ namespace com.hideakin.textsearch
     {
         None,
         Help,
+        PrintGroups,
         UpdateIndex,
         DeleteIndex,
         Query,
@@ -40,6 +41,8 @@ namespace com.hideakin.textsearch
 
         private List<string> OperandList { get; } = new List<string>();
 
+        private FileGroupService FileGrpSvc { get; } = new FileGroupService();
+
         private IndexService IndexSvc { get; } = new IndexService();
 
         private PreferenceService PrefSvc { get; } = new PreferenceService();
@@ -59,6 +62,14 @@ namespace com.hideakin.textsearch
                     throw new Exception(BAD_COMMAND_LINE_SYNTAX);
                 }
                 commandType = CommandType.Help;
+            });
+            OptionMap.Add("-print-groups", (e) =>
+            {
+                if (commandType != CommandType.None)
+                {
+                    throw new Exception(BAD_COMMAND_LINE_SYNTAX);
+                }
+                commandType = CommandType.PrintGroups;
             });
             OptionMap.Add("-group", (e) =>
             {
@@ -179,6 +190,8 @@ namespace com.hideakin.textsearch
 
             OptionAltMap.Add("-h", "-help");
             OptionAltMap.Add("-?", "-help");
+            OptionAltMap.Add("-pg", "-print-groups");
+            OptionAltMap.Add("-print-grp", "-print-groups");
             OptionAltMap.Add("-g", "-group");
             OptionAltMap.Add("-q", "-query");
             OptionAltMap.Add("-i", "-index");
@@ -197,6 +210,7 @@ namespace com.hideakin.textsearch
 
             CommandMap.Add(CommandType.None, Help);
             CommandMap.Add(CommandType.Help, Help);
+            CommandMap.Add(CommandType.PrintGroups, PrintGroups);
             CommandMap.Add(CommandType.UpdateIndex, UpdateIndex);
             CommandMap.Add(CommandType.DeleteIndex, DeleteIndex);
             CommandMap.Add(CommandType.Query, Query);
@@ -234,12 +248,13 @@ namespace com.hideakin.textsearch
             CommandMap[commandType]();
         }
 
-        public void Help()
+        private void Help()
         {
             Console.WriteLine("Usage:");
             Console.WriteLine("  {0} -group FILEGROUP -index PATH...", Name);
             Console.WriteLine("  {0} -group FILEGROUP -delete-index", Name);
             Console.WriteLine("  {0} -group FILEGROUP -query EXPR", Name);
+            Console.WriteLine("  {0} -print-grp", Name);
             Console.WriteLine("  {0} -print-ext", Name);
             Console.WriteLine("  {0} -ext EXT1,EXT2,...", Name);
             Console.WriteLine("  {0} -clear-ext", Name);
@@ -248,7 +263,20 @@ namespace com.hideakin.textsearch
             Console.WriteLine("  {0} -clear-skip-dir", Name);
         }
 
-        public void UpdateIndex()
+        private void PrintGroups()
+        {
+            var names = FileGrpSvc.GetFileGroups();
+            if (names == null)
+            {
+                return;
+            }
+            foreach (string name in names)
+            {
+                Console.WriteLine("{0}", name);
+            }
+        }
+
+        private void UpdateIndex()
         {
             Console.WriteLine("Started indexing...");
             extensions = PrefSvc.GetExtensions();
