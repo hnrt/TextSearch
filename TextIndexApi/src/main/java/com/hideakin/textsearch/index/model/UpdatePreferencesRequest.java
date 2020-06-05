@@ -2,14 +2,32 @@ package com.hideakin.textsearch.index.model;
 
 public class UpdatePreferencesRequest {
 
-	private NameValuePair[] prefs;
-
-	public NameValuePair[] getPrefs() {
-		return prefs;
+	private String name;
+	
+	private String value;
+	
+	public UpdatePreferencesRequest() {
 	}
 
-	public void setPrefs(NameValuePair[] prefs) {
-		this.prefs = prefs;
+	public UpdatePreferencesRequest(String name, String value) {
+		this.name = name;
+		this.value = value;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public String getValue() {
+		return value;
+	}
+
+	public void setValue(String value) {
+		this.value = value;
 	}
 
 }

@@ -8,5 +8,7 @@ public interface PreferenceService {
 	ValueResponse getPreference(String name);
 	void updatePreferences(UpdatePreferencesRequest req);
 	void deletePreference(String name);
+	boolean isServiceUnavailable();
+	void setServiceAvailability(boolean value);
 
 }

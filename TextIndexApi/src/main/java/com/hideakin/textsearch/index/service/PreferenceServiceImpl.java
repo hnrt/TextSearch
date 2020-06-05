@@ -4,7 +4,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.hideakin.textsearch.index.entity.PreferenceEntity;
-import com.hideakin.textsearch.index.model.NameValuePair;
 import com.hideakin.textsearch.index.model.UpdatePreferencesRequest;
 import com.hideakin.textsearch.index.model.ValueResponse;
 import com.hideakin.textsearch.index.repository.PreferenceRepository;
@@ -27,12 +26,10 @@ public class PreferenceServiceImpl implements PreferenceService {
 
 	@Override
 	public void updatePreferences(UpdatePreferencesRequest req) {
-		for (NameValuePair pref : req.getPrefs()) {
-			PreferenceEntity entity = new PreferenceEntity();
-			entity.setName(pref.getName());
-			entity.setValue(pref.getValue());
-			preferenceRepository.save(entity);
-		}
+		PreferenceEntity entity = new PreferenceEntity();
+		entity.setName(req.getName());
+		entity.setValue(req.getValue());
+		preferenceRepository.save(entity);
 	}
 
 	@Override
@@ -41,6 +38,19 @@ public class PreferenceServiceImpl implements PreferenceService {
 		if (entity != null) {
 			preferenceRepository.delete(entity);
 		}
+	}
+	
+	@Override
+	public boolean isServiceUnavailable() {
+		ValueResponse rsp = getPreference("enabled");
+		String value = rsp.getValue();
+		return value != null && value.equalsIgnoreCase("false");
+	}
+
+	@Override
+	public void setServiceAvailability(boolean value) {
+		UpdatePreferencesRequest req = new UpdatePreferencesRequest("enabled", value ? "true" : "false");
+		updatePreferences(req);
 	}
 
 }
