@@ -49,14 +49,13 @@
     <Compile Include="data\SearchOptions.cs" />
     <Compile Include="model\DeleteIndexResponse.cs" />
     <Compile Include="model\FindTextResponse.cs" />
-    <Compile Include="model\NameValuePair.cs" />
     <Compile Include="model\PathLines.cs" />
     <Compile Include="model\PathPositions.cs" />
     <Compile Include="model\PathRanges.cs" />
     <Compile Include="model\Range.cs" />
     <Compile Include="model\UpdateIndexRequest.cs" />
     <Compile Include="model\UpdateIndexResponse.cs" />
-    <Compile Include="model\UpdatePreferencesRequest.cs" />
+    <Compile Include="model\UpdatePreferenceRequest.cs" />
     <Compile Include="model\ValueResponse.cs" />
     <Compile Include="model\ValuesResponse.cs" />
     <Compile Include="net\IndexNetClient.cs" />
@@ -66,6 +65,7 @@
     <Compile Include="service\FileService.cs" />
     <Compile Include="service\IndexService.cs" />
     <Compile Include="service\PreferenceService.cs" />
+    <Compile Include="service\ServiceBase.cs" />
     <Compile Include="service\Tokenizer.cs" />
     <Compile Include="utility\SearchResult.cs" />
     <Compile Include="utility\UnicodeClassifier.cs" />

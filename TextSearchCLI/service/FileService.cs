@@ -2,18 +2,22 @@
 
 namespace com.hideakin.textsearch.service
 {
-    internal class FileService
+    internal class FileService : ServiceBase
     {
-        private IndexNetClient NetClient { get; } = IndexNetClient.Instance;
-
         public FileService()
+            : base()
         {
         }
 
         public string[] GetFiles(string group)
         {
-            var task = NetClient.GetFiles(group);
+            var client = new IndexNetClient() { GroupName = group };
+            var task = client.GetFiles(group);
             task.Wait();
+            if (task.Result == null)
+            {
+                throw NewResponseException(client.Response);
+            }
             return task.Result;
         }
     }

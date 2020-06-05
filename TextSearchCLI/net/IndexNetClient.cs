@@ -12,34 +12,42 @@ namespace com.hideakin.textsearch.net
 {
     internal class IndexNetClient
     {
-        public static IndexNetClient Instance { get; } = new IndexNetClient();
+        private static readonly string SERVICE_UNAVALABLE = "Index temporarily unavailable.";
 
         private static readonly HttpClient httpClient = new HttpClient();
 
-        public string Url { get; set; } = @"http://localhost:8080";
+        public static string Url { get; set; } = @"http://localhost:8080";
+
+        static IndexNetClient()
+        {
+            var envUrl = Environment.GetEnvironmentVariable("TEXTINDEXAPI_URL");
+            if (envUrl != null)
+            {
+                Url = envUrl;
+            }
+        }
 
         public string GroupName { get; set; } = "default";
 
         private CancellationTokenSource cts = new CancellationTokenSource();
 
-        private IndexNetClient()
+        public HttpResponseMessage Response { get; private set; }
+
+        public string ResponseBody { get; private set; }
+
+        public IndexNetClient()
         {
-            var envUrl = Environment.GetEnvironmentVariable("TEXTINDEXAPI_URL");
-            if (envUrl != null)
-            {
-                 Url= envUrl;
-            }
         }
 
-        public async Task<FindTextResponse> FindText(string text, SearchOptions option)
+        public async Task<PathPositions[]> FindText(string text, SearchOptions option)
         {
             var uri = string.Format("{0}/index/{1}?text={2}&option={3}", Url, GroupName, text, Enum.GetName(option.GetType(), option));
             var request = new HttpRequestMessage(HttpMethod.Get, uri);
-            var response = await httpClient.SendAsync(request, cts.Token);
-            var responseBody = await response.Content.ReadAsStringAsync();
-            if (response.StatusCode == HttpStatusCode.OK)
+            Response = await httpClient.SendAsync(request, cts.Token);
+            ResponseBody = await Response.Content.ReadAsStringAsync();
+            if (Response.StatusCode == HttpStatusCode.OK)
             {
-                return JsonConvert.DeserializeObject<FindTextResponse>(responseBody);
+                return JsonConvert.DeserializeObject<FindTextResponse>(ResponseBody).Hits;
             }
             else
             {
@@ -52,11 +60,11 @@ namespace com.hideakin.textsearch.net
             var uri = string.Format("{0}/index/{1}", Url, GroupName);
             var request = new HttpRequestMessage(HttpMethod.Post, uri);
             request.Content = new StringContent(JsonConvert.SerializeObject(input), Encoding.UTF8, "application/json");
-            var response = await httpClient.SendAsync(request, cts.Token);
-            var responseBody = await response.Content.ReadAsStringAsync();
-            if (response.StatusCode == HttpStatusCode.OK)
+            Response = await httpClient.SendAsync(request, cts.Token);
+            ResponseBody = await Response.Content.ReadAsStringAsync();
+            if (Response.StatusCode == HttpStatusCode.OK)
             {
-                return JsonConvert.DeserializeObject<UpdateIndexResponse>(responseBody);
+                return JsonConvert.DeserializeObject<UpdateIndexResponse>(ResponseBody);
             }
             else
             {
@@ -68,28 +76,20 @@ namespace com.hideakin.textsearch.net
         {
             var uri = string.Format("{0}/index/{1}", Url, GroupName);
             var request = new HttpRequestMessage(HttpMethod.Delete, uri);
-            var response = await httpClient.SendAsync(request, cts.Token);
-            var responseBody = await response.Content.ReadAsStringAsync();
-            if (response.StatusCode == HttpStatusCode.OK)
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
+            Response = await httpClient.SendAsync(request, cts.Token);
+            ResponseBody = await Response.Content.ReadAsStringAsync();
+            return Response.StatusCode == HttpStatusCode.OK;
         }
 
         public async Task<string> GetPreference(string name)
         {
             var uri = string.Format("{0}/preferences/{1}", Url, name);
             var request = new HttpRequestMessage(HttpMethod.Get, uri);
-            var response = await httpClient.SendAsync(request, cts.Token);
-            var responseBody = await response.Content.ReadAsStringAsync();
-            if (response.StatusCode == HttpStatusCode.OK)
+            Response = await httpClient.SendAsync(request, cts.Token);
+            ResponseBody = await Response.Content.ReadAsStringAsync();
+            if (Response.StatusCode == HttpStatusCode.OK)
             {
-                var rsp = JsonConvert.DeserializeObject<ValueResponse>(responseBody);
-                return rsp.Value;
+                return JsonConvert.DeserializeObject<ValueResponse>(ResponseBody).Value;
             }
             else
             {
@@ -101,48 +101,31 @@ namespace com.hideakin.textsearch.net
         {
             var uri = string.Format("{0}/preferences", Url);
             var request = new HttpRequestMessage(HttpMethod.Post, uri);
-            var input = new UpdatePreferencesRequest();
-            input.Prefs = new NameValuePair[1];
-            input.Prefs[0] = new NameValuePair(name, value);
+            var input = new UpdatePreferenceRequest(name, value);
             request.Content = new StringContent(JsonConvert.SerializeObject(input), Encoding.UTF8, "application/json");
-            var response = await httpClient.SendAsync(request, cts.Token);
-            var responseBody = await response.Content.ReadAsStringAsync();
-            if (response.StatusCode == HttpStatusCode.OK)
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
+            Response = await httpClient.SendAsync(request, cts.Token);
+            ResponseBody = await Response.Content.ReadAsStringAsync();
+            return Response.StatusCode == HttpStatusCode.OK;
         }
 
         public async Task<bool> DeletePreference(string name)
         {
             var uri = string.Format("{0}/preferences/{1}", Url, name);
             var request = new HttpRequestMessage(HttpMethod.Delete, uri);
-            var response = await httpClient.SendAsync(request, cts.Token);
-            var responseBody = await response.Content.ReadAsStringAsync();
-            if (response.StatusCode == HttpStatusCode.OK)
-            {
-                return true;
-            }
-            else
-            {
-                return false;
-            }
+            Response = await httpClient.SendAsync(request, cts.Token);
+            ResponseBody = await Response.Content.ReadAsStringAsync();
+            return Response.StatusCode == HttpStatusCode.OK;
         }
 
         public async Task<string[]> GetFileGroups()
         {
             var uri = string.Format("{0}/groups", Url);
             var request = new HttpRequestMessage(HttpMethod.Get, uri);
-            var response = await httpClient.SendAsync(request, cts.Token);
-            var responseBody = await response.Content.ReadAsStringAsync();
-            if (response.StatusCode == HttpStatusCode.OK)
+            Response = await httpClient.SendAsync(request, cts.Token);
+            ResponseBody = await Response.Content.ReadAsStringAsync();
+            if (Response.StatusCode == HttpStatusCode.OK)
             {
-                var rsp = JsonConvert.DeserializeObject<ValuesResponse>(responseBody);
-                return rsp.Values;
+                return JsonConvert.DeserializeObject<ValuesResponse>(ResponseBody).Values;
             }
             else
             {
@@ -154,12 +137,11 @@ namespace com.hideakin.textsearch.net
         {
             var uri = string.Format("{0}/files/{1}", Url, group);
             var request = new HttpRequestMessage(HttpMethod.Get, uri);
-            var response = await httpClient.SendAsync(request, cts.Token);
-            var responseBody = await response.Content.ReadAsStringAsync();
-            if (response.StatusCode == HttpStatusCode.OK)
+            Response = await httpClient.SendAsync(request, cts.Token);
+            ResponseBody = await Response.Content.ReadAsStringAsync();
+            if (Response.StatusCode == HttpStatusCode.OK)
             {
-                var rsp = JsonConvert.DeserializeObject<ValuesResponse>(responseBody);
-                return rsp.Values;
+                return JsonConvert.DeserializeObject<ValuesResponse>(ResponseBody).Values;
             }
             else
             {

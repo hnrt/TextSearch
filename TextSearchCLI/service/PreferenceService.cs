@@ -1,11 +1,12 @@
 ﻿using com.hideakin.textsearch.net;
 using System.Collections.Generic;
 using System;
+using System.Net;
 using System.Text;
 
 namespace com.hideakin.textsearch.service
 {
-    internal class PreferenceService
+    internal class PreferenceService : ServiceBase
     {
         private const int MAX_LEN = 8192;
 
@@ -13,31 +14,43 @@ namespace com.hideakin.textsearch.service
 
         private static readonly string SKIPDIRS = "skipdirs";
 
-        private IndexNetClient NetClient { get; } = IndexNetClient.Instance;
-
         public PreferenceService()
+            : base()
         {
         }
 
         public string GetPreference(string name)
         {
-            var task = NetClient.GetPreference(name);
+            var client = new IndexNetClient();
+            var task = client.GetPreference(name);
             task.Wait();
+            if (client.Response.StatusCode != HttpStatusCode.OK)
+            {
+                throw NewResponseException(client.Response);
+            }
             return task.Result;
         }
 
-        public bool UpdatePreference(string name, string value)
+        public void UpdatePreference(string name, string value)
         {
-            var task = NetClient.UpdatePreference(name, value);
+            var client = new IndexNetClient();
+            var task = client.UpdatePreference(name, value);
             task.Wait();
-            return task.Result;
+            if (!task.Result)
+            {
+                throw NewResponseException(client.Response);
+            }
         }
 
-        public bool DeletePreference(string name)
+        public void DeletePreference(string name)
         {
-            var task = NetClient.DeletePreference(name);
+            var client = new IndexNetClient();
+            var task = client.DeletePreference(name);
             task.Wait();
-            return task.Result;
+            if (!task.Result)
+            {
+                throw NewResponseException(client.Response);
+            }
         }
 
         public List<string> GetExtensions()
@@ -55,7 +68,7 @@ namespace com.hideakin.textsearch.service
             return list;
         }
 
-        public bool AddExtensions(string extensions)
+        public void AddExtensions(string extensions)
         {
             var list = GetExtensions();
             var ss = extensions.Split(new char[] { ',', ';', ':' });
@@ -76,12 +89,12 @@ namespace com.hideakin.textsearch.service
             {
                 throw new Exception(EXTENSIONS + ": Too long.");
             }
-            return UpdatePreference(EXTENSIONS, sb.ToString());
+            UpdatePreference(EXTENSIONS, sb.ToString());
         }
 
-        public bool ClearExtensions()
+        public void ClearExtensions()
         {
-            return DeletePreference(EXTENSIONS);
+            DeletePreference(EXTENSIONS);
         }
 
         public List<string> GetSkipDirs()
@@ -99,7 +112,7 @@ namespace com.hideakin.textsearch.service
             return list;
         }
 
-        public bool AddSkipDirs(string dirs)
+        public void AddSkipDirs(string dirs)
         {
             var list = GetSkipDirs();
             var ss = dirs.Split(new char[] { ',', ';', ':' });
@@ -120,12 +133,12 @@ namespace com.hideakin.textsearch.service
             {
                 throw new Exception(SKIPDIRS + ": Too long.");
             }
-            return UpdatePreference(SKIPDIRS, sb.ToString());
+            UpdatePreference(SKIPDIRS, sb.ToString());
         }
 
-        public bool ClearSkipDirs()
+        public void ClearSkipDirs()
         {
-            return DeletePreference(SKIPDIRS);
+            DeletePreference(SKIPDIRS);
         }
     }
 }

@@ -377,10 +377,7 @@ namespace com.hideakin.textsearch
         {
             path = Path.GetFullPath(path);
             Console.WriteLine("{0}", path);
-            if (!IndexSvc.UpdateIndex(groupName, path))
-            {
-                Console.WriteLine("  FAILURE");
-            }
+            IndexSvc.UpdateIndex(groupName, path);
         }
 
         public void DeleteIndex()
@@ -425,27 +422,15 @@ namespace com.hideakin.textsearch
                 }
                 sb.Append(s);
             }
-            if (PrefSvc.AddExtensions(sb.ToString()))
-            {
-                Console.WriteLine("Done.");
-            }
-            else
-            {
-                Console.WriteLine("Failed.");
-            }
+            PrefSvc.AddExtensions(sb.ToString());
+            Console.WriteLine("Done.");
         }
 
         private void ClearExtensions()
         {
             Console.WriteLine("Clearing extensions setting...");
-            if (PrefSvc.ClearExtensions())
-            {
-                Console.WriteLine("Done.");
-            }
-            else
-            {
-                Console.WriteLine("Failed.");
-            }
+            PrefSvc.ClearExtensions();
+            Console.WriteLine("Done.");
         }
 
         private void PrintSkipDirs()
@@ -469,27 +454,15 @@ namespace com.hideakin.textsearch
                 }
                 sb.Append(s);
             }
-            if (PrefSvc.AddSkipDirs(sb.ToString()))
-            {
-                Console.WriteLine("Done.");
-            }
-            else
-            {
-                Console.WriteLine("Failed.");
-            }
+            PrefSvc.AddSkipDirs(sb.ToString());
+            Console.WriteLine("Done.");
         }
 
         private void ClearSkipDirs()
         {
             Console.WriteLine("Clearing skip-dirs setting...");
-            if (PrefSvc.ClearSkipDirs())
-            {
-                Console.WriteLine("Done.");
-            }
-            else
-            {
-                Console.WriteLine("Failed.");
-            }
+            PrefSvc.ClearSkipDirs();
+            Console.WriteLine("Done.");
         }
 
         static void Main(string[] args)

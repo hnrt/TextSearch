@@ -2,7 +2,7 @@
 
 namespace com.hideakin.textsearch.model
 {
-    internal class NameValuePair
+    internal class UpdatePreferenceRequest
     {
         [JsonProperty("name")]
         public string Name { get; set; }
@@ -10,11 +10,11 @@ namespace com.hideakin.textsearch.model
         [JsonProperty("value")]
         public string Value { get; set; }
 
-        public NameValuePair()
+        public UpdatePreferenceRequest()
         {
         }
 
-        public NameValuePair(string name, string value)
+        public UpdatePreferenceRequest(string name, string value)
         {
             Name = name;
             Value = value;
