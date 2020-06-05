@@ -12,8 +12,6 @@ namespace com.hideakin.textsearch.net
 {
     internal class IndexNetClient
     {
-        private static readonly string SERVICE_UNAVALABLE = "Index temporarily unavailable.";
-
         private static readonly HttpClient httpClient = new HttpClient();
 
         public static string Url { get; set; } = @"http://localhost:8080";
