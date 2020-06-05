@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.hideakin.textsearch.index.model.UpdatePreferencesRequest;
+import com.hideakin.textsearch.index.model.UpdatePreferenceRequest;
 import com.hideakin.textsearch.index.model.ValueResponse;
 import com.hideakin.textsearch.index.service.PreferenceService;
 
@@ -24,9 +24,9 @@ public class PreferenceController {
 	}
 
 	@RequestMapping(value="/preferences",method=RequestMethod.POST)
-	public void updatePreferences(
-			@RequestBody UpdatePreferencesRequest req) {
-		preferenceService.updatePreferences(req);
+	public void updatePreference(
+			@RequestBody UpdatePreferenceRequest req) {
+		preferenceService.updatePreference(req);
 	}
 
 	@RequestMapping(value="/preferences/{name}",method=RequestMethod.DELETE)

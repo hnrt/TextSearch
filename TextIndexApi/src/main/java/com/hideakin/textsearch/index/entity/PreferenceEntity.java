@@ -16,6 +16,14 @@ public class PreferenceEntity {
 	@Column(name="value")
 	private String value;
 
+	public PreferenceEntity() {
+	}
+	
+	public PreferenceEntity(String name, String value) {
+		this.name = name;
+		this.value = value;
+	}
+	
 	public String getName() {
 		return name;
 	}
