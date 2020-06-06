@@ -37,6 +37,8 @@ TextIndexApi is a web API module implemented in Java with Spring Boot. This modu
 
 ## How to run
 
+1. Specify file extensions to be indexed: `TextSearchCLI.exe -ext c,cpp,h,rc,cs,java`
+1. Specify directory to be skipped for indexing: `TextSearchCLI.exe -skip-dir bin,lib,obj`
 1. Build text index: `TextSearchCLI.exe -g IndexGroupName -index DirectoryPath`
 1. Search files for a phrase: `TextSearchCLI.exe -g IndexGroupName -query "phrase"`
 
@@ -80,5 +82,7 @@ TextIndexApi は、Spring Boot を使って Java で実装された Web API モジュールです。
 
 ## 実行方法
 
+1. 索引対象のファイルの拡張子を指定: `TextSearchCLI.exe -ext c,cpp,h,rc,cs,java`
+1. 索引対象外のディレクトリを指定: `TextSearchCLI.exe -skip-dir bin,lib,obj`
 1. テキスト索引を作成: `TextSearchCLI.exe -g 索引グループ名 -index ディレクトリパス`
 1. フレーズでファイルを検索: `TextSearchCLI.exe -g 索引グループ名 -query "検索フレーズ"`
