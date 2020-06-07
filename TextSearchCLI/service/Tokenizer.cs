@@ -1,4 +1,5 @@
-﻿using com.hideakin.textsearch.utility;
+﻿using com.hideakin.textsearch.model;
+using com.hideakin.textsearch.utility;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -12,13 +13,17 @@ namespace com.hideakin.textsearch.service
 
         public static readonly string NEW_LINE = "\n";
 
+        private const int EOF = -1;
+
+        public List<Token> Tokens { get; } = new List<Token>();
+
+        private int row = 0;
+
+        private int col = 0;
+
+        private StringBuilder buf = new StringBuilder();
+
         private int c;
-
-        private int line;
-
-        public List<string> Texts { get; } = new List<string>();
-
-        public List<int> Lines { get; } = new List<int>();
 
         public Tokenizer()
         {
@@ -26,63 +31,86 @@ namespace com.hideakin.textsearch.service
 
         public void Run(TextReader tr)
         {
-            Texts.Clear();
-            Lines.Clear();
-            var sb = new StringBuilder();
             c = tr.Read();
-            line = 0;
-            while (c != -1)
+            while (c != EOF)
             {
                 if (Char.IsWhiteSpace((char)c))
                 {
                     if (c == '\n')
                     {
-                        line++;
+                        row++;
+                        col = 0;
+                    }
+                    else
+                    {
+                        col++;
                     }
                     c = tr.Read();
                 }
                 else if (UnicodeClassifier.IsJapaneseLetter(c))
                 {
-                    sb.Length = 0;
-                    sb.Append((char)c);
+                    int tRow = row;
+                    int tCol = col;
+                    buf.Length = 0;
+                    buf.Append((char)c);
+                    col++;
                     c = tr.Read();
                     if (UnicodeClassifier.IsJapaneseLetter(c))
                     {
-                        sb.Append((char)c);
+                        buf.Append((char)c);
                     }
-                    Texts.Add(sb.ToString());
-                    Lines.Add(line);
+                    Tokens.Add(new Token(buf.ToString(), tRow, tCol));
                 }
                 else if (UnicodeClassifier.IsFullwidthAlphaNumeric(c))
                 {
-                    sb.Length = 0;
-                    sb.Append((char)c);
+                    int tRow = row;
+                    int tCol = col;
+                    buf.Length = 0;
+                    buf.Append((char)c);
+                    col++;
                     c = tr.Read();
-                    while (sb.Length < MAX_LEN && UnicodeClassifier.IsFullwidthAlphaNumeric(c))
+                    while (buf.Length < MAX_LEN && UnicodeClassifier.IsFullwidthAlphaNumeric(c))
                     {
-                        sb.Append((char)c);
+                        buf.Append((char)c);
+                        col++;
                         c = tr.Read();
                     }
-                    Texts.Add(sb.ToString());
-                    Lines.Add(line);
+                    Tokens.Add(new Token(buf.ToString(), tRow, tCol));
                 }
                 else if (Char.IsLetterOrDigit((char)c))
                 {
-                    sb.Length = 0;
-                    sb.Append((char)c);
+                    int tRow = row;
+                    int tCol = col;
+                    buf.Length = 0;
+                    buf.Append((char)c);
+                    col++;
                     c = tr.Read();
-                    while (sb.Length < MAX_LEN && Char.IsLetterOrDigit((char)c))
+                    while (buf.Length < MAX_LEN && Char.IsLetterOrDigit((char)c))
                     {
-                        sb.Append((char)c);
+                        buf.Append((char)c);
+                        col++;
                         c = tr.Read();
                     }
-                    Texts.Add(sb.ToString().ToUpperInvariant());
-                    Lines.Add(line);
+                    Tokens.Add(new Token(buf.ToString().ToUpperInvariant(), tRow, tCol));
                 }
                 else 
                 {
+                    col++;
                     c = tr.Read();
                 }
+            }
+        }
+
+        public List<string> Texts
+        {
+            get
+            {
+                var list = new List<string>(Tokens.Count);
+                foreach (Token token in Tokens)
+                {
+                    list.Add(token.Text);
+                }
+                return list;
             }
         }
     }

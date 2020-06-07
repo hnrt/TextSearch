@@ -49,10 +49,11 @@
     <Compile Include="data\SearchOptions.cs" />
     <Compile Include="model\DeleteIndexResponse.cs" />
     <Compile Include="model\FindTextResponse.cs" />
-    <Compile Include="model\PathLines.cs" />
     <Compile Include="model\PathPositions.cs" />
     <Compile Include="model\PathRanges.cs" />
-    <Compile Include="model\Range.cs" />
+    <Compile Include="model\PathRowColumns.cs" />
+    <Compile Include="model\RowColumns.cs" />
+    <Compile Include="model\Token.cs" />
     <Compile Include="model\UpdateIndexRequest.cs" />
     <Compile Include="model\UpdateIndexResponse.cs" />
     <Compile Include="model\UpdatePreferenceRequest.cs" />

@@ -6,7 +6,7 @@ namespace com.hideakin.textsearch.model
     {
         public string Path { get; set; }
 
-        public List<Range> Ranges { get; } = new List<Range>();
+        public List<(int Start, int End)> Ranges { get; } = new List<(int Start, int End)>();
 
         public PathRanges()
         {
@@ -17,7 +17,7 @@ namespace com.hideakin.textsearch.model
             Path = pp.Path;
             foreach (int position in pp.Positions)
             {
-                Ranges.Add(new Range(position));
+                Ranges.Add((position, position));
             }
         }
 
@@ -61,8 +61,7 @@ namespace com.hideakin.textsearch.model
                 {
                     if (pp.Positions[index] == range.End + 1)
                     {
-                        range.End = pp.Positions[index];
-                        result.Ranges.Add(range);
+                        result.Ranges.Add((range.Start, pp.Positions[index]));
                         break;
                     }
                 }

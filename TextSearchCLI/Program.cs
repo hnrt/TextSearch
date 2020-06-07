@@ -1,4 +1,5 @@
 ﻿using com.hideakin.textsearch.model;
+using com.hideakin.textsearch.net;
 using com.hideakin.textsearch.service;
 using System;
 using System.Collections.Generic;
@@ -53,6 +54,8 @@ namespace com.hideakin.textsearch
         private List<string> extensions;
 
         private List<string> skipDirs;
+
+        private bool formatHTML = false;
 
         public static int DebugLevel { get; set; } = 0;
 
@@ -200,6 +203,14 @@ namespace com.hideakin.textsearch
                 }
                 commandType = CommandType.ClearSkipDirs;
             });
+            OptionMap.Add("-index-api", (e) =>
+            {
+                if (!e.MoveNext())
+                {
+                    throw new Exception(BAD_COMMAND_LINE_SYNTAX);
+                }
+                IndexNetClient.Url = (string)e.Current;
+            });
             OptionMap.Add("-debug", (e) =>
             {
                 DebugLevel++;
@@ -272,7 +283,7 @@ namespace com.hideakin.textsearch
             Console.WriteLine("Usage:");
             Console.WriteLine("  {0} -group FILEGROUP -index PATH...", Name);
             Console.WriteLine("  {0} -group FILEGROUP -delete-index", Name);
-            Console.WriteLine("  {0} -group FILEGROUP -query EXPR", Name);
+            Console.WriteLine("  {0} -group FILEGROUP -query EXPR [-html]", Name);
             Console.WriteLine("  {0} -print-grp", Name);
             Console.WriteLine("  {0} -print-ext", Name);
             Console.WriteLine("  {0} -ext EXT1,EXT2,...", Name);
@@ -389,16 +400,106 @@ namespace com.hideakin.textsearch
 
         private void Query()
         {
-            var rsp = IndexSvc.FindText(groupName, OperandList[0]);
-            foreach (PathLines pathLines in rsp)
+            var sb = new StringBuilder();
+            foreach (var s in OperandList)
             {
-                Console.WriteLine("{0}", pathLines.Path);
-                var lineTexts = File.ReadAllLines(pathLines.Path);
-                foreach (int line in pathLines.Lines)
+                if (s == "-html")
                 {
-                    Console.WriteLine("{0,6}: {1}", line + 1, lineTexts[line]);
+                    formatHTML = true;
+                }
+                else
+                {
+                    if (sb.Length > 0)
+                    {
+                        sb.Append(' ');
+                    }
+                    sb.Append(s);
                 }
             }
+            var rsp = IndexSvc.FindText(groupName, sb.ToString());
+            if (formatHTML)
+            {
+                FormatQueryResultsInHtml(rsp);
+            }
+            else
+            {
+                FormatQueryResults(rsp);
+            }
+        }
+
+        private void FormatQueryResults(PathRowColumns[] results)
+        {
+            foreach (var prc in results)
+            {
+                Console.WriteLine("{0}", prc.Path);
+                var lines = File.ReadAllLines(prc.Path);
+                foreach (var entry in prc.Rows)
+                {
+                    Console.WriteLine("{0,6}: {1}", entry.Row + 1, lines[entry.Row]);
+                }
+            }
+        }
+
+        private void FormatQueryResultsInHtml(PathRowColumns[] results)
+        {
+            var sb = new StringBuilder();
+            Console.WriteLine("<!doctype html>");
+            Console.WriteLine("<html>");
+            Console.WriteLine("<head>");
+            Console.WriteLine("<style>");
+            Console.WriteLine("table { border-collapse:collapse; border-width:thin; border-style:solid; width:100%; }");
+            Console.WriteLine("tr td { border-width:thin; border-style:solid; }");
+            Console.WriteLine("td.lineno { width:6em; text-align:right; background-color:lightgray; }");
+            Console.WriteLine("font.path { color:darkgreen; }");
+            Console.WriteLine("font.match { color:red; }");
+            Console.WriteLine("</style>");
+            Console.WriteLine("</head>");
+            Console.WriteLine("<body>");
+            foreach (var prc in results)
+            {
+                Console.WriteLine("<p>");
+                Console.WriteLine("<font class=\"path\">{0}</font>", prc.Path);
+                Console.WriteLine("<table>");
+                var lines = File.ReadAllLines(prc.Path);
+                foreach (var entry in prc.Rows)
+                {
+                    var line = lines[entry.Row];
+                    sb.Length = 0;
+                    int u = 0;
+                    int v = 0;
+                    for (int i = 0; i < line.Length; i++)
+                    {
+                        if (u < entry.Columns.Count && i == entry.Columns[u].Start)
+                        {
+                            if (u++ == v)
+                            {
+                                sb.Append("<font class=\"match\">");
+                            }
+                        }
+                        if (v < entry.Columns.Count && i == entry.Columns[v].End)
+                        {
+                            if (++v == u)
+                            {
+                                sb.Append("</font>");
+                            }
+                        }
+                        char c = line[i];
+                        if (c == '&') sb.Append("&amp;");
+                        else if (c == '<') sb.Append("&lt;");
+                        else if (c == '>') sb.Append("&gt;");
+                        else sb.Append(c);
+                    }
+                    if (v < u)
+                    {
+                        sb.Append("</font>");
+                    }
+                    Console.WriteLine("<tr><td class=\"lineno\">{0}</td><td>{1}</td></tr>", entry.Row + 1, sb.ToString());
+                }
+                Console.WriteLine("</table>");
+                Console.WriteLine("</p>");
+            }
+            Console.WriteLine("</body>");
+            Console.WriteLine("</html>");
         }
 
         private void PrintExtensions()
