@@ -33,21 +33,27 @@ public class FileServiceImpl implements FileService {
 			return rsp;
 		}
 		List<FileEntity> entities = fileRepository.findAllByGid(gid);
-		String[] values = new String[entities.size()];
-		int index = 0;
-		for (FileEntity entity : entities) {
-			values[index++] = entity.getPath();
+		if (entities != null) {
+			String[] values = new String[entities.size()];
+			int index = 0;
+			for (FileEntity entity : entities) {
+				values[index++] = entity.getPath();
+			}
+			rsp.setValues(values);
+		} else {
+			rsp.setValues(new String[0]);
 		}
-		rsp.setValues(values);
 		return rsp;
 	}
 	
 	@Override
 	public int getFid(String path, int gid) {
 		List<FileEntity> entities = fileRepository.findAllByPath(path);
-		for (FileEntity entity : entities) {
-			if (entity.getGid() == gid) {
-				return entity.getFid();
+		if (entities != null) {
+			for (FileEntity entity : entities) {
+				if (entity.getGid() == gid) {
+					return entity.getFid();
+				}
 			}
 		}
 		return -1;
@@ -55,10 +61,12 @@ public class FileServiceImpl implements FileService {
 
 	@Override
 	public List<Integer> getFids(int gid) {
+		List<Integer> fids = new ArrayList<Integer>();
 		List<FileEntity> entities = fileRepository.findAllByGid(gid);
-		List<Integer> fids = new ArrayList<Integer>(entities.size());
-		for (FileEntity entity : entities) {
-			fids.add(entity.getFid());
+		if (entities != null) {
+			for (FileEntity entity : entities) {
+				fids.add(entity.getFid());
+			}
 		}
 		return fids;
 	}
