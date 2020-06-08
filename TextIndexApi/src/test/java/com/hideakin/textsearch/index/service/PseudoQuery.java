@@ -15,15 +15,21 @@ import javax.persistence.TemporalType;
 public class PseudoQuery implements Query {
 	
 	private int value;
+	
+	private List<String> list;
 
 	public PseudoQuery(int value) {
 		this.value = value;
 	}
 
+	public PseudoQuery(List<String> list) {
+		this.list = list;
+	}
+
 	@SuppressWarnings("rawtypes")
 	@Override
 	public List getResultList() {
-		return null;
+		return list;
 	}
 
 	@Override
