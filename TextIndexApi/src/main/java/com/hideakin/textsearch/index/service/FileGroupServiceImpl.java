@@ -21,18 +21,22 @@ public class FileGroupServiceImpl implements FileGroupService {
 	private EntityManager em;
 
 	@Autowired
-	FileGroupRepository fileGroupRepository;
+	private FileGroupRepository fileGroupRepository;
 
 	@Override
 	public ValuesResponse getGroups() {
 		ValuesResponse rsp = new ValuesResponse();
 		List<FileGroupEntity> entities = fileGroupRepository.findAll();
-		String[] values = new String[entities.size()];
-		int index = 0;
-		for (FileGroupEntity entity : entities) {
-			values[index++] = entity.getName();
+		if (entities != null) {
+			String[] values = new String[entities.size()];
+			int index = 0;
+			for (FileGroupEntity entity : entities) {
+				values[index++] = entity.getName();
+			}
+			rsp.setValues(values);
+		} else {
+			rsp.setValues(new String[0]);
 		}
-		rsp.setValues(values);
 		return rsp;
 	}
 
