@@ -16,6 +16,16 @@ public class FileGroupEntity {
 	@Column(name="name")
 	private String name;
 
+	public FileGroupEntity() {
+		this.gid = -1;
+		this.name = null;
+	}
+
+	public FileGroupEntity(int gid, String name) {
+		this.gid = gid;
+		this.name = name;
+	}
+
 	public int getGid() {
 		return gid;
 	}

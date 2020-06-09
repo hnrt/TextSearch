@@ -22,6 +22,16 @@ public class TextEntity {
 	@Column(name="dst")
 	private byte[] dist;
 
+	public TextEntity() {
+		this.text = null;
+		this.dist = null;
+	}
+
+	public TextEntity(String text, byte[] dist) {
+		this.text = text;
+		this.dist = dist;
+	}
+
 	public String getText() {
 		return text;
 	}

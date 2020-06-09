@@ -17,6 +17,8 @@ public class PreferenceEntity {
 	private String value;
 
 	public PreferenceEntity() {
+		this.name = null;
+		this.value = null;
 	}
 	
 	public PreferenceEntity(String name, String value) {

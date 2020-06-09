@@ -55,9 +55,7 @@ public class FileGroupServiceTests {
 
 	@Test
 	public void getGid_successful() {
-		FileGroupEntity entity = new FileGroupEntity();
-		entity.setGid(123);
-		entity.setName("abc");
+		FileGroupEntity entity = new FileGroupEntity(123, "abc");
 		when(fileGroupRepository.findByName(entity.getName())).thenReturn(entity);
 		int gid = fileGroupService.getGid(entity.getName());
 		Assertions.assertEquals(entity.getGid(), gid);
@@ -75,9 +73,7 @@ public class FileGroupServiceTests {
 		int maxgid = 789;
 		PseudoQuery q = new PseudoQuery(maxgid);
 		when(em.createQuery("SELECT max(gid) FROM filegroups")).thenReturn(q);
-		FileGroupEntity entity = new FileGroupEntity();
-		entity.setGid(maxgid + 1);
-		entity.setName("def");
+		FileGroupEntity entity = new FileGroupEntity(maxgid + 1, "def");
 		when(fileGroupRepository.save(any(FileGroupEntity.class))).thenReturn(entity);
 		int gid = fileGroupService.addGroup(entity.getName());
 		Assertions.assertEquals(entity.getGid(), gid);
@@ -98,10 +94,7 @@ public class FileGroupServiceTests {
 	}
 
 	private void add(List<FileGroupEntity> entities, int gid, String name) {
-		FileGroupEntity entity = new FileGroupEntity();
-		entity.setGid(gid);
-		entity.setName(name);
-		entities.add(entity);
+		entities.add(new FileGroupEntity(gid, name));
 	}
 
 }

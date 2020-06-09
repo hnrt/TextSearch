@@ -5,6 +5,16 @@ public class UpdateIndexRequest {
 	private String path;
 	
 	private String[] texts;
+	
+	public UpdateIndexRequest() {
+		this.path = null;
+		this.texts = null;
+	}
+
+	public UpdateIndexRequest(String path, String[] texts) {
+		this.path = path;
+		this.texts = texts;
+	}
 
 	public String getPath() {
 		return path;

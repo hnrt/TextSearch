@@ -18,6 +18,18 @@ public class FileEntity {
 
 	@Column(name="gid")
 	private int gid;
+	
+	public FileEntity() {
+		this.fid = -1;
+		this.path = null;
+		this.gid = -1;
+	}
+
+	public FileEntity(int fid, String path, int gid) {
+		this.fid = fid;
+		this.path = path;
+		this.gid = gid;
+	}
 
 	public int getFid() {
 		return fid;

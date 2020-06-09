@@ -134,45 +134,28 @@ public class FileServiceTests {
 
 	@Test
 	public void addFile_successful() {
-		String path = "/home/waldo/corge.h";
-		int gid = 123;
 		int maxfid = 987;
 		PseudoQuery q = new PseudoQuery(maxfid);
 		when(em.createQuery("SELECT max(fid) FROM files")).thenReturn(q);
-		FileEntity entity = new FileEntity();
-		entity.setFid(maxfid + 1);
-		entity.setPath(path);
-		entity.setGid(gid);
+		FileEntity entity = new FileEntity(maxfid + 1, "/home/waldo/corge.h", 123);
 		when(fileRepository.save(any(FileEntity.class))).thenReturn(entity);
-		int fid = fileService.addFile(path, gid);
+		int fid = fileService.addFile(entity.getPath(), entity.getGid());
 		Assertions.assertEquals(entity.getFid(), fid);
 	}
 
 	@Test
 	public void getPath_successful() {
-		String path = "/home/plugh/thud.cs";
-		int fid = 456;
-		int gid = 789;
-		FileEntity entity = new FileEntity();
-		entity.setFid(fid);
-		entity.setPath(path);
-		entity.setGid(gid);
-		when(fileRepository.findByFid(fid)).thenReturn(entity);
-		path = fileService.getPath(fid, gid);
+		FileEntity entity = new FileEntity(456, "/home/plugh/thud.cs", 789);
+		when(fileRepository.findByFid(entity.getFid())).thenReturn(entity);
+		String path = fileService.getPath(entity.getFid(), entity.getGid());
 		Assertions.assertEquals(entity.getPath(), path);
 	}
 
 	@Test
 	public void getPath_groupunmatched() {
-		String path = "/home/plugh/thud.cs";
-		int fid = 456;
-		int gid = 789;
-		FileEntity entity = new FileEntity();
-		entity.setFid(fid);
-		entity.setPath(path);
-		entity.setGid(gid);
-		when(fileRepository.findByFid(fid)).thenReturn(entity);
-		path = fileService.getPath(fid, gid + 1);
+		FileEntity entity = new FileEntity(456, "/home/plugh/thud.cs", 789);
+		when(fileRepository.findByFid(entity.getFid())).thenReturn(entity);
+		String path = fileService.getPath(entity.getFid(), entity.getGid() + 1);
 		Assertions.assertEquals(null, path);
 	}
 
@@ -210,10 +193,6 @@ public class FileServiceTests {
 	}
 
 	private void add(List<FileEntity> entities, int fid, String path, int gid) {
-		FileEntity entity = new FileEntity();
-		entity.setFid(fid);
-		entity.setPath(path);
-		entity.setGid(gid);
-		entities.add(entity);
+		entities.add(new FileEntity(fid, path, gid));
 	}
 }
