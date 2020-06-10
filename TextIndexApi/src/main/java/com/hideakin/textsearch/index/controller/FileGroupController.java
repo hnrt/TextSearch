@@ -14,7 +14,7 @@ public class FileGroupController {
 	@Autowired
 	private FileGroupService service;
 
-	@RequestMapping(value="/groups",method=RequestMethod.GET)
+	@RequestMapping(value="/v1/groups",method=RequestMethod.GET)
 	public ValuesResponse getGroups() {
 		return service.getGroups();
 	}

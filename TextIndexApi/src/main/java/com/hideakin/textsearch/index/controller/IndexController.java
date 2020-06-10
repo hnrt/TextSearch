@@ -20,25 +20,25 @@ public class IndexController {
 	@Autowired
 	private IndexService service;
 	
-	@RequestMapping(value="/index",method=RequestMethod.GET)
+	@RequestMapping(value="/v1/index",method=RequestMethod.GET)
 	public FindTextResponse findText(
 			@RequestParam(name = "text") String text,
 			@RequestParam(name = "option", defaultValue = "exact") SearchOptions option) {
     	return service.findText("default", text, option);
 	}
 
-	@RequestMapping(value="/index",method=RequestMethod.POST)
+	@RequestMapping(value="/v1/index",method=RequestMethod.POST)
 	public UpdateIndexResponse updateIndex(
 			@RequestBody UpdateIndexRequest req) {
 		return service.updateIndex("default", req);
 	}
 
-	@RequestMapping(value="/index",method=RequestMethod.DELETE)
+	@RequestMapping(value="/v1/index",method=RequestMethod.DELETE)
 	public void deleteIndex() {
 		service.deleteIndex("default");
 	}
 
-	@RequestMapping(value="/index/{group}",method=RequestMethod.GET)
+	@RequestMapping(value="/v1/index/{group}",method=RequestMethod.GET)
 	public FindTextResponse findTextByGroup(
 			@PathVariable String group,
 			@RequestParam(name = "text") String text,
@@ -46,14 +46,14 @@ public class IndexController {
     	return service.findText(group, text, option);
 	}
 
-	@RequestMapping(value="/index/{group}",method=RequestMethod.POST)
+	@RequestMapping(value="/v1/index/{group}",method=RequestMethod.POST)
 	public UpdateIndexResponse updateIndexByGroup(
 			@PathVariable String group,
 			@RequestBody UpdateIndexRequest req) {
 		return service.updateIndex(group, req);
 	}
 
-	@RequestMapping(value="/index/{group}",method=RequestMethod.DELETE)
+	@RequestMapping(value="/v1/index/{group}",method=RequestMethod.DELETE)
 	public void deleteIndexByGroup(
 			@PathVariable String group) {
 		service.deleteIndex(group);

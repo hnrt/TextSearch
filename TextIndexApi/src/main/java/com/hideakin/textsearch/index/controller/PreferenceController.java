@@ -17,19 +17,19 @@ public class PreferenceController {
 	@Autowired
 	private PreferenceService preferenceService;
 	
-	@RequestMapping(value="/preferences/{name}",method=RequestMethod.GET)
+	@RequestMapping(value="/v1/preferences/{name}",method=RequestMethod.GET)
 	public ValueResponse getPreference(
 			@PathVariable String name) {
 		return preferenceService.getPreference(name);
 	}
 
-	@RequestMapping(value="/preferences",method=RequestMethod.POST)
+	@RequestMapping(value="/v1/preferences",method=RequestMethod.POST)
 	public void updatePreference(
 			@RequestBody UpdatePreferenceRequest req) {
 		preferenceService.updatePreference(req);
 	}
 
-	@RequestMapping(value="/preferences/{name}",method=RequestMethod.DELETE)
+	@RequestMapping(value="/v1/preferences/{name}",method=RequestMethod.DELETE)
 	public void deletePreference(
 			@PathVariable String name) {
 		preferenceService.deletePreference(name);

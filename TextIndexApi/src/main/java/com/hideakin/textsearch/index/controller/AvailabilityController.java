@@ -13,23 +13,23 @@ public class AvailabilityController {
 	@Autowired
 	PreferenceService preferenceService;
 
-	@RequestMapping(value="/health/status",method=RequestMethod.GET)
+	@RequestMapping(value="/v1/health/status",method=RequestMethod.GET)
 	public String getStatus() {
     	return "OK";
 	}
 
-	@RequestMapping(value="/maintenance",method=RequestMethod.GET)
+	@RequestMapping(value="/v1/maintenance",method=RequestMethod.GET)
 	public String getMaintenanceMode() {
 		return preferenceService.isServiceUnavailable() ? "true" : "false";
 	}
 
-	@RequestMapping(value="/maintenance",method=RequestMethod.POST)
+	@RequestMapping(value="/v1/maintenance",method=RequestMethod.POST)
 	public String enterMaintenanceMode() {
 		preferenceService.setServiceAvailability(false);
 		return "OK";
 	}
 
-	@RequestMapping(value="/maintenance",method=RequestMethod.DELETE)
+	@RequestMapping(value="/v1/maintenance",method=RequestMethod.DELETE)
 	public String leaveMaintenanceMode() {
 		preferenceService.setServiceAvailability(true);
 		return "OK";

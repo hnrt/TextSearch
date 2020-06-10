@@ -15,12 +15,12 @@ public class FileController {
 	@Autowired
 	private FileService service;
 
-	@RequestMapping(value="/files",method=RequestMethod.GET)
+	@RequestMapping(value="/v1/files",method=RequestMethod.GET)
 	public ValuesResponse getFiles() {
 		return service.getFiles("default");
 	}
 
-	@RequestMapping(value="/files/{group}",method=RequestMethod.GET)
+	@RequestMapping(value="/v1/files/{group}",method=RequestMethod.GET)
 	public ValuesResponse getFilesByGroup(
 			@PathVariable String group) {
 		return service.getFiles(group);

@@ -39,7 +39,7 @@ public class FileControllerTests {
 		ValuesResponse rsp = new ValuesResponse();
 		rsp.setValues(new String[] { "quux", "fred", "waldo" });
 		when(fileService.getFiles("default")).thenReturn(rsp);
-		mockMvc.perform(MockMvcRequestBuilders.get("/files"))
+		mockMvc.perform(MockMvcRequestBuilders.get("/v1/files"))
         	.andExpect(status().isOk())
         	.andExpect(jsonPath("$.values[0]").value(rsp.getValues()[0]))
         	.andExpect(jsonPath("$.values[1]").value(rsp.getValues()[1]))
@@ -51,7 +51,7 @@ public class FileControllerTests {
 		ValuesResponse rsp = new ValuesResponse();
 		rsp.setValues(new String[] { "corge", "grault", "garply" });
 		when(fileService.getFiles("xyzzy")).thenReturn(rsp);
-		mockMvc.perform(MockMvcRequestBuilders.get("/files/xyzzy"))
+		mockMvc.perform(MockMvcRequestBuilders.get("/v1/files/xyzzy"))
         	.andExpect(status().isOk())
         	.andExpect(jsonPath("$.values[0]").value(rsp.getValues()[0]))
         	.andExpect(jsonPath("$.values[1]").value(rsp.getValues()[1]))

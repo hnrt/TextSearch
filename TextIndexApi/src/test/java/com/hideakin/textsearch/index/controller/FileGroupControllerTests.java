@@ -39,7 +39,7 @@ public class FileGroupControllerTests {
 		ValuesResponse rsp = new ValuesResponse();
 		rsp.setValues(new String[] { "foo", "bar", "baz" });
 		when(fileGroupService.getGroups()).thenReturn(rsp);
-		mockMvc.perform(MockMvcRequestBuilders.get("/groups"))
+		mockMvc.perform(MockMvcRequestBuilders.get("/v1/groups"))
         	.andExpect(status().isOk())
         	.andExpect(jsonPath("$.values[0]").value(rsp.getValues()[0]))
         	.andExpect(jsonPath("$.values[1]").value(rsp.getValues()[1]))

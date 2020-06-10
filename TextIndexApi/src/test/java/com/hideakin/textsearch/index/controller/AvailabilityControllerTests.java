@@ -38,7 +38,7 @@ public class AvailabilityControllerTests {
 
 	@Test
 	public void getStatus_successful() throws Exception {
-		mockMvc.perform(MockMvcRequestBuilders.get("/health/status"))
+		mockMvc.perform(MockMvcRequestBuilders.get("/v1/health/status"))
 	    	.andExpect(status().isOk())
 	    	.andExpect(content().string("OK"));
 	}
@@ -46,7 +46,7 @@ public class AvailabilityControllerTests {
 	@Test
 	public void getMaintenanceMode_true() throws Exception {
 		when(preferenceService.isServiceUnavailable()).thenReturn(true);
-		mockMvc.perform(MockMvcRequestBuilders.get("/maintenance"))
+		mockMvc.perform(MockMvcRequestBuilders.get("/v1/maintenance"))
 	    	.andExpect(status().isOk())
 	    	.andExpect(content().string("true"));
 	}
@@ -54,7 +54,7 @@ public class AvailabilityControllerTests {
 	@Test
 	public void getMaintenanceMode_false() throws Exception {
 		when(preferenceService.isServiceUnavailable()).thenReturn(false);
-		mockMvc.perform(MockMvcRequestBuilders.get("/maintenance"))
+		mockMvc.perform(MockMvcRequestBuilders.get("/v1/maintenance"))
 	    	.andExpect(status().isOk())
 	    	.andExpect(content().string("false"));
 	}
@@ -63,7 +63,7 @@ public class AvailabilityControllerTests {
 	public void enterMaintenanceMode_successful() throws Exception {
 		doNothing().when(preferenceService).setServiceAvailability(true);
 		doNothing().when(preferenceService).setServiceAvailability(false);
-		mockMvc.perform(MockMvcRequestBuilders.post("/maintenance"))
+		mockMvc.perform(MockMvcRequestBuilders.post("/v1/maintenance"))
 	    	.andExpect(status().isOk())
 	    	.andExpect(content().string("OK"));
 		verify(preferenceService, times(0)).setServiceAvailability(true);
@@ -74,7 +74,7 @@ public class AvailabilityControllerTests {
 	public void leaveMaintenanceMode_successful() throws Exception {
 		doNothing().when(preferenceService).setServiceAvailability(true);
 		doNothing().when(preferenceService).setServiceAvailability(false);
-		mockMvc.perform(MockMvcRequestBuilders.delete("/maintenance"))
+		mockMvc.perform(MockMvcRequestBuilders.delete("/v1/maintenance"))
 	    	.andExpect(status().isOk())
 	    	.andExpect(content().string("OK"));
 		verify(preferenceService, times(1)).setServiceAvailability(true);

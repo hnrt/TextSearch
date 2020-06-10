@@ -46,7 +46,7 @@ public class PreferenceControllerTests {
 		ValueResponse rsp = new ValueResponse();
 		rsp.setValue("bar");
 		when(preferenceService.getPreference("foo")).thenReturn(rsp);
-		mockMvc.perform(MockMvcRequestBuilders.get("/preferences/foo"))
+		mockMvc.perform(MockMvcRequestBuilders.get("/v1/preferences/foo"))
         	.andExpect(status().isOk())
         	.andExpect(jsonPath("$.value").value(rsp.getValue()));
 	}
@@ -60,7 +60,7 @@ public class PreferenceControllerTests {
 		ObjectMapper om = new ObjectMapper();
 		String json = om.writeValueAsString(req);
 		mockMvc.perform(MockMvcRequestBuilders
-				.post("/preferences")
+				.post("/v1/preferences")
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(json))
 			.andExpect(status().isOk());
@@ -70,7 +70,7 @@ public class PreferenceControllerTests {
 	@Test
 	public void deletePreference_successful() throws Exception {
 		doNothing().when(preferenceService).deletePreference("thud");
-		mockMvc.perform(MockMvcRequestBuilders.delete("/preferences/thud"))
+		mockMvc.perform(MockMvcRequestBuilders.delete("/v1/preferences/thud"))
 			.andExpect(status().isOk());
 		verify(preferenceService, times(1)).deletePreference("thud");
 	}

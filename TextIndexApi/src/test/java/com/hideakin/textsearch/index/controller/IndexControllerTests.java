@@ -53,7 +53,7 @@ public class IndexControllerTests {
 		hits[0].setPositions(new int[] { 33 });
 		rsp.setHits(hits);
 		when(indexService.findText("default", "FOOBAR", SearchOptions.Exact)).thenReturn(rsp);
-		mockMvc.perform(MockMvcRequestBuilders.get("/index")
+		mockMvc.perform(MockMvcRequestBuilders.get("/v1/index")
 				.param("text", "FOOBAR")
 				.param("option", "Exact"))
 	    	.andExpect(status().isOk())
@@ -69,7 +69,7 @@ public class IndexControllerTests {
 		hits[0].setPositions(new int[] { 55 });
 		rsp.setHits(hits);
 		when(indexService.findText("corge", "XYZZY", SearchOptions.Exact)).thenReturn(rsp);
-		mockMvc.perform(MockMvcRequestBuilders.get("/index/corge")
+		mockMvc.perform(MockMvcRequestBuilders.get("/v1/index/corge")
 				.param("text", "XYZZY")
 				.param("option", "Exact"))
 	    	.andExpect(status().isOk())
@@ -89,7 +89,7 @@ public class IndexControllerTests {
 		ObjectMapper om = new ObjectMapper();
 		String json = om.writeValueAsString(req);
 		mockMvc.perform(MockMvcRequestBuilders
-				.post("/index")
+				.post("/v1/index")
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(json))
 			.andExpect(status().isOk())
@@ -111,7 +111,7 @@ public class IndexControllerTests {
 		ObjectMapper om = new ObjectMapper();
 		String json = om.writeValueAsString(req);
 		mockMvc.perform(MockMvcRequestBuilders
-				.post("/index/thud")
+				.post("/v1/index/thud")
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(json))
 			.andExpect(status().isOk())
@@ -124,7 +124,7 @@ public class IndexControllerTests {
 	@Test
 	public void deleteIndex_successful() throws Exception {
 		doNothing().when(indexService).deleteIndex("default");
-		mockMvc.perform(MockMvcRequestBuilders.delete("/index"))
+		mockMvc.perform(MockMvcRequestBuilders.delete("/v1/index"))
 			.andExpect(status().isOk());
 		verify(indexService, times(1)).deleteIndex("default");
 	}
@@ -132,7 +132,7 @@ public class IndexControllerTests {
 	@Test
 	public void deleteIndexByGroup_successful() throws Exception {
 		doNothing().when(indexService).deleteIndex("xyzzy");
-		mockMvc.perform(MockMvcRequestBuilders.delete("/index/xyzzy"))
+		mockMvc.perform(MockMvcRequestBuilders.delete("/v1/index/xyzzy"))
 			.andExpect(status().isOk());
 		verify(indexService, times(1)).deleteIndex("xyzzy");
 	}
