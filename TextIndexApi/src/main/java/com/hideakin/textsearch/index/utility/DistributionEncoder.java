@@ -42,7 +42,7 @@ public class DistributionEncoder {
 			buf.add(b1);
 			buf.add(b2);
 			buf.add(b3);
-		} else if (value < 0x40000000) {
+		} else if (value < 0x4000000) {
 			byte b0 = (byte)(((value >> (6 * 4)) & 0x03) | 0xF8);
 			byte b1 = (byte)(((value >> (6 * 3)) & 0x3F) | 0x80);
 			byte b2 = (byte)(((value >> (6 * 2)) & 0x3F) | 0x80);
