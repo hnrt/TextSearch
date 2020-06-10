@@ -10,6 +10,8 @@ import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 import javax.transaction.Transactional;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -26,6 +28,8 @@ import com.hideakin.textsearch.index.utility.DistributionDecoder;
 @Service
 @Transactional
 public class IndexServiceImpl implements IndexService {
+
+	private static final Logger logger = LoggerFactory.getLogger(IndexServiceImpl.class);
 
 	@PersistenceContext
 	private EntityManager em;
@@ -55,6 +59,7 @@ public class IndexServiceImpl implements IndexService {
 		applyTextMap(fid, map);
 		rsp.setPath(req.getPath());
 		rsp.setTexts(map.keySet().toArray(new String[map.size()]));
+		logger.info("Index updated: file={} texts={}", rsp.getPath(), rsp.getTexts().length);
 		return rsp;
 	}
 
@@ -68,6 +73,7 @@ public class IndexServiceImpl implements IndexService {
 		removeDistribution(fids);
 		fileService.delete(fids);
 		fileGroupService.delete(gid);
+		logger.info("Index deleted: group={}", group);
 	}
 	
 	@Override

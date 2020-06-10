@@ -1,5 +1,7 @@
 package com.hideakin.textsearch.index.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -10,6 +12,8 @@ import com.hideakin.textsearch.index.repository.PreferenceRepository;
 
 @Service
 public class PreferenceServiceImpl implements PreferenceService {
+
+	private static final Logger logger = LoggerFactory.getLogger(PreferenceServiceImpl.class);
 
 	@Autowired
 	private PreferenceRepository preferenceRepository;
@@ -46,6 +50,7 @@ public class PreferenceServiceImpl implements PreferenceService {
 	@Override
 	public void setServiceAvailability(boolean value) {
 		preferenceRepository.save(new PreferenceEntity("enabled", value ? "true" : "false"));
+		logger.warn("{}", value ? "Exited maintenance mode." : "Entered maintenance mode.");
 	}
 
 }
