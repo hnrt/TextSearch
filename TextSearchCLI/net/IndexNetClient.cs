@@ -39,7 +39,7 @@ namespace com.hideakin.textsearch.net
 
         public async Task<PathPositions[]> FindText(string text, SearchOptions option)
         {
-            var uri = string.Format("{0}/index/{1}?text={2}&option={3}", Url, GroupName, text, Enum.GetName(option.GetType(), option));
+            var uri = string.Format("{0}/v1/index/{1}?text={2}&option={3}", Url, GroupName, text, Enum.GetName(option.GetType(), option));
             var request = new HttpRequestMessage(HttpMethod.Get, uri);
             Response = await httpClient.SendAsync(request, cts.Token);
             ResponseBody = await Response.Content.ReadAsStringAsync();
@@ -55,7 +55,7 @@ namespace com.hideakin.textsearch.net
 
         public async Task<UpdateIndexResponse> UpdateIndex(UpdateIndexRequest input)
         {
-            var uri = string.Format("{0}/index/{1}", Url, GroupName);
+            var uri = string.Format("{0}/v1/index/{1}", Url, GroupName);
             var request = new HttpRequestMessage(HttpMethod.Post, uri);
             request.Content = new StringContent(JsonConvert.SerializeObject(input), Encoding.UTF8, "application/json");
             Response = await httpClient.SendAsync(request, cts.Token);
@@ -72,7 +72,7 @@ namespace com.hideakin.textsearch.net
 
         public async Task<bool> DeleteIndex()
         {
-            var uri = string.Format("{0}/index/{1}", Url, GroupName);
+            var uri = string.Format("{0}/v1/index/{1}", Url, GroupName);
             var request = new HttpRequestMessage(HttpMethod.Delete, uri);
             Response = await httpClient.SendAsync(request, cts.Token);
             ResponseBody = await Response.Content.ReadAsStringAsync();
@@ -81,7 +81,7 @@ namespace com.hideakin.textsearch.net
 
         public async Task<string> GetPreference(string name)
         {
-            var uri = string.Format("{0}/preferences/{1}", Url, name);
+            var uri = string.Format("{0}/v1/preferences/{1}", Url, name);
             var request = new HttpRequestMessage(HttpMethod.Get, uri);
             Response = await httpClient.SendAsync(request, cts.Token);
             ResponseBody = await Response.Content.ReadAsStringAsync();
@@ -97,7 +97,7 @@ namespace com.hideakin.textsearch.net
 
         public async Task<bool> UpdatePreference(string name, string value)
         {
-            var uri = string.Format("{0}/preferences", Url);
+            var uri = string.Format("{0}/v1/preferences", Url);
             var request = new HttpRequestMessage(HttpMethod.Post, uri);
             var input = new UpdatePreferenceRequest(name, value);
             request.Content = new StringContent(JsonConvert.SerializeObject(input), Encoding.UTF8, "application/json");
@@ -108,7 +108,7 @@ namespace com.hideakin.textsearch.net
 
         public async Task<bool> DeletePreference(string name)
         {
-            var uri = string.Format("{0}/preferences/{1}", Url, name);
+            var uri = string.Format("{0}/v1/preferences/{1}", Url, name);
             var request = new HttpRequestMessage(HttpMethod.Delete, uri);
             Response = await httpClient.SendAsync(request, cts.Token);
             ResponseBody = await Response.Content.ReadAsStringAsync();
@@ -117,7 +117,7 @@ namespace com.hideakin.textsearch.net
 
         public async Task<string[]> GetFileGroups()
         {
-            var uri = string.Format("{0}/groups", Url);
+            var uri = string.Format("{0}/v1/groups", Url);
             var request = new HttpRequestMessage(HttpMethod.Get, uri);
             Response = await httpClient.SendAsync(request, cts.Token);
             ResponseBody = await Response.Content.ReadAsStringAsync();
@@ -133,7 +133,7 @@ namespace com.hideakin.textsearch.net
 
         public async Task<string[]> GetFiles(string group)
         {
-            var uri = string.Format("{0}/files/{1}", Url, group);
+            var uri = string.Format("{0}/v1/files/{1}", Url, group);
             var request = new HttpRequestMessage(HttpMethod.Get, uri);
             Response = await httpClient.SendAsync(request, cts.Token);
             ResponseBody = await Response.Content.ReadAsStringAsync();
