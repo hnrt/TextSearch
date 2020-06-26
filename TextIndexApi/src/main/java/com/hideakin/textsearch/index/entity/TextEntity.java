@@ -11,7 +11,7 @@ import com.hideakin.textsearch.index.model.Distribution;
 import com.hideakin.textsearch.index.utility.DistributionDecoder;
 import com.hideakin.textsearch.index.utility.DistributionEncoder;
 
-@Entity(name = "texts")
+@Entity
 @Table(name = "texts")
 public class TextEntity {
 

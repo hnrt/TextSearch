@@ -18,21 +18,4 @@ public class AvailabilityController {
     	return "OK";
 	}
 
-	@RequestMapping(value="/v1/maintenance",method=RequestMethod.GET)
-	public String getMaintenanceMode() {
-		return preferenceService.isServiceUnavailable() ? "true" : "false";
-	}
-
-	@RequestMapping(value="/v1/maintenance",method=RequestMethod.POST)
-	public String enterMaintenanceMode() {
-		preferenceService.setServiceAvailability(false);
-		return "OK";
-	}
-
-	@RequestMapping(value="/v1/maintenance",method=RequestMethod.DELETE)
-	public String leaveMaintenanceMode() {
-		preferenceService.setServiceAvailability(true);
-		return "OK";
-	}
-
 }

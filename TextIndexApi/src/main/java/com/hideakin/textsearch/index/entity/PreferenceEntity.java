@@ -5,7 +5,7 @@ import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
 
-@Entity(name = "preferences")
+@Entity
 @Table(name = "preferences")
 public class PreferenceEntity {
 

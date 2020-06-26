@@ -65,7 +65,7 @@ public class FileGroupServiceImpl implements FileGroupService {
 	}
 	
 	private int getMaxGid() {
-		Integer maxGid = (Integer)em.createQuery("SELECT max(gid) FROM filegroups").getSingleResult();
+		Integer maxGid = (Integer)em.createQuery("SELECT max(gid) FROM file_groups").getSingleResult();
 		return maxGid != null ? maxGid : 0;
 	}
 
