@@ -8,7 +8,7 @@ import com.hideakin.textsearch.index.entity.FileGroupEntity;
 @Repository
 public interface FileGroupRepository extends JpaRepository<FileGroupEntity,Integer> {
 
-	public FileGroupEntity findByGid(int gid);
-	public FileGroupEntity findByName(String name);
+	FileGroupEntity findByGid(int gid);
+	FileGroupEntity findByName(String name);
 
 }

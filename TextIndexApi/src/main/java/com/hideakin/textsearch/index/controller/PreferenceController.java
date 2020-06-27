@@ -20,7 +20,10 @@ public class PreferenceController {
 	@RequestMapping(value="/v1/preferences/{name}",method=RequestMethod.GET)
 	public ValueResponse getPreference(
 			@PathVariable String name) {
-		return preferenceService.getPreference(name);
+		String value = preferenceService.getPreference(name);
+		ValueResponse rsp = new ValueResponse();
+		rsp.setValue(value);
+		return rsp;
 	}
 
 	@RequestMapping(value="/v1/preferences",method=RequestMethod.POST)

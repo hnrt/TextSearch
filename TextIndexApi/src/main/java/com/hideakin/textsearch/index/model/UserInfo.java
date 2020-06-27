@@ -1,38 +1,21 @@
-package com.hideakin.textsearch.index.entity;
+package com.hideakin.textsearch.index.model;
 
 import java.time.ZonedDateTime;
-import javax.persistence.Column;
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.Table;
 
-@Entity(name = "users")
-@Table(name = "users")
-public class UserEntity {
-	
-	@Id
-	@Column(name="uid")
+public class UserInfo {
+
 	private int uid;
-
-	@Column(name="username")
+	
 	private String username;
-
-	@Column(name="password")
-	private String password;
-
-	@Column(name="roles")
+	
 	private String roles;
-
-	@Column(name="created_at")
+	
 	private ZonedDateTime createdAt;
-
-	@Column(name="updated_at")
+	
 	private ZonedDateTime updatedAt;
-
-	@Column(name="expiry")
+	
 	private ZonedDateTime expiry;
-
-	@Column(name="apikey")
+	
 	private String apiKey;
 
 	public int getUid() {
@@ -49,14 +32,6 @@ public class UserEntity {
 
 	public void setUsername(String username) {
 		this.username = username;
-	}
-
-	public String getPassword() {
-		return password;
-	}
-
-	public void setPassword(String password) {
-		this.password = password;
 	}
 
 	public String getRoles() {

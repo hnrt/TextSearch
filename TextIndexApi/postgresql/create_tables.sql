@@ -9,7 +9,8 @@ CREATE TABLE IF NOT EXISTS users (
 	apikey varchar(260)
 );
 
-INSERT INTO users (uid,username,password,roles,created_at,updated_at) VALUES(0,'root','Kanagawa2020!','administrator',now(),now());
+-- password:Kanagawa2020!
+INSERT INTO users (uid,username,password,roles,created_at,updated_at) VALUES(0,'root','B4D116153B59A21EF9BC8D8756D016F38A2D0EBD3CB6780B143231CD0805321A','administrator,maintainer,user',now(),now());
 
 CREATE TABLE IF NOT EXISTS file_groups (
 	gid int PRIMARY KEY,

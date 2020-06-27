@@ -14,7 +14,6 @@ import org.springframework.boot.test.context.SpringBootTest;
 
 import com.hideakin.textsearch.index.entity.PreferenceEntity;
 import com.hideakin.textsearch.index.model.UpdatePreferenceRequest;
-import com.hideakin.textsearch.index.model.ValueResponse;
 import com.hideakin.textsearch.index.repository.PreferenceRepository;
 
 @SpringBootTest
@@ -32,16 +31,16 @@ public class PreferenceServiceTests {
 		String value = "fred";
 		PreferenceEntity entity = new PreferenceEntity(name, value);
 		when(preferenceRepository.findByName(name)).thenReturn(entity);
-		ValueResponse rsp = preferenceService.getPreference(name);
-		Assertions.assertEquals(value, rsp.getValue());
+		String value2 = preferenceService.getPreference(name);
+		Assertions.assertEquals(value, value2);
 	}
 
 	@Test
 	public void getPreference_notfound() {
 		String name = "quux";
 		when(preferenceRepository.findByName(name)).thenReturn(null);
-		ValueResponse rsp = preferenceService.getPreference(name);
-		Assertions.assertEquals(null, rsp.getValue());
+		String value = preferenceService.getPreference(name);
+		Assertions.assertEquals(null, value);
 	}
 
 	@Test

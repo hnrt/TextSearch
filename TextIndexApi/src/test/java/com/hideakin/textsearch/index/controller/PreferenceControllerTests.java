@@ -21,7 +21,6 @@ import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hideakin.textsearch.index.model.UpdatePreferenceRequest;
-import com.hideakin.textsearch.index.model.ValueResponse;
 import com.hideakin.textsearch.index.service.PreferenceService;
 
 @SpringBootTest
@@ -43,12 +42,10 @@ public class PreferenceControllerTests {
 
 	@Test
 	public void getPreference_successful() throws Exception {
-		ValueResponse rsp = new ValueResponse();
-		rsp.setValue("bar");
-		when(preferenceService.getPreference("foo")).thenReturn(rsp);
+		when(preferenceService.getPreference("foo")).thenReturn("bar");
 		mockMvc.perform(MockMvcRequestBuilders.get("/v1/preferences/foo"))
         	.andExpect(status().isOk())
-        	.andExpect(jsonPath("$.value").value(rsp.getValue()));
+        	.andExpect(jsonPath("$.value").value("bar"));
 	}
 
 	@Test

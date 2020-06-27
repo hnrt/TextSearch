@@ -7,7 +7,6 @@ import org.springframework.stereotype.Service;
 
 import com.hideakin.textsearch.index.entity.PreferenceEntity;
 import com.hideakin.textsearch.index.model.UpdatePreferenceRequest;
-import com.hideakin.textsearch.index.model.ValueResponse;
 import com.hideakin.textsearch.index.repository.PreferenceRepository;
 
 @Service
@@ -19,13 +18,9 @@ public class PreferenceServiceImpl implements PreferenceService {
 	private PreferenceRepository preferenceRepository;
 
 	@Override
-	public ValueResponse getPreference(String name) {
-		ValueResponse rsp = new ValueResponse();
+	public String getPreference(String name) {
 		PreferenceEntity entity = preferenceRepository.findByName(name);
-		if (entity != null) {
-			rsp.setValue(entity.getValue());
-		}
-		return rsp;
+		return entity != null ? entity.getValue() : null;
 	}
 
 	@Override

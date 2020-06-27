@@ -10,8 +10,9 @@ import com.hideakin.textsearch.index.entity.UserEntity;
 @Repository
 public interface UserRepository extends JpaRepository<UserEntity,Integer>  {
 
-	public UserEntity findByUid(int uid);
-	public List<UserEntity> findAllByUsername(String username);
-	public List<UserEntity> findAllByApiKey(String apiKey);
+	UserEntity findByUid(int uid);
+	UserEntity findByUsername(String username);
+	List<UserEntity> findAllByApiKey(String apiKey);
+	void deleteByUsername(String username);
 
 }
