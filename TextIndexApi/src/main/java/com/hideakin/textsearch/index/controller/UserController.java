@@ -1,6 +1,7 @@
 package com.hideakin.textsearch.index.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -23,9 +24,7 @@ public class UserController {
 	@RequestMapping(value="/v1/users",method=RequestMethod.GET)
 	public GetUsersResponse getUsers() {
 		UserInfo[] users = userService.getUsers();
-		GetUsersResponse rsp = new GetUsersResponse();
-		rsp.setValues(users);
-		return rsp;
+		return new GetUsersResponse(users);
 	}
 
 	@RequestMapping(value="/v1/users/{username}",method=RequestMethod.GET)
@@ -43,10 +42,9 @@ public class UserController {
 	public ResponseEntity<?> createUser(
 			@RequestBody UserRequest req) {
 		try {
-			userService.createUser(req.getUsername(), req.getPassword(), req.getRoles());
-			return new ResponseEntity<>(HttpStatus.CREATED);
-		} catch (RuntimeException e) {
-			// username constraint error
+			UserInfo ui = userService.createUser(req.getUsername(), req.getPassword(), req.getRoles());
+			return new ResponseEntity<>(ui, HttpStatus.CREATED);
+		} catch (DataAccessException e) { // e.g. constraint violation
 			return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
 		}
 	}
@@ -54,8 +52,9 @@ public class UserController {
 	@RequestMapping(value="/v1/users",method=RequestMethod.PUT)
 	public ResponseEntity<?> updateUser(
 			@RequestBody UserRequest req) {
-		if (userService.updateUser(req.getUsername(), req.getPassword(), req.getRoles())) {
-			return new ResponseEntity<>(HttpStatus.OK);
+		UserInfo ui = userService.updateUser(req.getUsername(), req.getPassword(), req.getRoles());
+		if (ui != null) {
+			return new ResponseEntity<>(ui, HttpStatus.OK);
 		} else {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
@@ -64,8 +63,9 @@ public class UserController {
 	@RequestMapping(value="/v1/users/{username}",method=RequestMethod.DELETE)
 	public ResponseEntity<?> deleteUser(
 			@PathVariable String username) {
-		if (userService.deleteUser(username)) {
-			return new ResponseEntity<>(HttpStatus.OK);
+		UserInfo ui = userService.deleteUser(username);
+		if (ui != null) {
+			return new ResponseEntity<>(ui, HttpStatus.OK);
 		} else {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}

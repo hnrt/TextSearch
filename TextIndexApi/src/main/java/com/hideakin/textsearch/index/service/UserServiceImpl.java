@@ -102,15 +102,7 @@ public class UserServiceImpl implements UserService {
 		UserInfo[] users = new UserInfo[entities.size()];
 		int index = 0;
 		for (UserEntity entity : entities) {
-			UserInfo ui = new UserInfo();
-			ui.setUid(entity.getUid());
-			ui.setUsername(entity.getUsername());
-			ui.setRoles(entity.getRoles());
-			ui.setCreatedAt(entity.getCreatedAt());
-			ui.setUpdatedAt(entity.getUpdatedAt());
-			ui.setExpiry(entity.getExpiry());
-			ui.setApiKey(entity.getApiKey());
-			users[index++] = ui;
+			users[index++] = new UserInfo(entity);
 		}
 		return users;
 	}
@@ -119,22 +111,14 @@ public class UserServiceImpl implements UserService {
 	public UserInfo getUser(String username) {
 		UserEntity entity = userRepository.findByUsername(username);
 		if (entity != null) {
-			UserInfo ui = new UserInfo();
-			ui.setUid(entity.getUid());
-			ui.setUsername(entity.getUsername());
-			ui.setRoles(entity.getRoles());
-			ui.setCreatedAt(entity.getCreatedAt());
-			ui.setUpdatedAt(entity.getUpdatedAt());
-			ui.setExpiry(entity.getExpiry());
-			ui.setApiKey(entity.getApiKey());
-			return ui;
+			return new UserInfo(entity);
 		} else {
 			return null;
 		}
 	}
 
 	@Override
-	public void createUser(String username, String password, String roles) {
+	public UserInfo createUser(String username, String password, String[] roles) {
 		UserEntity entity = new UserEntity();
 		entity.setUid(getNextUid());
 		entity.setUsername(username);
@@ -147,6 +131,7 @@ public class UserServiceImpl implements UserService {
 		entity.setApiKey(null);
 		userRepository.saveAndFlush(entity);
 		logger.info(String.format("createUser(%s|%s) succeeded.", username, roles));
+		return new UserInfo(entity);
 	}
 	
 	private int getNextUid() {
@@ -167,10 +152,10 @@ public class UserServiceImpl implements UserService {
 	}
 
 	@Override
-	public boolean updateUser(String username, String password, String roles) {
+	public UserInfo updateUser(String username, String password, String[] roles) {
 		UserEntity entity = userRepository.findByUsername(username);
 		if (entity == null) {
-			return false;
+			return null;
 		}
 		if (password != null) {
 			entity.setPassword(digestPassword(username, password));
@@ -182,17 +167,17 @@ public class UserServiceImpl implements UserService {
 		entity.setExpiry(null);
 		entity.setApiKey(null);
 		userRepository.saveAndFlush(entity);
-		return true;
+		return new UserInfo(entity);
 	}
 
 	@Override
-	public boolean deleteUser(String username) {
+	public UserInfo deleteUser(String username) {
 		UserEntity entity = userRepository.findByUsername(username);
 		if (entity == null) {
-			return false;
+			return null;
 		}
 		userRepository.deleteByUsername(username);
-		return true;
+		return new UserInfo(entity);
 	}
 
 }

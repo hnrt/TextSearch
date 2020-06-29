@@ -67,6 +67,15 @@ public class UserEntity {
 		this.roles = roles;
 	}
 
+	public void setRoles(String[] roles) {
+		StringBuilder buf = new StringBuilder();
+		for (String role : roles) {
+			buf.append(',');
+			buf.append(role);
+		}
+		this.roles = buf.length() > 0 ? buf.substring(1) : null;
+	}
+
 	public ZonedDateTime getCreatedAt() {
 		return createdAt;
 	}

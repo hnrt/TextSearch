@@ -6,7 +6,7 @@ public class UserRequest {
 	
 	private String password;
 	
-	private String roles;
+	private String[] roles;
 
 	public String getUsername() {
 		return username;
@@ -24,11 +24,11 @@ public class UserRequest {
 		this.password = password;
 	}
 
-	public String getRoles() {
+	public String[] getRoles() {
 		return roles;
 	}
 
-	public void setRoles(String roles) {
+	public void setRoles(String[] roles) {
 		this.roles = roles;
 	}
 
