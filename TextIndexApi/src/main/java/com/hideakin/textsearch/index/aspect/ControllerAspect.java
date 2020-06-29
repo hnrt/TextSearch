@@ -50,16 +50,16 @@ public class ControllerAspect {
 			.add(HttpMethod.DELETE, administrator);
 		userReadOnly = new MethodRoleCollection();
 		userReadOnly
-			.add(HttpMethod.GET, user)
+			.add(HttpMethod.GET, user, maintainer, administrator)
 			.add(HttpMethod.POST, administrator)
 			.add(HttpMethod.PUT, administrator)
 			.add(HttpMethod.DELETE, administrator);
 		maintainerCanChange = new MethodRoleCollection();
 		maintainerCanChange
-			.add(HttpMethod.GET, user)
-			.add(HttpMethod.POST, maintainer)
-			.add(HttpMethod.PUT, maintainer)
-			.add(HttpMethod.DELETE, maintainer);
+			.add(HttpMethod.GET, user, maintainer, administrator)
+			.add(HttpMethod.POST, maintainer, administrator)
+			.add(HttpMethod.PUT, maintainer, administrator)
+			.add(HttpMethod.DELETE, maintainer, administrator);
 	}
 
 	@Before("within(com.hideakin.textsearch.index.controller.MaintenanceController)")
@@ -114,8 +114,8 @@ public class ControllerAspect {
 	    if (bt == null) {
 			throw new UnauthorizedException(AuthenticateError.INVALID_REQUEST, "Malformed authorization header.");
 	    }
-	    String role = mrc.find(request.getMethod());
-	    VerifyApiKeyResult vr = userService.verifyApiKey(bt.getToken(), role);
+	    String[] roles = mrc.find(request.getMethod());
+	    VerifyApiKeyResult vr = userService.verifyApiKey(bt.getToken(), roles);
 	    if (vr != VerifyApiKeyResult.Success) {
 	    	if (vr == VerifyApiKeyResult.RoleMismatch) {
 		    	throw new ForbiddenException();

@@ -7,7 +7,7 @@ import com.hideakin.textsearch.index.model.UserInfo;
 public interface UserService {
 
 	AuthenticateResult authenticate(String username, String password);
-	VerifyApiKeyResult verifyApiKey(String key, String role);
+	VerifyApiKeyResult verifyApiKey(String key, String[] roles);
 	UserInfo[] getUsers();
 	UserInfo getUser(String username);
 	UserInfo createUser(String username, String password, String[] roles);

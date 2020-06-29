@@ -2,6 +2,7 @@ package com.hideakin.textsearch.index.service;
 
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
 import java.util.List;
 
 import javax.persistence.EntityManager;
@@ -22,6 +23,8 @@ import com.hideakin.textsearch.index.model.UserInfo;
 import com.hideakin.textsearch.index.repository.PreferenceRepository;
 import com.hideakin.textsearch.index.repository.UserRepository;
 import com.hideakin.textsearch.index.utility.HmacSHA256;
+import com.hideakin.textsearch.index.utility.RoleComparator;
+import com.hideakin.textsearch.index.utility.RolesIntersection;
 
 @Service
 @Transactional
@@ -40,6 +43,8 @@ public class UserServiceImpl implements UserService {
 
 	@Autowired
 	private PreferenceRepository preferenceRepository;
+	
+	private final RoleComparator roleComp = new RoleComparator();
 
 	@Override
 	public AuthenticateResult authenticate(String username, String password) {
@@ -72,7 +77,7 @@ public class UserServiceImpl implements UserService {
 	}
 	
 	@Override
-	public VerifyApiKeyResult verifyApiKey(String key, String role) {
+	public VerifyApiKeyResult verifyApiKey(String key, String[] roles) {
 		List<UserEntity> entities = userRepository.findAllByApiKey(key);
 		if (entities == null || entities.size() == 0) {
 			return VerifyApiKeyResult.KeyNotFound;
@@ -80,16 +85,10 @@ public class UserServiceImpl implements UserService {
 		ZonedDateTime ct = ZonedDateTime.now();
 		for (UserEntity entity : entities) {
 			if (entity.getExpiry().isAfter(ct)) {
-				if (role != null) {
-					String[] roles = entity.getRoles().split(",");
-					for (String next : roles) {
-						if (next.equalsIgnoreCase(role)) {
-							return VerifyApiKeyResult.Success;
-						}
-					}
-					return VerifyApiKeyResult.RoleMismatch;
-				} else {
+				if (roles == null || RolesIntersection.Exists(entity.getRoles().split(","), roles)) {
 					return VerifyApiKeyResult.Success;
+				} else {
+					return VerifyApiKeyResult.RoleMismatch;
 				}
 			}
 		}
@@ -119,6 +118,7 @@ public class UserServiceImpl implements UserService {
 
 	@Override
 	public UserInfo createUser(String username, String password, String[] roles) {
+		Arrays.sort(roles, roleComp);
 		UserEntity entity = new UserEntity();
 		entity.setUid(getNextUid());
 		entity.setUsername(username);
@@ -161,6 +161,7 @@ public class UserServiceImpl implements UserService {
 			entity.setPassword(digestPassword(username, password));
 		}
 		if (roles != null) {
+			Arrays.sort(roles, roleComp);
 			entity.setRoles(roles);
 		}
 		entity.setUpdatedAt(ZonedDateTime.now());
