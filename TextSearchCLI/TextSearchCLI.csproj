@@ -47,8 +47,11 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="data\SearchOptions.cs" />
+    <Compile Include="model\AuthenticateErrorResponse.cs" />
+    <Compile Include="model\AuthenticateResponse.cs" />
     <Compile Include="model\DeleteIndexResponse.cs" />
     <Compile Include="model\FindTextResponse.cs" />
+    <Compile Include="model\GetUsersResponse.cs" />
     <Compile Include="model\PathPositions.cs" />
     <Compile Include="model\PathRanges.cs" />
     <Compile Include="model\PathRowColumns.cs" />
@@ -57,8 +60,11 @@
     <Compile Include="model\UpdateIndexRequest.cs" />
     <Compile Include="model\UpdateIndexResponse.cs" />
     <Compile Include="model\UpdatePreferenceRequest.cs" />
+    <Compile Include="model\UserInfo.cs" />
+    <Compile Include="model\UserRequest.cs" />
     <Compile Include="model\ValueResponse.cs" />
     <Compile Include="model\ValuesResponse.cs" />
+    <Compile Include="net\HttpReasonPhrase.cs" />
     <Compile Include="net\IndexNetClient.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
@@ -68,6 +74,7 @@
     <Compile Include="service\PreferenceService.cs" />
     <Compile Include="service\ServiceBase.cs" />
     <Compile Include="service\Tokenizer.cs" />
+    <Compile Include="service\UserService.cs" />
     <Compile Include="utility\SearchResult.cs" />
     <Compile Include="utility\UnicodeClassifier.cs" />
   </ItemGroup>

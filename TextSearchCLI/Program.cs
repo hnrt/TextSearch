@@ -4,6 +4,7 @@ using com.hideakin.textsearch.service;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 
 namespace com.hideakin.textsearch
@@ -12,6 +13,7 @@ namespace com.hideakin.textsearch
     {
         None,
         Help,
+        Authenticate,
         PrintGroups,
         PrintFiles,
         UpdateIndex,
@@ -22,7 +24,11 @@ namespace com.hideakin.textsearch
         ClearExtensions,
         PrintSkipDirs,
         AddSkipDirs,
-        ClearSkipDirs
+        ClearSkipDirs,
+        PrintUsers,
+        CreateUser,
+        UpdateUser,
+        DeleteUser
     }
 
     class Program
@@ -51,11 +57,15 @@ namespace com.hideakin.textsearch
 
         private PreferenceService PrefSvc { get; } = new PreferenceService();
 
+        private UserService UserSvc { get; } = new UserService();
+
         private List<string> extensions;
 
         private List<string> skipDirs;
 
         private bool formatHTML = false;
+
+        private static readonly string DTFMT = "yyyy-MM-ddTHH:mm:ss.fff";
 
         public static int DebugLevel { get; set; } = 0;
 
@@ -70,6 +80,14 @@ namespace com.hideakin.textsearch
                     throw new Exception(BAD_COMMAND_LINE_SYNTAX);
                 }
                 commandType = CommandType.Help;
+            });
+            OptionMap.Add("-authenticate", (e) =>
+            {
+                if (commandType != CommandType.None)
+                {
+                    throw new Exception(BAD_COMMAND_LINE_SYNTAX);
+                }
+                commandType = CommandType.Authenticate;
             });
             OptionMap.Add("-print-groups", (e) =>
             {
@@ -203,6 +221,50 @@ namespace com.hideakin.textsearch
                 }
                 commandType = CommandType.ClearSkipDirs;
             });
+            OptionMap.Add("-print-users", (e) =>
+            {
+                if (commandType != CommandType.None)
+                {
+                    throw new Exception(BAD_COMMAND_LINE_SYNTAX);
+                }
+                commandType = CommandType.PrintUsers;
+            });
+            OptionMap.Add("-create-user", (e) =>
+            {
+                if (commandType != CommandType.None)
+                {
+                    throw new Exception(BAD_COMMAND_LINE_SYNTAX);
+                }
+                commandType = CommandType.CreateUser;
+                while (e.MoveNext())
+                {
+                    OperandList.Add((string)e.Current);
+                }
+            });
+            OptionMap.Add("-update-user", (e) =>
+            {
+                if (commandType != CommandType.None)
+                {
+                    throw new Exception(BAD_COMMAND_LINE_SYNTAX);
+                }
+                commandType = CommandType.UpdateUser;
+                while (e.MoveNext())
+                {
+                    OperandList.Add((string)e.Current);
+                }
+            });
+            OptionMap.Add("-delete-user", (e) =>
+            {
+                if (commandType != CommandType.None)
+                {
+                    throw new Exception(BAD_COMMAND_LINE_SYNTAX);
+                }
+                commandType = CommandType.DeleteUser;
+                while (e.MoveNext())
+                {
+                    OperandList.Add((string)e.Current);
+                }
+            });
             OptionMap.Add("-index-api", (e) =>
             {
                 if (!e.MoveNext())
@@ -211,6 +273,22 @@ namespace com.hideakin.textsearch
                 }
                 IndexNetClient.Url = (string)e.Current;
             });
+            OptionMap.Add("-username", (e) =>
+            {
+                if (!e.MoveNext())
+                {
+                    throw new Exception(BAD_COMMAND_LINE_SYNTAX);
+                }
+                IndexNetClient.Username = (string)e.Current;
+            });
+            OptionMap.Add("-password", (e) =>
+            {
+                if (!e.MoveNext())
+                {
+                    throw new Exception(BAD_COMMAND_LINE_SYNTAX);
+                }
+                IndexNetClient.Password = (string)e.Current;
+            });
             OptionMap.Add("-debug", (e) =>
             {
                 DebugLevel++;
@@ -218,6 +296,8 @@ namespace com.hideakin.textsearch
 
             OptionAltMap.Add("-h", "-help");
             OptionAltMap.Add("-?", "-help");
+            OptionAltMap.Add("-auth", "-authenticate");
+            OptionAltMap.Add("-login", "-authenticate");
             OptionAltMap.Add("-pg", "-print-groups");
             OptionAltMap.Add("-print-grp", "-print-groups");
             OptionAltMap.Add("-pf", "-print-files");
@@ -236,9 +316,14 @@ namespace com.hideakin.textsearch
             OptionAltMap.Add("-skip-dir", "-skip-directories");
             OptionAltMap.Add("-csd", "-clear-skip-directories");
             OptionAltMap.Add("-clear-skip-dir", "-clear-skip-directories");
+            OptionAltMap.Add("-u", "-username");
+            OptionAltMap.Add("-user", "-username");
+            OptionAltMap.Add("-p", "-password");
+            OptionAltMap.Add("-pass", "-password");
 
             CommandMap.Add(CommandType.None, Help);
             CommandMap.Add(CommandType.Help, Help);
+            CommandMap.Add(CommandType.Authenticate, Authenticate);
             CommandMap.Add(CommandType.PrintGroups, PrintGroups);
             CommandMap.Add(CommandType.PrintFiles, PrintFiles);
             CommandMap.Add(CommandType.UpdateIndex, UpdateIndex);
@@ -250,6 +335,10 @@ namespace com.hideakin.textsearch
             CommandMap.Add(CommandType.PrintSkipDirs, PrintSkipDirs);
             CommandMap.Add(CommandType.AddSkipDirs, AddSkipDirs);
             CommandMap.Add(CommandType.ClearSkipDirs, ClearSkipDirs);
+            CommandMap.Add(CommandType.PrintUsers, PrintUsers);
+            CommandMap.Add(CommandType.CreateUser, CreateUser);
+            CommandMap.Add(CommandType.UpdateUser, UpdateUser);
+            CommandMap.Add(CommandType.DeleteUser, DeleteUser);
         }
 
         public void ParseCommandLine(string[] args)
@@ -281,6 +370,11 @@ namespace com.hideakin.textsearch
         private void Help()
         {
             Console.WriteLine("Usage:");
+            Console.WriteLine("  {0} -authenticate", Name);
+            Console.WriteLine("  {0} -print-users", Name);
+            Console.WriteLine("  {0} -create-user USERNAME PASSWORD ROLE...", Name);
+            Console.WriteLine("  {0} -update-user USERNAME [-password PASSWORD] [-roles ROLE...]", Name);
+            Console.WriteLine("  {0} -delete-user USERNAME", Name);
             Console.WriteLine("  {0} -group FILEGROUP -index PATH...", Name);
             Console.WriteLine("  {0} -group FILEGROUP -delete-index", Name);
             Console.WriteLine("  {0} -group FILEGROUP -query EXPR [-html]", Name);
@@ -291,6 +385,15 @@ namespace com.hideakin.textsearch
             Console.WriteLine("  {0} -print-skip-dir", Name);
             Console.WriteLine("  {0} -skip-dir DIR1,DIR2,...", Name);
             Console.WriteLine("  {0} -clear-skip-dir", Name);
+            Console.WriteLine("Options:");
+            Console.WriteLine("  -index-api URL");
+            Console.WriteLine("  -username USERNAME");
+            Console.WriteLine("  -password PASSWORD");
+        }
+
+        private void Authenticate()
+        {
+            FileGrpSvc.Authenticate();
         }
 
         private void PrintGroups()
@@ -564,6 +667,97 @@ namespace com.hideakin.textsearch
             Console.WriteLine("Clearing skip-dirs setting...");
             PrefSvc.ClearSkipDirs();
             Console.WriteLine("Done.");
+        }
+
+        private void PrintUsers()
+        {
+            var users = UserSvc.GetUsers();
+
+            foreach (var entry in users.OrderBy(x => x.Uid))
+            {
+                if (entry.Expiry != null)
+                {
+                    Console.WriteLine("uid={0} username={1} roles={2} created={3} updated={4} expires={5} apikey={6}", entry.Uid, entry.Username, entry.RolesString, entry.CreatedAt.ToString(DTFMT), entry.UpdatedAt.ToString(DTFMT), entry.Expiry.Value.ToString(DTFMT), entry.ApiKey);
+                }
+                else
+                {
+                    Console.WriteLine("uid={0} username={1} roles={2} created={3} updated={4} expires= apikey=", entry.Uid, entry.Username, entry.RolesString, entry.CreatedAt.ToString(DTFMT), entry.UpdatedAt.ToString(DTFMT));
+                }
+            }
+        }
+
+        private void CreateUser()
+        {
+            if (OperandList.Count < 3)
+            {
+                throw new Exception("Specify username, password, and one or more roles.");
+            }
+            var username = OperandList[0];
+            var password = OperandList[1];
+            var roles = new List<string>();
+            roles.Add(OperandList[2]);
+            for (int index = 3; index < OperandList.Count; index++)
+            {
+                roles.Add(OperandList[index]);
+            }
+            var entry = UserSvc.CreateUser(username, password, roles.ToArray());
+            Console.WriteLine("uid={0} username={1} roles={2} created={3} updated={4}", entry.Uid, entry.Username, entry.RolesString, entry.CreatedAt.ToString(DTFMT), entry.UpdatedAt.ToString(DTFMT));
+        }
+
+        private void UpdateUser()
+        {
+            if (OperandList.Count < 1)
+            {
+                throw new Exception("Specify username to update at least.");
+            }
+            var username = OperandList[0];
+            string password = null;
+            List<string> roles = null;
+            for (int index = 1; index < OperandList.Count; index++)
+            {
+                if (roles != null)
+                {
+                    roles.Add(OperandList[index]);
+                }
+                else if (OperandList[index] == "-password")
+                {
+                    if (password != null)
+                    {
+                        throw new Exception("You can specify password only once.");
+                    }
+                    if (++index == OperandList.Count)
+                    {
+                        throw new Exception("Specify password after -password.");
+                    }
+                    password = OperandList[index];
+                }
+                else if (OperandList[index] == "-roles")
+                {
+                    roles = new List<string>();
+                    if (++index == OperandList.Count)
+                    {
+                        throw new Exception("Specify one or more roles after -roles.");
+                    }
+                    roles.Add(OperandList[index]);
+                }
+                else
+                {
+                    throw new Exception(BAD_COMMAND_LINE_SYNTAX);
+                }
+            }
+            var entry = UserSvc.UpdateUser(username, password, roles != null ? roles.ToArray() : null);
+            Console.WriteLine("uid={0} username={1} roles={2} created={3} updated={4}", entry.Uid, entry.Username, entry.RolesString, entry.CreatedAt.ToString(DTFMT), entry.UpdatedAt.ToString(DTFMT));
+        }
+
+        private void DeleteUser()
+        {
+            if (OperandList.Count < 1)
+            {
+                throw new Exception("Specify username to delete.");
+            }
+            var username = OperandList[0];
+            var entry = UserSvc.DeleteUser(username);
+            Console.WriteLine("uid={0} username={1} roles={2} created={3} updated={4}", entry.Uid, entry.Username, entry.RolesString, entry.CreatedAt.ToString(DTFMT), entry.UpdatedAt.ToString(DTFMT));
         }
 
         static void Main(string[] args)

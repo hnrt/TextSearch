@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Generic;
 using System.Net.Http;
+using com.hideakin.textsearch.net;
 
 namespace com.hideakin.textsearch.service
 {
@@ -11,9 +12,18 @@ namespace com.hideakin.textsearch.service
         {
         }
 
+        public void Authenticate()
+        {
+            var client = new IndexNetClient();
+            var task = client.Check();
+            task.Wait();
+        }
+
         protected Exception NewResponseException(HttpResponseMessage response)
         {
-            return new Exception(string.Format("Status {0}: {1}", (int)response.StatusCode, response.ReasonPhrase));
+            return new Exception(string.Format("Status {0}: {1}",
+                (int)response.StatusCode,
+                string.IsNullOrEmpty(response.ReasonPhrase) ? HttpReasonPhrase.Get(response.StatusCode) : response.ReasonPhrase));
         }
 
         protected void DebugPut(string header, string input, List<string> texts)
