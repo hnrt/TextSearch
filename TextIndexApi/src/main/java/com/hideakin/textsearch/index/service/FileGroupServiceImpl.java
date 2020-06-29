@@ -8,10 +8,12 @@ import javax.transaction.Transactional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
+import com.hideakin.textsearch.index.aspect.RequestContext;
 import com.hideakin.textsearch.index.entity.FileGroupEntity;
-import com.hideakin.textsearch.index.model.ValuesResponse;
+import com.hideakin.textsearch.index.entity.PreferenceEntity;
+import com.hideakin.textsearch.index.model.UserInfo;
 import com.hideakin.textsearch.index.repository.FileGroupRepository;
+import com.hideakin.textsearch.index.repository.PreferenceRepository;
 
 @Service
 @Transactional
@@ -23,9 +25,11 @@ public class FileGroupServiceImpl implements FileGroupService {
 	@Autowired
 	private FileGroupRepository fileGroupRepository;
 
+	@Autowired
+	private PreferenceRepository preferenceRepository;
+	
 	@Override
-	public ValuesResponse getGroups() {
-		ValuesResponse rsp = new ValuesResponse();
+	public String[] getGroups() {
 		List<FileGroupEntity> entities = fileGroupRepository.findAll();
 		if (entities != null) {
 			String[] values = new String[entities.size()];
@@ -33,11 +37,10 @@ public class FileGroupServiceImpl implements FileGroupService {
 			for (FileGroupEntity entity : entities) {
 				values[index++] = entity.getName();
 			}
-			rsp.setValues(values);
+			return values;
 		} else {
-			rsp.setValues(new String[0]);
+			return new String[] {};
 		}
-		return rsp;
 	}
 
 	@Override
@@ -45,15 +48,17 @@ public class FileGroupServiceImpl implements FileGroupService {
 		FileGroupEntity entity = fileGroupRepository.findByName(group);
 		if (entity != null) {
 			return entity.getGid();
+		} else {
+			return -1;
 		}
-		return -1;
 	}
 
 	@Override
 	public int addGroup(String group) {
-		FileGroupEntity entity = new FileGroupEntity();
-		entity.setGid(getMaxGid() + 1);
-		entity.setName(group);
+		int gid = getNextGid();
+		UserInfo userInfo = RequestContext.getUserInfo();
+		String username = userInfo != null ? userInfo.getUsername() : null;
+		FileGroupEntity entity = new FileGroupEntity(gid, group, username);
 		return fileGroupRepository.save(entity).getGid();
 	}
 
@@ -64,9 +69,20 @@ public class FileGroupServiceImpl implements FileGroupService {
 		}
 	}
 	
-	private int getMaxGid() {
-		Integer maxGid = (Integer)em.createQuery("SELECT max(gid) FROM file_groups").getSingleResult();
-		return maxGid != null ? maxGid : 0;
+	private int getNextGid() {
+		int nextId;
+		final String name = "GID.next";
+		PreferenceEntity entity = preferenceRepository.findByName(name);
+		if (entity != null) {
+			nextId = entity.getIntValue();
+		} else {
+			entity = new PreferenceEntity(name);
+			Integer maxId = (Integer)em.createQuery("SELECT MAX(gid) FROM file_groups").getSingleResult();
+			nextId = (maxId != null ? maxId : 0) + 1;
+		}
+		entity.setValue(nextId + 1);
+		preferenceRepository.save(entity);
+		return nextId;
 	}
 
 }

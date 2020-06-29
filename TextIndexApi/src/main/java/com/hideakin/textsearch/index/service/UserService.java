@@ -10,6 +10,7 @@ public interface UserService {
 	VerifyApiKeyResult verifyApiKey(String key, String[] roles);
 	UserInfo[] getUsers();
 	UserInfo getUser(String username);
+	UserInfo getUserByApiKey(String apiKey);
 	UserInfo createUser(String username, String password, String[] roles);
 	UserInfo updateUser(String username, String password, String[] roles);
 	UserInfo deleteUser(String username);

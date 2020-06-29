@@ -4,6 +4,10 @@ public class ValuesResponse {
 
 	private String[] values;
 
+	public ValuesResponse(String[] values) {
+		this.values = values;
+	}
+
 	public String[] getValues() {
 		return values;
 	}

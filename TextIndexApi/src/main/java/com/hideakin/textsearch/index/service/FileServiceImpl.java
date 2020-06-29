@@ -10,8 +10,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.hideakin.textsearch.index.entity.FileEntity;
-import com.hideakin.textsearch.index.model.ValuesResponse;
+import com.hideakin.textsearch.index.entity.PreferenceEntity;
 import com.hideakin.textsearch.index.repository.FileRepository;
+import com.hideakin.textsearch.index.repository.PreferenceRepository;
 
 @Service
 public class FileServiceImpl implements FileService {
@@ -24,13 +25,15 @@ public class FileServiceImpl implements FileService {
 
 	@Autowired
 	private FileRepository fileRepository;
+	
+	@Autowired
+	private PreferenceRepository preferenceRepository;
 
 	@Override
-	public ValuesResponse getFiles(String group) {
-		ValuesResponse rsp = new ValuesResponse();
+	public String[] getFiles(String group) {
 		int gid = fileGroupService.getGid(group);
 		if (gid < 0) {
-			return rsp;
+			return null;
 		}
 		List<FileEntity> entities = fileRepository.findAllByGid(gid);
 		if (entities != null) {
@@ -39,11 +42,10 @@ public class FileServiceImpl implements FileService {
 			for (FileEntity entity : entities) {
 				values[index++] = entity.getPath();
 			}
-			rsp.setValues(values);
+			return values;
 		} else {
-			rsp.setValues(new String[0]);
+			return new String[0];
 		}
-		return rsp;
 	}
 	
 	@Override
@@ -61,22 +63,21 @@ public class FileServiceImpl implements FileService {
 
 	@Override
 	public List<Integer> getFids(int gid) {
-		List<Integer> fids = new ArrayList<Integer>();
 		List<FileEntity> entities = fileRepository.findAllByGid(gid);
 		if (entities != null) {
+			List<Integer> fids = new ArrayList<Integer>(entities.size());
 			for (FileEntity entity : entities) {
 				fids.add(entity.getFid());
 			}
+			return fids;
+		} else {
+			return null;
 		}
-		return fids;
 	}
 
 	@Override
 	public int addFile(String path, int gid) {
-		FileEntity entity = new FileEntity();
-		entity.setFid(getMaxFid() + 1);
-		entity.setPath(path);
-		entity.setGid(gid);
+		FileEntity entity = new FileEntity(getNextFid(), path, gid);
 		return fileRepository.save(entity).getFid();
 	}
 	
@@ -93,9 +94,20 @@ public class FileServiceImpl implements FileService {
 		}
 	}
 	
-	private int getMaxFid() {
-		Integer maxFid = (Integer)em.createQuery("SELECT max(fid) FROM files").getSingleResult();
-		return maxFid != null ? maxFid : 0;
+	private int getNextFid() {
+		int nextId;
+		final String name = "FID.next";
+		PreferenceEntity entity = preferenceRepository.findByName(name);
+		if (entity != null) {
+			nextId = entity.getIntValue();
+		} else {
+			entity = new PreferenceEntity(name);
+			Integer maxId = (Integer)em.createQuery("SELECT MAX(fid) FROM files").getSingleResult();
+			nextId = (maxId != null ? maxId : 0) + 1;
+		}
+		entity.setValue(nextId + 1);
+		preferenceRepository.save(entity);
+		return nextId;
 	}
 
 }

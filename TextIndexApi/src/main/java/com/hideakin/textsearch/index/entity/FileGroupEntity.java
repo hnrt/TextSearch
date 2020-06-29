@@ -31,8 +31,8 @@ public class FileGroupEntity {
 		this.gid = -1;
 		this.name = null;
 		this.ownedBy = null;
-		this.createdAt = ZonedDateTime.now();
-		this.updatedAt = this.createdAt;
+		this.createdAt = null;
+		this.updatedAt = ZonedDateTime.now();
 	}
 
 	public FileGroupEntity(int gid, String name, String ownedBy) {
@@ -41,6 +41,14 @@ public class FileGroupEntity {
 		this.ownedBy = ownedBy;
 		this.createdAt = ZonedDateTime.now();
 		this.updatedAt = this.createdAt;
+	}
+
+	public FileGroupEntity(int gid, String name, String ownedBy, ZonedDateTime createdAt) {
+		this.gid = gid;
+		this.name = name;
+		this.ownedBy = ownedBy;
+		this.createdAt = createdAt;
+		this.updatedAt = ZonedDateTime.now();
 	}
 
 	public int getGid() {

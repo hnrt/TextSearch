@@ -1,5 +1,7 @@
 package com.hideakin.textsearch.index.aspect;
 
+import java.time.ZonedDateTime;
+
 import javax.servlet.http.HttpServletRequest;
 
 import org.aspectj.lang.annotation.Aspect;
@@ -9,18 +11,16 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
-
 import com.hideakin.textsearch.index.data.AuthenticateError;
-import com.hideakin.textsearch.index.data.VerifyApiKeyResult;
 import com.hideakin.textsearch.index.exception.ForbiddenException;
 import com.hideakin.textsearch.index.exception.ServiceUnavailableException;
 import com.hideakin.textsearch.index.exception.UnauthorizedException;
 import com.hideakin.textsearch.index.model.BearerToken;
 import com.hideakin.textsearch.index.model.MethodRoleCollection;
+import com.hideakin.textsearch.index.model.UserInfo;
 import com.hideakin.textsearch.index.service.PreferenceService;
 import com.hideakin.textsearch.index.service.UserService;
+import com.hideakin.textsearch.index.utility.RolesIntersection;
 
 @Component
 @Aspect
@@ -105,7 +105,7 @@ public class ControllerAspect {
 	}
 
 	private void verifyApiKey(MethodRoleCollection mrc) {
-		HttpServletRequest request = ((ServletRequestAttributes)RequestContextHolder.getRequestAttributes()).getRequest();
+		HttpServletRequest request = RequestContext.getRequest();
 	    String header = request.getHeader("authorization");
 	    if (header == null) {
 			throw new UnauthorizedException(AuthenticateError.INVALID_REQUEST, "No authorization header.");
@@ -114,18 +114,17 @@ public class ControllerAspect {
 	    if (bt == null) {
 			throw new UnauthorizedException(AuthenticateError.INVALID_REQUEST, "Malformed authorization header.");
 	    }
-	    String[] roles = mrc.find(request.getMethod());
-	    VerifyApiKeyResult vr = userService.verifyApiKey(bt.getToken(), roles);
-	    if (vr != VerifyApiKeyResult.Success) {
-	    	if (vr == VerifyApiKeyResult.RoleMismatch) {
-		    	throw new ForbiddenException();
-		    } else {
-				throw new UnauthorizedException(AuthenticateError.INVALID_REQUEST,
-					vr == VerifyApiKeyResult.KeyNotFound ? "Invalid API key." :
-					vr == VerifyApiKeyResult.KeyExpired ? "Expired API key." :
-					vr.name());
-		    }
+	    UserInfo userInfo = userService.getUserByApiKey(bt.getToken());
+	    if (userInfo == null) {
+			throw new UnauthorizedException(AuthenticateError.INVALID_REQUEST, "Invalid API key.");	    	
+	    } else if (userInfo.getExpiry().isBefore(ZonedDateTime.now())) {
+			throw new UnauthorizedException(AuthenticateError.INVALID_REQUEST, "Expired API key.");	    	
 	    }
+	    String[] roles = mrc.find(request.getMethod());
+	    if (roles != null && !RolesIntersection.Exists(roles, userInfo.getRoles())) {
+	    	throw new ForbiddenException();
+	    }
+	    RequestContext.setUserInfo(userInfo);
 	}
 
 }

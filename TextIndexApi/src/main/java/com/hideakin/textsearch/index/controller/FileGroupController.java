@@ -16,7 +16,8 @@ public class FileGroupController {
 
 	@RequestMapping(value="/v1/groups",method=RequestMethod.GET)
 	public ValuesResponse getGroups() {
-		return service.getGroups();
+		String[] groups = service.getGroups();
+		return new ValuesResponse(groups);
 	}
 
 }

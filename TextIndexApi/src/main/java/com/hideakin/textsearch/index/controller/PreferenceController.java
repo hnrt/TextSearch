@@ -1,13 +1,15 @@
 package com.hideakin.textsearch.index.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.hideakin.textsearch.index.model.UpdatePreferenceRequest;
+import com.hideakin.textsearch.index.model.PreferenceRequest;
 import com.hideakin.textsearch.index.model.ValueResponse;
 import com.hideakin.textsearch.index.service.PreferenceService;
 
@@ -18,24 +20,41 @@ public class PreferenceController {
 	private PreferenceService preferenceService;
 	
 	@RequestMapping(value="/v1/preferences/{name}",method=RequestMethod.GET)
-	public ValueResponse getPreference(
+	public ResponseEntity<?> getPreference(
 			@PathVariable String name) {
 		String value = preferenceService.getPreference(name);
-		ValueResponse rsp = new ValueResponse();
-		rsp.setValue(value);
-		return rsp;
+		if (value != null) {
+			return new ResponseEntity<>(new ValueResponse(value), HttpStatus.OK);
+		} else {
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
 	}
 
 	@RequestMapping(value="/v1/preferences",method=RequestMethod.POST)
-	public void updatePreference(
-			@RequestBody UpdatePreferenceRequest req) {
-		preferenceService.updatePreference(req);
+	public ResponseEntity<?> createPreference(
+			@RequestBody PreferenceRequest req) {
+		preferenceService.createPreference(req.getName(), req.getValue());
+		return new ResponseEntity<>(HttpStatus.CREATED);
+	}
+
+	@RequestMapping(value="/v1/preferences",method=RequestMethod.PUT)
+	public ResponseEntity<?> updatePreference(
+			@RequestBody PreferenceRequest req) {
+		if (preferenceService.updatePreference(req.getName(), req.getValue())) {
+			return new ResponseEntity<>(HttpStatus.OK);
+		} else {
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
 	}
 
 	@RequestMapping(value="/v1/preferences/{name}",method=RequestMethod.DELETE)
-	public void deletePreference(
+	public ResponseEntity<?> deletePreference(
 			@PathVariable String name) {
-		preferenceService.deletePreference(name);
+		if (preferenceService.deletePreference(name)) {
+			return new ResponseEntity<>(HttpStatus.OK);
+		} else {
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
 	}
 
 }

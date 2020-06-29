@@ -21,6 +21,11 @@ public class PreferenceEntity {
 		this.value = null;
 	}
 	
+	public PreferenceEntity(String name) {
+		this.name = name;
+		this.value = null;
+	}
+	
 	public PreferenceEntity(String name, String value) {
 		this.name = name;
 		this.value = value;
@@ -40,6 +45,14 @@ public class PreferenceEntity {
 
 	public void setValue(String value) {
 		this.value = value;
+	}
+
+	public int getIntValue() {
+		return Integer.parseInt(value, 10);
+	}
+
+	public void setValue(int value) {
+		this.value = String.format("%d", value);
 	}
 
 }

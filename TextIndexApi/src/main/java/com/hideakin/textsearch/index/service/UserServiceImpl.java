@@ -117,6 +117,20 @@ public class UserServiceImpl implements UserService {
 	}
 
 	@Override
+	public UserInfo getUserByApiKey(String apiKey) {
+		List<UserEntity> entities = userRepository.findAllByApiKey(apiKey);
+		if (entities == null || entities.size() == 0) {
+			return null;
+		} else if (entities.size() > 0) {
+			logger.warn("Found duplicate API keys: {}", apiKey);
+			for (int index = 0; index < entities.size(); index++) {
+				logger.warn("[{}] {}", index, entities.get(index).getUsername());
+			}
+		}
+		return new UserInfo(entities.get(0));
+	}
+
+	@Override
 	public UserInfo createUser(String username, String password, String[] roles) {
 		Arrays.sort(roles, roleComp);
 		UserEntity entity = new UserEntity();
@@ -135,20 +149,19 @@ public class UserServiceImpl implements UserService {
 	}
 	
 	private int getNextUid() {
-		int next;
+		int nextId;
 		final String name = "UID.next";
 		PreferenceEntity entity = preferenceRepository.findByName(name);
 		if (entity != null) {
-			next = Integer.parseInt(entity.getValue(), 10);
+			nextId = entity.getIntValue();
 		} else {
-			entity = new PreferenceEntity();
-			entity.setName(name);
-			Integer maxUid = (Integer)em.createQuery("SELECT MAX(uid) FROM users").getSingleResult();
-			next = (maxUid != null ? maxUid : 0) + 1;
+			entity = new PreferenceEntity(name);
+			Integer maxId = (Integer)em.createQuery("SELECT MAX(uid) FROM users").getSingleResult();
+			nextId = (maxId != null ? maxId : 0) + 1;
 		}
-		entity.setValue(String.format("%d", next + 1));
+		entity.setValue(nextId + 1);
 		preferenceRepository.save(entity);
-		return next;
+		return nextId;
 	}
 
 	@Override

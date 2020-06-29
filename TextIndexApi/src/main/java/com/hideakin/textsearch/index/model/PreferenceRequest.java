@@ -1,15 +1,15 @@
 package com.hideakin.textsearch.index.model;
 
-public class UpdatePreferenceRequest {
+public class PreferenceRequest {
 
 	private String name;
 	
 	private String value;
 	
-	public UpdatePreferenceRequest() {
+	public PreferenceRequest() {
 	}
 
-	public UpdatePreferenceRequest(String name, String value) {
+	public PreferenceRequest(String name, String value) {
 		this.name = name;
 		this.value = value;
 	}

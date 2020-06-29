@@ -14,7 +14,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
-import com.hideakin.textsearch.index.model.ValuesResponse;
 import com.hideakin.textsearch.index.service.FileGroupService;
 
 @SpringBootTest
@@ -36,14 +35,12 @@ public class FileGroupControllerTests {
 
 	@Test
 	public void getGroups_successful() throws Exception {
-		ValuesResponse rsp = new ValuesResponse();
-		rsp.setValues(new String[] { "foo", "bar", "baz" });
-		when(fileGroupService.getGroups()).thenReturn(rsp);
+		when(fileGroupService.getGroups()).thenReturn(new String[] { "foo", "bar", "baz" });
 		mockMvc.perform(MockMvcRequestBuilders.get("/v1/groups"))
         	.andExpect(status().isOk())
-        	.andExpect(jsonPath("$.values[0]").value(rsp.getValues()[0]))
-        	.andExpect(jsonPath("$.values[1]").value(rsp.getValues()[1]))
-        	.andExpect(jsonPath("$.values[2]").value(rsp.getValues()[2]));
+        	.andExpect(jsonPath("$.values[0]").value("foo"))
+        	.andExpect(jsonPath("$.values[1]").value("bar"))
+        	.andExpect(jsonPath("$.values[2]").value("baz"));
 	}
 
 }

@@ -1,12 +1,11 @@
 package com.hideakin.textsearch.index.service;
 
-import com.hideakin.textsearch.index.model.UpdatePreferenceRequest;
-
 public interface PreferenceService {
 
 	String getPreference(String name);
-	void updatePreference(UpdatePreferenceRequest req);
-	void deletePreference(String name);
+	void createPreference(String name, String value);
+	boolean updatePreference(String name, String value);
+	boolean deletePreference(String name);
 	boolean isServiceUnavailable();
 	void setServiceAvailability(boolean value);
 
