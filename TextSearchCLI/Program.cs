@@ -49,6 +49,8 @@ namespace com.hideakin.textsearch
 
         private List<string> OperandList { get; } = new List<string>();
 
+        private UserService UserSvc { get; } = new UserService();
+
         private FileGroupService FileGrpSvc { get; } = new FileGroupService();
 
         private FileService FileSvc { get; } = new FileService();
@@ -56,8 +58,6 @@ namespace com.hideakin.textsearch
         private IndexService IndexSvc { get; } = new IndexService();
 
         private PreferenceService PrefSvc { get; } = new PreferenceService();
-
-        private UserService UserSvc { get; } = new UserService();
 
         private List<string> extensions;
 
@@ -279,7 +279,7 @@ namespace com.hideakin.textsearch
                 {
                     throw new Exception(BAD_COMMAND_LINE_SYNTAX);
                 }
-                IndexNetClient.Username = (string)e.Current;
+                IndexNetClient.Credentials.Username = (string)e.Current;
             });
             OptionMap.Add("-password", (e) =>
             {
@@ -287,12 +287,18 @@ namespace com.hideakin.textsearch
                 {
                     throw new Exception(BAD_COMMAND_LINE_SYNTAX);
                 }
-                IndexNetClient.Password = (string)e.Current;
+                IndexNetClient.Credentials.Password = (string)e.Current;
             });
             OptionMap.Add("-debug", (e) =>
             {
                 DebugLevel++;
             });
+#if DEBUG
+            OptionMap.Add("-debugger", (e) =>
+            {
+                System.Diagnostics.Debugger.Launch();
+            });
+#endif
 
             OptionAltMap.Add("-h", "-help");
             OptionAltMap.Add("-?", "-help");

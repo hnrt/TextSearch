@@ -17,11 +17,7 @@ namespace com.hideakin.textsearch.net
 
         public static string Url { get; set; } = @"http://localhost:8080";
 
-        public static string Username { get; set; } = null;
-
-        public static string Password { get; set; } = null;
-
-        private static string ApiKey { get; set; } = null;
+        public static ApiCredentials Credentials { get; } = new ApiCredentials();
 
         static IndexNetClient()
         {
@@ -33,12 +29,12 @@ namespace com.hideakin.textsearch.net
             var envUsername = Environment.GetEnvironmentVariable("TEXTINDEXAPI_USERNAME");
             if (envUsername != null)
             {
-                Username = envUsername;
+                Credentials.Username = envUsername;
             }
             var envPassword = Environment.GetEnvironmentVariable("TEXTINDEXAPI_PASSWORD");
             if (envPassword != null)
             {
-                Password = envPassword;
+                Credentials.Password = envPassword;
             }
         }
 
@@ -52,93 +48,79 @@ namespace com.hideakin.textsearch.net
 
         public IndexNetClient()
         {
-            if (Password != null)
+            if (Credentials.EncryptedToken == null)
             {
-                if (Username == null)
-                {
-                    throw new Exception("Password was specified, but username was not specified.");
-                }
-                var task = Authenticate();
-                task.Wait();
-                ApiKey = task.Result.AccessToken;
-                SaveApiKey();
-                SaveApiKeyToLast();
-                Password = null;
-            }
-            else if (ApiKey == null)
-            {
-                if (Username == null)
-                {
-                    if (!LoadLastApiKey())
-                    {
-                        throw new Exception("Username was not specified and the last API key is not available. Specify username and password.");
-                    }
-                }
-                else if (LoadApiKey())
-                {
-                    SaveApiKeyToLast();
-                }
-                else
-                {
-                    throw new Exception("Username was specified, but the API key was not saved. Specify password.");
-                }
+                Initialize();
             }
         }
 
         #region SETUP
 
-        private bool LoadLastApiKey()
+        private void Initialize()
         {
-            var path = GetLastFilePath();
-            if (File.Exists(path))
-            {
-                ApiKey = File.ReadAllText(path);
-                return true;
-            }
-            else
-            {
-                return false;
-            }
-        }
-
-        private bool LoadApiKey()
-        {
+            ApiCreadentialsCollection cc;
             var path = GetFilePath();
             if (File.Exists(path))
             {
-                ApiKey = File.ReadAllText(path);
-                return true;
+                cc = ApiCreadentialsCollection.Load(path);
+                if (Credentials.EncryptedPassword == null)
+                {
+                    if (Credentials.Username != null)
+                    {
+                        var c = cc.GetCredentials(Credentials.Username);
+                        if (c != null)
+                        {
+                            Credentials.EncryptedPassword = c.EncryptedPassword;
+                            Credentials.EncryptedToken = c.EncryptedToken;
+                            Credentials.ExpiresAt = c.ExpiresAt;
+                        }
+                        cc.LastUser = Credentials.Username;
+                    }
+                    else
+                    {
+                        var c = cc.GetCredentials();
+                        if (c != null)
+                        {
+                            Credentials.Username = c.Username;
+                            Credentials.EncryptedPassword = c.EncryptedPassword;
+                            Credentials.EncryptedToken = c.EncryptedToken;
+                            Credentials.ExpiresAt = c.ExpiresAt;
+                        }
+                    }
+                }
             }
             else
             {
-                return false;
+                cc = new ApiCreadentialsCollection()
+                {
+                    LastUser = null,
+                    Credentials = new ApiCredentials[0]
+                };
             }
-        }
-
-        private void SaveApiKey()
-        {
-            if (ApiKey != null)
+            if (Credentials.EncryptedToken == null || Credentials.ExpiresAt <= DateTime.Now.AddMinutes(1))
             {
-                File.WriteAllText(GetFilePath(), ApiKey);
+                if (Credentials.Username == null || Credentials.EncryptedPassword == null)
+                {
+                    throw new Exception("No valid API key is available. Credentials need to be specified.");
+                }
+                var task = Authenticate();
+                task.Wait();
+                if (task.Result is AuthenticateErrorResponse)
+                {
+                    throw new Exception(((AuthenticateErrorResponse)task.Result).ErrorDescription);
+                }
+                var ar = (AuthenticateResponse)task.Result;
+                Credentials.AccessToken = ar.AccessToken;
+                Credentials.ExpiresAt = DateTime.Now.AddSeconds(ar.ExpiresIn);
             }
-        }
-
-        private void SaveApiKeyToLast()
-        {
-            if (ApiKey != null)
-            {
-                File.WriteAllText(GetLastFilePath(), ApiKey);
-            }
-        }
-
-        private string GetLastFilePath()
-        {
-            return Path.Combine(GetDirPath(), "@last@.key");
+            cc.SetCredentials(Credentials);
+            cc.LastUser = Credentials.Username;
+            cc.Save(path);
         }
 
         private string GetFilePath()
         {
-            return Path.Combine(GetDirPath(), string.Format("{0}.key", Username));
+            return Path.Combine(GetDirPath(), string.Format("credentials.json"));
         }
 
         private string GetDirPath()
@@ -160,7 +142,7 @@ namespace com.hideakin.textsearch.net
 
         #region AUTHENTICATION
 
-        private async Task<AuthenticateResponse> Authenticate()
+        private async Task<object> Authenticate()
         {
             var uri = string.Format("{0}/v1/authentication", Url);
             var request = new HttpRequestMessage(HttpMethod.Get, uri);
@@ -173,8 +155,7 @@ namespace com.hideakin.textsearch.net
             }
             else
             {
-                var rsp = JsonConvert.DeserializeObject<AuthenticateErrorResponse>(ResponseBody);
-                throw new Exception(rsp.ErrorDescription);
+                return JsonConvert.DeserializeObject<AuthenticateErrorResponse>(ResponseBody);
             }
         }
 
@@ -182,7 +163,7 @@ namespace com.hideakin.textsearch.net
         {
             get
             {
-                var s = string.Format("{0}:{1}", Username ?? "", Password ?? "");
+                var s = string.Format("{0}:{1}", Credentials.Username, Credentials.Password);
                 return "Basic " + Convert.ToBase64String(Encoding.UTF8.GetBytes(s));
             }
         }
@@ -191,7 +172,7 @@ namespace com.hideakin.textsearch.net
         {
             get
             {
-                return "Bearer " + ApiKey;
+                return "Bearer " + Credentials.AccessToken;
             }
         }
 
