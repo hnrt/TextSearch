@@ -59,7 +59,7 @@ public class AuthenticationController {
 		AuthenticateResult ar = userService.authenticate(username, password);
 		if (ar == null) {
 			try {
-				Thread.sleep(3000);
+				Thread.sleep(3000); // to prevent frequent attempts
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}

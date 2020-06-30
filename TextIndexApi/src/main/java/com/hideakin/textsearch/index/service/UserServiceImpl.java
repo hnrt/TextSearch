@@ -15,7 +15,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import com.hideakin.textsearch.index.data.VerifyApiKeyResult;
 import com.hideakin.textsearch.index.entity.PreferenceEntity;
 import com.hideakin.textsearch.index.entity.UserEntity;
 import com.hideakin.textsearch.index.model.AuthenticateResult;
@@ -76,25 +75,6 @@ public class UserServiceImpl implements UserService {
 		return apiKey;
 	}
 	
-	@Override
-	public VerifyApiKeyResult verifyApiKey(String key, String[] roles) {
-		List<UserEntity> entities = userRepository.findAllByApiKey(key);
-		if (entities == null || entities.size() == 0) {
-			return VerifyApiKeyResult.KeyNotFound;
-		}
-		ZonedDateTime ct = ZonedDateTime.now();
-		for (UserEntity entity : entities) {
-			if (entity.getExpiry().isAfter(ct)) {
-				if (roles == null || RolesIntersection.Exists(entity.getRoles().split(","), roles)) {
-					return VerifyApiKeyResult.Success;
-				} else {
-					return VerifyApiKeyResult.RoleMismatch;
-				}
-			}
-		}
-		return VerifyApiKeyResult.KeyExpired;
-	}
-
 	@Override
 	public UserInfo[] getUsers() {
 		List<UserEntity> entities = userRepository.findAll();

@@ -18,7 +18,7 @@ import com.hideakin.textsearch.index.model.AuthenticateErrorResponse;
 public class CustomExceptionHandler extends ResponseEntityExceptionHandler {
 
 	@ExceptionHandler(UnauthorizedException.class)
-	public ResponseEntity<Object> onUnauthorized(UnauthorizedException ex, WebRequest request) {
+	public ResponseEntity<?> onUnauthorized(UnauthorizedException ex, WebRequest request) {
 		AuthenticateErrorResponse body = new AuthenticateErrorResponse(ex.getError(), ex.getErrorDescription());
 		HttpHeaders headers = new HttpHeaders();
 		HttpStatus status = HttpStatus.UNAUTHORIZED;
