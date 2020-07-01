@@ -23,7 +23,6 @@ import com.hideakin.textsearch.index.repository.PreferenceRepository;
 import com.hideakin.textsearch.index.repository.UserRepository;
 import com.hideakin.textsearch.index.utility.HmacSHA256;
 import com.hideakin.textsearch.index.utility.RoleComparator;
-import com.hideakin.textsearch.index.utility.RolesIntersection;
 
 @Service
 @Transactional
@@ -34,8 +33,8 @@ public class UserServiceImpl implements UserService {
 	@PersistenceContext
 	private EntityManager em;
 
-	@Value("${textsearch.api-key.expiry-in:3600}")
-    private int apiKeyExpiryIn = 3600;
+	@Value("${textsearch.access-token.expires-in:3600}")
+    private int accessTokenExpiresIn = 3600; // seconds
 
 	@Autowired
 	private UserRepository userRepository;
@@ -48,15 +47,16 @@ public class UserServiceImpl implements UserService {
 	@Override
 	public AuthenticateResult authenticate(String username, String password) {
 		UserEntity entity = userRepository.findByUsername(username);
-		if (entity != null) {
-			String digest = digestPassword(username, password);
-			if (digest.equals(entity.getPassword())) {
-				String apiKey = generateApiKey(entity, apiKeyExpiryIn);
-				userRepository.save(entity);
-				return new AuthenticateResult(apiKey, apiKeyExpiryIn);
-			}
+		if (entity == null) {
+			return null;
 		}
-		return null;
+		String digest = digestPassword(username, password);
+		if (!digest.equals(entity.getPassword())) {
+			return null;
+		}
+		generateAccessToken(entity, accessTokenExpiresIn);
+		userRepository.save(entity);
+		return new AuthenticateResult(entity.getAccessToken(), accessTokenExpiresIn);
 	}
 	
 	private static String digestPassword(String username, String password) {
@@ -64,15 +64,14 @@ public class UserServiceImpl implements UserService {
 		return HmacSHA256.compute(password, SALT + username);
 	}
 
-	private static String generateApiKey(UserEntity entity, int seconds) {
-		entity.setExpiry(ZonedDateTime.now().plusSeconds(seconds));
+	private static void generateAccessToken(UserEntity entity, int seconds) {
+		entity.setExpiresAt(ZonedDateTime.now().plusSeconds(seconds));
 		StringBuilder ibuf = new StringBuilder();
 		ibuf.append(entity.getUsername());
 		ibuf.append("|");
-		ibuf.append(entity.getExpiry().format(DateTimeFormatter.ISO_DATE_TIME));
-		String apiKey = HmacSHA256.compute(ibuf.toString(), entity.getPassword());
-		entity.setApiKey(apiKey);
-		return apiKey;
+		ibuf.append(entity.getExpiresAt().format(DateTimeFormatter.ISO_DATE_TIME));
+		String accessToken = HmacSHA256.compute(ibuf.toString(), entity.getPassword());
+		entity.setAccessToken(accessToken);
 	}
 	
 	@Override
@@ -89,40 +88,28 @@ public class UserServiceImpl implements UserService {
 	@Override
 	public UserInfo getUser(String username) {
 		UserEntity entity = userRepository.findByUsername(username);
-		if (entity != null) {
-			return new UserInfo(entity);
-		} else {
-			return null;
-		}
+		return entity != null ? new UserInfo(entity) : null;
 	}
 
 	@Override
-	public UserInfo getUserByApiKey(String apiKey) {
-		List<UserEntity> entities = userRepository.findAllByApiKey(apiKey);
-		if (entities == null || entities.size() == 0) {
-			return null;
-		} else if (entities.size() > 0) {
-			logger.warn("Found duplicate API keys: {}", apiKey);
-			for (int index = 0; index < entities.size(); index++) {
-				logger.warn("[{}] {}", index, entities.get(index).getUsername());
-			}
-		}
-		return new UserInfo(entities.get(0));
+	public UserInfo getUserByAccessToken(String accessToken) {
+		UserEntity entity = userRepository.findByAccessToken(accessToken);
+		return entity != null ? new UserInfo(entity) : null;
 	}
 
 	@Override
 	public UserInfo createUser(String username, String password, String[] roles) {
 		Arrays.sort(roles, roleComp);
+		ZonedDateTime ct = ZonedDateTime.now();
 		UserEntity entity = new UserEntity();
 		entity.setUid(getNextUid());
 		entity.setUsername(username);
 		entity.setPassword(digestPassword(username, password));
 		entity.setRoles(roles);
-		ZonedDateTime ct = ZonedDateTime.now();
 		entity.setCreatedAt(ct);
 		entity.setUpdatedAt(ct);
-		entity.setExpiry(null);
-		entity.setApiKey(null);
+		entity.setExpiresAt(null);
+		entity.setAccessToken(null);
 		userRepository.saveAndFlush(entity);
 		logger.info(String.format("createUser(%s|%s) succeeded.", username, roles));
 		return new UserInfo(entity);
@@ -158,8 +145,8 @@ public class UserServiceImpl implements UserService {
 			entity.setRoles(roles);
 		}
 		entity.setUpdatedAt(ZonedDateTime.now());
-		entity.setExpiry(null);
-		entity.setApiKey(null);
+		entity.setExpiresAt(null);
+		entity.setAccessToken(null);
 		userRepository.saveAndFlush(entity);
 		return new UserInfo(entity);
 	}
@@ -170,7 +157,7 @@ public class UserServiceImpl implements UserService {
 		if (entity == null) {
 			return null;
 		}
-		userRepository.deleteByUsername(username);
+		userRepository.delete(entity);
 		return new UserInfo(entity);
 	}
 

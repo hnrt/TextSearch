@@ -1,27 +1,22 @@
 package com.hideakin.textsearch.index.service;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
 import javax.transaction.Transactional;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.hideakin.textsearch.index.data.SearchOptions;
+import com.hideakin.textsearch.index.entity.FileEntity;
+import com.hideakin.textsearch.index.entity.FileGroupEntity;
 import com.hideakin.textsearch.index.entity.TextEntity;
 import com.hideakin.textsearch.index.model.Distribution;
-import com.hideakin.textsearch.index.model.FindTextResponse;
 import com.hideakin.textsearch.index.model.PathPositions;
-import com.hideakin.textsearch.index.model.UpdateIndexRequest;
-import com.hideakin.textsearch.index.model.UpdateIndexResponse;
+import com.hideakin.textsearch.index.repository.FileGroupRepository;
+import com.hideakin.textsearch.index.repository.FileRepository;
 import com.hideakin.textsearch.index.repository.TextRepository;
 import com.hideakin.textsearch.index.utility.DistributionDecoder;
 
@@ -29,68 +24,28 @@ import com.hideakin.textsearch.index.utility.DistributionDecoder;
 @Transactional
 public class IndexServiceImpl implements IndexService {
 
-	private static final Logger logger = LoggerFactory.getLogger(IndexServiceImpl.class);
-
-	@PersistenceContext
-	private EntityManager em;
+	@Autowired
+	private FileGroupRepository fileGroupRepository;
 
 	@Autowired
-	private FileGroupService fileGroupService;
-
-	@Autowired
-	private FileService fileService;
+	private FileRepository fileRepository;
 
 	@Autowired
 	private TextRepository textRepository;
 
 	@Override
-	public UpdateIndexResponse updateIndex(String group, UpdateIndexRequest req) {
-		UpdateIndexResponse rsp = new UpdateIndexResponse();
-		int gid = fileGroupService.getGid(group);
-		if (gid < 0) {
-			gid = fileGroupService.addGroup(group);
+	public PathPositions[] findText(String group, String text, SearchOptions option) {
+		FileGroupEntity fileGroupEntity = fileGroupRepository.findByName(group);
+		if (fileGroupEntity == null) {
+			return new PathPositions[0];
 		}
-		int fid = fileService.getFid(req.getPath(), gid);
-		if (fid < 0) {
-			fid = fileService.addFile(req.getPath(), gid);
-		}
-		removeDistribution(fid);
-		Map<String,List<Integer>> map = populateTextMap(req.getTexts());
-		applyTextMap(fid, map);
-		rsp.setPath(req.getPath());
-		rsp.setTexts(map.keySet().toArray(new String[map.size()]));
-		logger.info("Index updated: file={} texts={}", rsp.getPath(), rsp.getTexts().length);
-		return rsp;
-	}
-
-	@Override
-	public void deleteIndex(String group) {
-		int gid = fileGroupService.getGid(group);
-		if (gid < 0) {
-			return;
-		}
-		List<Integer> fids = fileService.getFids(gid);
-		removeDistribution(fids);
-		fileService.delete(fids);
-		fileGroupService.delete(gid);
-		logger.info("Index deleted: group={}", group);
-	}
-	
-	@Override
-	public FindTextResponse findText(String group, String text, SearchOptions option) {
-		FindTextResponse rsp = new FindTextResponse();
-		int gid = fileGroupService.getGid(group);
-		if (gid < 0) {
-			rsp.setHits(new PathPositions[0]);
-			return rsp;
-		}
+		int gid = fileGroupEntity.getGid();
 		if (option == SearchOptions.Exact) {
 			TextEntity textEntity = textRepository.findByText(text);
 			if (textEntity != null) {
 				Map<Integer,PathPositions> map = new HashMap<Integer,PathPositions>();
 				populateHitMap(map, textEntity, gid);
-				rsp.setHits(map.values().toArray(new PathPositions[map.size()]));
-				return rsp;
+				return map.values().toArray(new PathPositions[map.size()]);
 			}
 		} else {
 			List<TextEntity> textEntities;
@@ -106,68 +61,12 @@ public class IndexServiceImpl implements IndexService {
 			if (textEntities != null) {
 				Map<Integer,PathPositions> map = new HashMap<Integer,PathPositions>();
 				populateHitMap(map, textEntities, gid);
-				rsp.setHits(map.values().toArray(new PathPositions[map.size()]));
-				return rsp;
+				return map.values().toArray(new PathPositions[map.size()]);
 			}
 		}
-		rsp.setHits(new PathPositions[0]);
-		return rsp;
+		return new PathPositions[0];
 	}
 
-	@SuppressWarnings("unchecked")
-	private List<String> getAllTexts() {
-		return (List<String>)em.createQuery("SELECT text FROM texts").getResultList();
-	}
-
-	private void removeDistribution(int fid) {
-		removeDistribution(Arrays.asList(fid));
-	}
-
-	private void removeDistribution(List<Integer> fids) {
-		List<String> texts = getAllTexts();
-		for (String text : texts) {
-			TextEntity textEntity = textRepository.findByText(text);
-			DistributionDecoder dec = new DistributionDecoder(textEntity.getDist());
-			textEntity.setDist(null);
-			for (Distribution dist = dec.get(); dist != null; dist = dec.get()) {
-				if (!fids.contains(dist.getFid())) {
-					textEntity.appendDist(dist);
-				}
-			}
-			if (textEntity.getDist() != null && textEntity.getDist().length > 0) {
-				textRepository.save(textEntity);
-			} else {
-				textRepository.delete(textEntity);
-			}
-		}
-	}
-	
-	private Map<String,List<Integer>> populateTextMap(String[] tt) {
-		Map<String, List<Integer>> map = new HashMap<String,List<Integer>>();
-		for (int i = 0; i < tt.length; i++) {
-			String t = tt[i];
-			List<Integer> positions = map.get(t);
-			if (positions == null) {
-				positions = new ArrayList<Integer>();
-				map.put(t, positions);
-			}
-			positions.add(i);
-		}
-		return map;		
-	}
-	
-	private void applyTextMap(int fid, Map<String,List<Integer>> map) {
-		for (String key : map.keySet()) {
-			List<Integer> positions = map.get(key);
-			TextEntity entity = textRepository.findByText(key);
-			if (entity == null) {
-				entity = new TextEntity();
-				entity.setText(key);
-			}
-			entity.appendDist(fid, positions);
-			textRepository.save(entity);
-		}
-	}
 
 	private void populateHitMap(Map<Integer,PathPositions> map, List<TextEntity> entities, int gid) {
 		for (TextEntity entity : entities) {
@@ -183,7 +82,8 @@ public class IndexServiceImpl implements IndexService {
 			if (pp != null) {
 				pp.addPositions(dist.getPositions());
 			} else {
-				String path = fileService.getPath(fid, gid);
+				FileEntity fileEntity = fileRepository.findByFid(fid);
+				String path = fileEntity != null ? fileEntity.getPath() : null;
 				if (path != null) {
 					pp = new PathPositions();
 					pp.setPath(path);

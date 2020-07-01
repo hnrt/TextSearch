@@ -1,10 +1,13 @@
 package com.hideakin.textsearch.index.service;
 
+import com.hideakin.textsearch.index.model.FileGroupInfo;
+
 public interface FileGroupService {
 
-	String[] getGroups();
-	int getGid(String group);
-	int addGroup(String group);
-	void delete(int gid);
+	FileGroupInfo[] getGroups();
+	FileGroupInfo getGroup(int gid);
+	FileGroupInfo createGroup(String name, String[] ownedBy);
+	FileGroupInfo updateGroup(int gid, String name, String[] ownedBy);
+	FileGroupInfo deleteGroup(int gid);
 
 }

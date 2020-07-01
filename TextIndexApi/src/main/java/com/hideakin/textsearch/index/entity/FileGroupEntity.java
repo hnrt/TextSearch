@@ -7,7 +7,7 @@ import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
 
-@Entity
+@Entity(name = "file_groups")
 @Table(name = "file_groups")
 public class FileGroupEntity {
 
@@ -28,27 +28,23 @@ public class FileGroupEntity {
 	private ZonedDateTime updatedAt;
 
 	public FileGroupEntity() {
-		this.gid = -1;
-		this.name = null;
-		this.ownedBy = null;
-		this.createdAt = null;
-		this.updatedAt = ZonedDateTime.now();
+		this(-1, null, null, null);
+	}
+
+	public FileGroupEntity(int gid, String name, String[] ownedBy) {
+		this(gid, name, csv(ownedBy), ZonedDateTime.now());
 	}
 
 	public FileGroupEntity(int gid, String name, String ownedBy) {
-		this.gid = gid;
-		this.name = name;
-		this.ownedBy = ownedBy;
-		this.createdAt = ZonedDateTime.now();
-		this.updatedAt = this.createdAt;
+		this(gid, name, ownedBy, ZonedDateTime.now());
 	}
 
-	public FileGroupEntity(int gid, String name, String ownedBy, ZonedDateTime createdAt) {
+	public FileGroupEntity(int gid, String name, String ownedBy, ZonedDateTime at) {
 		this.gid = gid;
 		this.name = name;
 		this.ownedBy = ownedBy;
-		this.createdAt = createdAt;
-		this.updatedAt = ZonedDateTime.now();
+		this.createdAt = at;
+		this.updatedAt = at;
 	}
 
 	public int getGid() {
@@ -75,6 +71,19 @@ public class FileGroupEntity {
 		this.ownedBy = ownedBy;
 	}
 
+	public void setOwnedBy(String[] ownedBy) {
+		this.ownedBy = csv(ownedBy);
+	}
+
+	public boolean isOwner(String username) {
+		for (String owner : ownedBy.split(",")) {
+			if (owner.equals(username)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
 	public ZonedDateTime getCreatedAt() {
 		return createdAt;
 	}
@@ -89,6 +98,18 @@ public class FileGroupEntity {
 
 	public void setUpdatedAt(ZonedDateTime updatedAt) {
 		this.updatedAt = updatedAt;
+	}
+
+	private static String csv(String[] array) {
+		if (array == null || array.length == 0) {
+			return null;
+		}
+		String value = array[0];
+		for (int index = 1; index < array.length; index++) {
+			value += ",";
+			value += array[index];
+		}
+		return value;
 	}
 
 }

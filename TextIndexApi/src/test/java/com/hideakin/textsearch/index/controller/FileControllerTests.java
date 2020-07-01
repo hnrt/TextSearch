@@ -4,6 +4,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import org.hamcrest.Matchers;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -14,6 +15,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
+import com.hideakin.textsearch.index.model.FileInfo;
 import com.hideakin.textsearch.index.service.FileService;
 
 @SpringBootTest
@@ -35,22 +37,32 @@ public class FileControllerTests {
 
 	@Test
 	public void getFiles_successful() throws Exception {
-		when(fileService.getFiles("default")).thenReturn(new String[] { "quux", "fred", "waldo" });
-		mockMvc.perform(MockMvcRequestBuilders.get("/v1/files"))
+		FileInfo[] fi = new FileInfo[] {
+			new FileInfo(1001, "quux", 100, 10, "xyzzy"),
+			new FileInfo(1002, "fred", 200, 10, "xyzzy"),
+			new FileInfo(1003, "waldo", 300, 10, "xyzzy")
+		};
+		when(fileService.getFiles("xyzzy")).thenReturn(fi);
+		mockMvc.perform(MockMvcRequestBuilders.get("/v1/files/xyzzy"))
         	.andExpect(status().isOk())
-        	.andExpect(jsonPath("$.values[0]").value("quux"))
-        	.andExpect(jsonPath("$.values[1]").value("fred"))
-        	.andExpect(jsonPath("$.values[2]").value("waldo"));
+        	.andExpect(jsonPath("$[0].path").value("quux"))
+        	.andExpect(jsonPath("$[1].path").value("fred"))
+        	.andExpect(jsonPath("$[2].path").value("waldo"));
 	}
 
 	@Test
-	public void getFilesByGroup_successful() throws Exception {
-		when(fileService.getFiles("xyzzy")).thenReturn(new String[] { "corge", "grault", "garply" });
+	public void getFiles_null() throws Exception {
+		when(fileService.getFiles("xyzzy")).thenReturn(null);
+		mockMvc.perform(MockMvcRequestBuilders.get("/v1/files/xyzzy"))
+        	.andExpect(status().isNotFound());
+	}
+
+	@Test
+	public void getFiles_empty() throws Exception {
+		when(fileService.getFiles("xyzzy")).thenReturn(new FileInfo[0]);
 		mockMvc.perform(MockMvcRequestBuilders.get("/v1/files/xyzzy"))
         	.andExpect(status().isOk())
-        	.andExpect(jsonPath("$.values[0]").value("corge"))
-        	.andExpect(jsonPath("$.values[1]").value("grault"))
-        	.andExpect(jsonPath("$.values[2]").value("garply"));
+        	.andExpect(jsonPath("$", Matchers.empty()));
 	}
 
 }

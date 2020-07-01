@@ -64,37 +64,37 @@ public class ControllerAspect {
 
 	@Before("within(com.hideakin.textsearch.index.controller.MaintenanceController)")
 	public void beforeMaintenanceController() {
-	    verifyApiKey(userReadOnly);
+	    verifyAccessToken(userReadOnly);
 	}
 	
 	@Before("within(com.hideakin.textsearch.index.controller.UserController)")
 	public void beforeUserController() {
 		verifyServiceAvailability();
-	    verifyApiKey(administratorOnly);
+	    verifyAccessToken(administratorOnly);
 	}
 	
 	@Before("within(com.hideakin.textsearch.index.controller.FileController)")
 	public void beforeFileController() {
 		verifyServiceAvailability();
-		verifyApiKey(maintainerCanChange);
+		verifyAccessToken(maintainerCanChange);
 	}
 
 	@Before("within(com.hideakin.textsearch.index.controller.FileGroupController)")
 	public void beforeFileGroupController() {
 		verifyServiceAvailability();
-		verifyApiKey(maintainerCanChange);
+		verifyAccessToken(maintainerCanChange);
 	}
 
 	@Before("within(com.hideakin.textsearch.index.controller.IndexController)")
 	public void beforeIndexController() {
 		verifyServiceAvailability();
-		verifyApiKey(maintainerCanChange);
+		verifyAccessToken(maintainerCanChange);
 	}
 
 	@Before("within(com.hideakin.textsearch.index.controller.PreferenceController)")
 	public void beforePreferenceController() {
 		verifyServiceAvailability();
-		verifyApiKey(maintainerCanChange);
+		verifyAccessToken(maintainerCanChange);
 	}
 
 	private void verifyServiceAvailability() {
@@ -104,7 +104,7 @@ public class ControllerAspect {
 		}
 	}
 
-	private void verifyApiKey(MethodRoleCollection mrc) {
+	private void verifyAccessToken(MethodRoleCollection mrc) {
 		HttpServletRequest request = RequestContext.getRequest();
 	    String header = request.getHeader("authorization");
 	    if (header == null) {
@@ -114,11 +114,11 @@ public class ControllerAspect {
 	    if (bt == null) {
 			throw new UnauthorizedException(AuthenticateError.INVALID_REQUEST, "Malformed authorization header.");
 	    }
-	    UserInfo userInfo = userService.getUserByApiKey(bt.getToken());
+	    UserInfo userInfo = userService.getUserByAccessToken(bt.getToken());
 	    if (userInfo == null) {
-			throw new UnauthorizedException(AuthenticateError.INVALID_REQUEST, "Invalid API key.");	    	
-	    } else if (userInfo.getExpiry().isBefore(ZonedDateTime.now())) {
-			throw new UnauthorizedException(AuthenticateError.INVALID_REQUEST, "Expired API key.");	    	
+			throw new UnauthorizedException(AuthenticateError.INVALID_REQUEST, "Invalid Access Token.");	    	
+	    } else if (userInfo.getExpiresAt().isBefore(ZonedDateTime.now())) {
+			throw new UnauthorizedException(AuthenticateError.INVALID_REQUEST, "Expired Access Token.");	    	
 	    }
 	    String[] roles = mrc.find(request.getMethod());
 	    if (roles != null && !RolesIntersection.Exists(roles, userInfo.getRoles())) {

@@ -29,11 +29,11 @@ public class UserEntity {
 	@Column(name="updated_at")
 	private ZonedDateTime updatedAt;
 
-	@Column(name="expiry")
-	private ZonedDateTime expiry;
+	@Column(name="access_token")
+	private String accessToken;
 
-	@Column(name="apikey")
-	private String apiKey;
+	@Column(name="expires_at")
+	private ZonedDateTime expiresAt;
 
 	public int getUid() {
 		return uid;
@@ -92,20 +92,20 @@ public class UserEntity {
 		this.updatedAt = updatedAt;
 	}
 
-	public ZonedDateTime getExpiry() {
-		return expiry;
+	public String getAccessToken() {
+		return accessToken;
 	}
 
-	public void setExpiry(ZonedDateTime expiry) {
-		this.expiry = expiry;
+	public void setAccessToken(String accessToken) {
+		this.accessToken = accessToken;
 	}
 
-	public String getApiKey() {
-		return apiKey;
+	public ZonedDateTime getExpiresAt() {
+		return expiresAt;
 	}
 
-	public void setApiKey(String apiKey) {
-		this.apiKey = apiKey;
+	public void setExpiresAt(ZonedDateTime expiresAt) {
+		this.expiresAt = expiresAt;
 	}
 
 }

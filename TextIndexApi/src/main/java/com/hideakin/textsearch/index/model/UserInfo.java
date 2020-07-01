@@ -16,9 +16,9 @@ public class UserInfo {
 	
 	private ZonedDateTime updatedAt;
 	
-	private ZonedDateTime expiry;
+	private String accessToken;
 	
-	private String apiKey;
+	private ZonedDateTime expiresAt;
 	
 	public UserInfo(UserEntity entity) {
 		this.uid = entity.getUid();
@@ -26,8 +26,8 @@ public class UserInfo {
 		this.setRoles(entity.getRoles());
 		this.createdAt = entity.getCreatedAt();
 		this.updatedAt = entity.getUpdatedAt();
-		this.expiry = entity.getExpiry();
-		this.apiKey = entity.getApiKey();
+		this.accessToken = entity.getAccessToken();
+		this.expiresAt = entity.getExpiresAt();
 	}
 
 	public int getUid() {
@@ -57,6 +57,15 @@ public class UserInfo {
 	public void setRoles(String roles) {
 		this.roles = roles != null ? roles.split(",") : new String[0];
 	}
+	
+	public boolean isAdministrator() {
+		for (String role : roles) {
+			if (role.equalsIgnoreCase("administrator")) {
+				return true;
+			}
+		}
+		return false;
+	}
 
 	public ZonedDateTime getCreatedAt() {
 		return createdAt;
@@ -74,20 +83,20 @@ public class UserInfo {
 		this.updatedAt = updatedAt;
 	}
 
-	public ZonedDateTime getExpiry() {
-		return expiry;
+	public String getAccessToken() {
+		return accessToken;
 	}
 
-	public void setExpiry(ZonedDateTime expiry) {
-		this.expiry = expiry;
+	public void setAccessToken(String accessToken) {
+		this.accessToken = accessToken;
 	}
 
-	public String getApiKey() {
-		return apiKey;
+	public ZonedDateTime getExpiresAt() {
+		return expiresAt;
 	}
 
-	public void setApiKey(String apiKey) {
-		this.apiKey = apiKey;
+	public void setExpiresAt(ZonedDateTime expiresAt) {
+		this.expiresAt = expiresAt;
 	}
 
 }

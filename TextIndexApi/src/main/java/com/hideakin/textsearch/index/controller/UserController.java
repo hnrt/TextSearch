@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.hideakin.textsearch.index.model.UserRequest;
-import com.hideakin.textsearch.index.model.GetUsersResponse;
 import com.hideakin.textsearch.index.model.UserInfo;
 import com.hideakin.textsearch.index.service.UserService;
 
@@ -22,9 +21,8 @@ public class UserController {
 	private UserService userService;
 	
 	@RequestMapping(value="/v1/users",method=RequestMethod.GET)
-	public GetUsersResponse getUsers() {
-		UserInfo[] users = userService.getUsers();
-		return new GetUsersResponse(users);
+	public UserInfo[] getUsers() {
+		return userService.getUsers();
 	}
 
 	@RequestMapping(value="/v1/users/{username}",method=RequestMethod.GET)

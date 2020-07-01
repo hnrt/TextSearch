@@ -1,5 +1,6 @@
 package com.hideakin.textsearch.index.service;
 
+import java.time.ZonedDateTime;
 import java.util.List;
 
 import javax.persistence.EntityManager;
@@ -9,10 +10,14 @@ import javax.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import com.hideakin.textsearch.index.aspect.RequestContext;
+import com.hideakin.textsearch.index.entity.FileEntity;
 import com.hideakin.textsearch.index.entity.FileGroupEntity;
 import com.hideakin.textsearch.index.entity.PreferenceEntity;
+import com.hideakin.textsearch.index.exception.ForbiddenException;
+import com.hideakin.textsearch.index.model.FileGroupInfo;
 import com.hideakin.textsearch.index.model.UserInfo;
 import com.hideakin.textsearch.index.repository.FileGroupRepository;
+import com.hideakin.textsearch.index.repository.FileRepository;
 import com.hideakin.textsearch.index.repository.PreferenceRepository;
 
 @Service
@@ -26,47 +31,79 @@ public class FileGroupServiceImpl implements FileGroupService {
 	private FileGroupRepository fileGroupRepository;
 
 	@Autowired
+	private FileRepository fileRepository;
+
+	@Autowired
 	private PreferenceRepository preferenceRepository;
 	
 	@Override
-	public String[] getGroups() {
+	public FileGroupInfo[] getGroups() {
 		List<FileGroupEntity> entities = fileGroupRepository.findAll();
-		if (entities != null) {
-			String[] values = new String[entities.size()];
-			int index = 0;
-			for (FileGroupEntity entity : entities) {
-				values[index++] = entity.getName();
-			}
-			return values;
-		} else {
-			return new String[] {};
+		int count;
+		if (entities == null || (count = entities.size()) == 0) {
+			return new FileGroupInfo[0];
 		}
+		FileGroupInfo[] values = new FileGroupInfo[count];
+		for (int index = 0; index < count; index++) {
+			values[index] = new FileGroupInfo(entities.get(index));
+		}
+		return values;
 	}
 
 	@Override
-	public int getGid(String group) {
-		FileGroupEntity entity = fileGroupRepository.findByName(group);
-		if (entity != null) {
-			return entity.getGid();
-		} else {
-			return -1;
+	public FileGroupInfo getGroup(int gid) {
+		FileGroupEntity entity = fileGroupRepository.findByGid(gid);
+		if (entity == null) {
+			return null;
 		}
+		return new FileGroupInfo(entity);
 	}
 
 	@Override
-	public int addGroup(String group) {
-		int gid = getNextGid();
-		UserInfo userInfo = RequestContext.getUserInfo();
-		String username = userInfo != null ? userInfo.getUsername() : null;
-		FileGroupEntity entity = new FileGroupEntity(gid, group, username);
-		return fileGroupRepository.save(entity).getGid();
+	public FileGroupInfo createGroup(String name, String[] ownedBy) {
+		FileGroupEntity entity = new FileGroupEntity(getNextGid(), name, ownedBy);
+		if (entity.getOwnedBy() == null) {
+			UserInfo ui = RequestContext.getUserInfo();
+			entity.setOwnedBy(ui.getUsername());
+		}
+		fileGroupRepository.save(entity);
+		return new FileGroupInfo(entity);
 	}
 
 	@Override
-	public void delete(int gid) {
-		if (gid > 0) {
-			fileGroupRepository.deleteById(gid);
+	public FileGroupInfo updateGroup(int gid, String name, String[] ownedBy) {
+		FileGroupEntity entity = fileGroupRepository.findByGid(gid);
+		if (entity == null) {
+			return null;
 		}
+		if (name != null) {
+			entity.setName(name);
+		}
+		if (ownedBy != null) {
+			entity.setOwnedBy(ownedBy);
+		}
+		entity.setUpdatedAt(ZonedDateTime.now());
+		fileGroupRepository.save(entity);
+		return new FileGroupInfo(entity);
+	}
+
+	@Override
+	public FileGroupInfo deleteGroup(int gid) {
+		FileGroupEntity entity = fileGroupRepository.findByGid(gid);
+		if (entity == null) {
+			return null;
+		}
+		List<FileEntity> fileEntities = fileRepository.findAllByGid(gid);
+		if (fileEntities != null && fileEntities.size() > 0) {
+			throw new ForbiddenException("There is one or more files associated with the group to delete.");
+		}
+		UserInfo ui = RequestContext.getUserInfo();
+		if (!entity.isOwner(ui.getUsername()) && !ui.isAdministrator()) {
+			throw new ForbiddenException();
+		}
+		entity.setUpdatedAt(ZonedDateTime.now());
+		fileGroupRepository.delete(entity);
+		return new FileGroupInfo(entity);
 	}
 	
 	private int getNextGid() {

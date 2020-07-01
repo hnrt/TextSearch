@@ -8,7 +8,7 @@ public interface UserService {
 	AuthenticateResult authenticate(String username, String password);
 	UserInfo[] getUsers();
 	UserInfo getUser(String username);
-	UserInfo getUserByApiKey(String apiKey);
+	UserInfo getUserByAccessToken(String accessToken);
 	UserInfo createUser(String username, String password, String[] roles);
 	UserInfo updateUser(String username, String password, String[] roles);
 	UserInfo deleteUser(String username);

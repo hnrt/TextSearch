@@ -8,4 +8,8 @@ public class ForbiddenException extends RuntimeException {
 		super("Access denied.");
 	}
 	
+	public ForbiddenException(String message) {
+		super(message);
+	}
+	
 }

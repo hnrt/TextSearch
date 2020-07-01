@@ -7,7 +7,7 @@ import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
 
-@Entity
+@Entity(name = "files")
 @Table(name = "files")
 public class FileEntity {
 
@@ -19,7 +19,7 @@ public class FileEntity {
 	private String path;
 
 	@Column(name="size")
-	private long size;
+	private int size;
 
 	@Column(name="updated_at")
 	private ZonedDateTime updatedAt;
@@ -67,11 +67,11 @@ public class FileEntity {
 		this.gid = gid;
 	}
 
-	public long getSize() {
+	public int getSize() {
 		return size;
 	}
 
-	public void setSize(long size) {
+	public void setSize(int size) {
 		this.size = size;
 	}
 

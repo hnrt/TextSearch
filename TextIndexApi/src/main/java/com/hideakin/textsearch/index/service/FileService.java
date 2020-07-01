@@ -1,14 +1,15 @@
 package com.hideakin.textsearch.index.service;
 
-import java.util.List;
+import com.hideakin.textsearch.index.model.FileInfo;
 
 public interface FileService {
 
-	String[] getFiles(String group);
-	int getFid(String path, int gid);
-	List<Integer> getFids(int gid);
-	int addFile(String path, int gid);
-	String getPath(int fid, int gid);
-	void delete(List<Integer> fids);
+	FileInfo[] getFiles(String group);
+	FileInfo getFile(int fid);
+	String getPath(int fid);
+	FileInfo addFile(String group, String path, byte[] data, String contentType);
+	FileInfo[] deleteFiles(String group);
+	FileInfo deleteFile(int fid);
+	byte[] getFileContents(int fid);
 
 }
