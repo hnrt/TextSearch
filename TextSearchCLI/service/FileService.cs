@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Net;
 using com.hideakin.textsearch.data;
+using com.hideakin.textsearch.model;
 using com.hideakin.textsearch.net;
 
 namespace com.hideakin.textsearch.service
@@ -12,14 +13,26 @@ namespace com.hideakin.textsearch.service
         {
         }
 
-        public model.FileInfo[] GetFiles(string group)
+        public FileInfo[] GetFiles(string group)
         {
-            var client = new IndexNetClient() { GroupName = group };
+            var client = new IndexNetClient();
             var task = client.GetFiles(group);
             task.Wait();
             if (task.Result == null)
             {
                 throw NewResponseException(client.Response);
+            }
+            return task.Result;
+        }
+
+        public FileStats GetFileStats(string group)
+        {
+            var client = new IndexNetClient();
+            var task = client.GetFileStats(group);
+            task.Wait();
+            if (task.Result == null)
+            {
+                throw new Exception("Invalid group.");
             }
             return task.Result;
         }

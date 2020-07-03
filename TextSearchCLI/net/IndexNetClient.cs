@@ -445,6 +445,23 @@ namespace com.hideakin.textsearch.net
             }
         }
 
+        public async Task<FileStats> GetFileStats(string group)
+        {
+            var uri = string.Format("{0}/v1/files/{1}/stats", Url, group);
+            var request = new HttpRequestMessage(HttpMethod.Get, uri);
+            request.Headers.Add(AUTHORIZATION, BearerToken);
+            Response = await httpClient.SendAsync(request, cts.Token);
+            ResponseBody = await Response.Content.ReadAsStringAsync();
+            if (Response.StatusCode == HttpStatusCode.OK)
+            {
+                return JsonConvert.DeserializeObject<FileStats>(ResponseBody);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
         public async Task<model.FileInfo> UploadFile(string group, string path)
         {
             var uri = string.Format("{0}/v1/files/{1}", Url, group);

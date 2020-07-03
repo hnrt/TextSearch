@@ -19,6 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 import com.hideakin.textsearch.index.entity.TextResourceHttpEntity;
 import com.hideakin.textsearch.index.model.FileDisposition;
 import com.hideakin.textsearch.index.model.FileInfo;
+import com.hideakin.textsearch.index.model.FileStats;
 import com.hideakin.textsearch.index.service.FileService;
 
 @RestController
@@ -33,6 +34,17 @@ public class FileController {
 		FileInfo[] fiArray = service.getFiles(group);
 		if (fiArray != null) {
 			return new ResponseEntity<>(fiArray, HttpStatus.OK);
+		} else {
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
+	}
+
+	@RequestMapping(value="/v1/files/{group:[^0-9].*}/stats",method=RequestMethod.GET)
+	public ResponseEntity<?> getFileStats(
+			@PathVariable String group) {
+		FileStats stats = service.getFileStats(group);
+		if (stats != null) {
+			return new ResponseEntity<>(stats, HttpStatus.OK);
 		} else {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}

@@ -15,7 +15,6 @@ namespace com.hideakin.textsearch
         None,
         Help,
         Authenticate,
-        PrintFiles,
         UpdateIndex,
         DeleteIndex,
         Query,
@@ -34,7 +33,9 @@ namespace com.hideakin.textsearch
         PrintGroups,
         CreateGroup,
         UpdateGroup,
-        DeleteGroup
+        DeleteGroup,
+        PrintFiles,
+        PrintFileStats
     }
 
     class Program
@@ -94,14 +95,6 @@ namespace com.hideakin.textsearch
                     throw new Exception(BAD_COMMAND_LINE_SYNTAX);
                 }
                 commandType = CommandType.Authenticate;
-            });
-            OptionMap.Add("-print-files", (e) =>
-            {
-                if (commandType != CommandType.None)
-                {
-                    throw new Exception(BAD_COMMAND_LINE_SYNTAX);
-                }
-                commandType = CommandType.PrintFiles;
             });
             OptionMap.Add("-group", (e) =>
             {
@@ -331,6 +324,22 @@ namespace com.hideakin.textsearch
                     OperandList.Add((string)e.Current);
                 }
             });
+            OptionMap.Add("-print-files", (e) =>
+            {
+                if (commandType != CommandType.None)
+                {
+                    throw new Exception(BAD_COMMAND_LINE_SYNTAX);
+                }
+                commandType = CommandType.PrintFiles;
+            });
+            OptionMap.Add("-print-file-stats", (e) =>
+            {
+                if (commandType != CommandType.None)
+                {
+                    throw new Exception(BAD_COMMAND_LINE_SYNTAX);
+                }
+                commandType = CommandType.PrintFileStats;
+            });
             OptionMap.Add("-index-api", (e) =>
             {
                 if (!e.MoveNext())
@@ -396,7 +405,6 @@ namespace com.hideakin.textsearch
             CommandMap.Add(CommandType.None, Help);
             CommandMap.Add(CommandType.Help, Help);
             CommandMap.Add(CommandType.Authenticate, Authenticate);
-            CommandMap.Add(CommandType.PrintFiles, PrintFiles);
             CommandMap.Add(CommandType.UpdateIndex, UpdateIndex);
             CommandMap.Add(CommandType.DeleteIndex, DeleteIndex);
             CommandMap.Add(CommandType.Query, Query);
@@ -416,6 +424,8 @@ namespace com.hideakin.textsearch
             CommandMap.Add(CommandType.CreateGroup, CreateGroup);
             CommandMap.Add(CommandType.UpdateGroup, UpdateGroup);
             CommandMap.Add(CommandType.DeleteGroup, DeleteGroup);
+            CommandMap.Add(CommandType.PrintFiles, PrintFiles);
+            CommandMap.Add(CommandType.PrintFileStats, PrintFileStats);
         }
 
         public void ParseCommandLine(string[] args)
@@ -729,6 +739,12 @@ namespace com.hideakin.textsearch
             {
                 Console.WriteLine("[{0}] {1}", entry.Fid, entry.Path);
             }
+        }
+
+        private void PrintFileStats()
+        {
+            var stats = FileSvc.GetFileStats(groupName);
+            Console.WriteLine("{0}", stats);
         }
 
         private void UpdateIndex()

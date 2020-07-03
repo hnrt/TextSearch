@@ -24,6 +24,7 @@ import com.hideakin.textsearch.index.entity.TextEntity;
 import com.hideakin.textsearch.index.model.Distribution;
 import com.hideakin.textsearch.index.model.FileDisposition;
 import com.hideakin.textsearch.index.model.FileInfo;
+import com.hideakin.textsearch.index.model.FileStats;
 import com.hideakin.textsearch.index.repository.FileContentRepository;
 import com.hideakin.textsearch.index.repository.FileGroupRepository;
 import com.hideakin.textsearch.index.repository.FileRepository;
@@ -67,7 +68,7 @@ public class FileServiceImpl implements FileService {
 		if (fileGroupEntity == null) {
 			return null;
 		}
-		List<FileEntity> entities = fileRepository.findAllByGid(fileGroupEntity.getGid());
+		List<FileEntity> entities = fileRepository.findAllByGidAndStaleFalse(fileGroupEntity.getGid());
 		int count;
 		if (entities == null || (count = entities.size()) == 0) {
 			return new FileInfo[0];
@@ -77,6 +78,29 @@ public class FileServiceImpl implements FileService {
 			values[index] = new FileInfo(entities.get(index), fileGroupEntity);
 		}
 		return values;
+	}
+
+	@Override
+	public FileStats getFileStats(String group) {
+		FileGroupEntity fileGroupEntity = fileGroupRepository.findByName(group);
+		if (fileGroupEntity == null) {
+			return null;
+		}
+		FileStats stats = new FileStats(fileGroupEntity.getGid(), fileGroupEntity.getName());
+		List<FileEntity> entities = fileRepository.findAllByGid(fileGroupEntity.getGid());
+		for (FileEntity e : entities) {
+			FileContentEntity fc = fileContentRepository.findByFid(e.getFid());
+			if (e.isStale()) {
+				stats.incStaleFiles();
+				stats.addStaleBytes(e.getSize());
+				stats.addStoredStaleBytes(fc.getData().length);
+			} else {
+				stats.incFiles();
+				stats.addBytes(e.getSize());
+				stats.addStoredBytes(fc.getData().length);
+			}
+		}
+		return stats;
 	}
 	
 	@Override

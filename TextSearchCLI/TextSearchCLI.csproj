@@ -75,6 +75,7 @@
     <Compile Include="model\FileGroupInfo.cs" />
     <Compile Include="model\FileGroupRequest.cs" />
     <Compile Include="model\FileInfo.cs" />
+    <Compile Include="model\FileStats.cs" />
     <Compile Include="model\FindTextResponse.cs" />
     <Compile Include="model\PathPositions.cs" />
     <Compile Include="model\PathRanges.cs" />
