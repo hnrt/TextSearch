@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS files (
 	size int,
 	updated_at timestamp with time zone,
 	gid int REFERENCES file_groups (gid),
-	UNIQUE (path,gid)
+	stale boolean
 );
 
 CREATE TABLE IF NOT EXISTS file_contents (

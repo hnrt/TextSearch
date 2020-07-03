@@ -1,6 +1,7 @@
 package com.hideakin.textsearch.index.service;
 
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -13,9 +14,14 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import com.hideakin.textsearch.index.aspect.RequestContext;
 import com.hideakin.textsearch.index.entity.FileGroupEntity;
 import com.hideakin.textsearch.index.entity.PreferenceEntity;
+import com.hideakin.textsearch.index.entity.UserEntity;
+import com.hideakin.textsearch.index.model.FileGroupInfo;
+import com.hideakin.textsearch.index.model.UserInfo;
 import com.hideakin.textsearch.index.repository.FileGroupRepository;
+import com.hideakin.textsearch.index.repository.FileRepository;
 import com.hideakin.textsearch.index.repository.PreferenceRepository;
 
 @SpringBootTest
@@ -26,6 +32,9 @@ public class FileGroupServiceTests {
 
 	@Mock
 	private FileGroupRepository fileGroupRepository;
+	
+	@Mock
+	private FileRepository fileRepository;
 	
 	@Mock
 	private PreferenceRepository preferenceRepository;
@@ -41,43 +50,29 @@ public class FileGroupServiceTests {
 		add(entities, 5, "bar");
 		add(entities, 19, "baz");
 		when(fileGroupRepository.findAll()).thenReturn(entities);
-		String[] groups = fileGroupService.getGroups();
+		FileGroupInfo[] groups = fileGroupService.getGroups();
 		Assertions.assertEquals(4, groups.length);
-		Assertions.assertEquals(entities.get(0).getName(), groups[0]);
-		Assertions.assertEquals(entities.get(1).getName(), groups[1]);
-		Assertions.assertEquals(entities.get(2).getName(), groups[2]);
-		Assertions.assertEquals(entities.get(3).getName(), groups[3]);
+		Assertions.assertEquals(entities.get(0).getName(), groups[0].getName());
+		Assertions.assertEquals(entities.get(1).getName(), groups[1].getName());
+		Assertions.assertEquals(entities.get(2).getName(), groups[2].getName());
+		Assertions.assertEquals(entities.get(3).getName(), groups[3].getName());
 	}
 
 	@Test
 	public void getGroups_null() {
 		when(fileGroupRepository.findAll()).thenReturn(null);
-		String[] groups = fileGroupService.getGroups();
+		FileGroupInfo[] groups = fileGroupService.getGroups();
 		Assertions.assertEquals(0, groups.length);
 	}
 
 	@Test
-	public void getGid_successful() {
-		when(fileGroupRepository.findByName("abc")).thenReturn(new FileGroupEntity(123, "abc", "root"));
-		int gid = fileGroupService.getGid("abc");
-		Assertions.assertEquals(123, gid);
-	}
-
-	@Test
-	public void getGid_null() {
-		when(fileGroupRepository.findByName("xyz")).thenReturn(null);
-		int gid = fileGroupService.getGid("xyz");
-		Assertions.assertEquals(-1, gid);
-	}
-
-	@Test
-	public void addGroup_successful1() {
+	public void createGroup_successful1() {
 		when(preferenceRepository.findByName("GID.next")).thenReturn(null);
 		when(preferenceRepository.save(argThat(x -> x.getName().equals("GID.next") && x.getValue().equals("791")))).thenReturn(new PreferenceEntity("GID.next", "791"));
 		when(em.createQuery("SELECT MAX(gid) FROM file_groups")).thenReturn(new PseudoQuery(789));
 		when(fileGroupRepository.save(argThat(x -> x.getGid() == 790))).thenReturn(new FileGroupEntity(790, "def", "root"));
-		int gid = fileGroupService.addGroup("def");
-		Assertions.assertEquals(790, gid);
+		FileGroupInfo groupInfo = fileGroupService.createGroup("def", new String[] { "user" });
+		Assertions.assertEquals(790, groupInfo.getGid());
 		verify(preferenceRepository, times(1)).findByName("GID.next");
 		verify(em, times(1)).createQuery("SELECT MAX(gid) FROM file_groups");
 		verify(preferenceRepository, times(1)).save(argThat(x -> x.getName().equals("GID.next") && x.getValue().equals("791")));
@@ -90,8 +85,8 @@ public class FileGroupServiceTests {
 		when(em.createQuery("SELECT MAX(gid) FROM file_groups")).thenReturn(new PseudoQuery(700));
 		when(preferenceRepository.save(argThat(x -> x.getName().equals("GID.next") && x.getValue().equals("792")))).thenReturn(new PreferenceEntity("GID.next", "792"));
 		when(fileGroupRepository.save(argThat(x -> x.getGid() == 791))).thenReturn(new FileGroupEntity(791, "ghi", "root"));
-		int gid = fileGroupService.addGroup("ghi");
-		Assertions.assertEquals(791, gid);
+		FileGroupInfo groupInfo = fileGroupService.createGroup("ghi", new String[] { "user" });
+		Assertions.assertEquals(791, groupInfo.getGid());
 		verify(preferenceRepository, times(1)).findByName("GID.next");
 		verify(em, times(0)).createQuery("SELECT MAX(gid) FROM file_groups");
 		verify(preferenceRepository, times(1)).save(argThat(x -> x.getName().equals("GID.next") && x.getValue().equals("792")));
@@ -100,16 +95,31 @@ public class FileGroupServiceTests {
 
 	@Test
 	public void delete_successful() {
-		int gid = 567;
-		fileGroupService.delete(gid);
-		verify(fileGroupRepository, times(1)).deleteById(gid);
+		UserEntity ue = new UserEntity();
+		ue.setUsername("anonymous");
+		ue.setRoles("administrator");
+		RequestContext.setUserInfo(new UserInfo(ue));
+		when(fileGroupRepository.findByGid(567)).thenReturn(new FileGroupEntity(567, "xyzzy", "root"));
+		when(fileRepository.findAllByGid(567)).thenReturn(null);
+		doNothing().when(fileRepository).delete(argThat(x -> x.getGid() == 567));
+		FileGroupInfo groupInfo = fileGroupService.deleteGroup(567);
+		Assertions.assertEquals(567, groupInfo.getGid());
+		Assertions.assertEquals("xyzzy", groupInfo.getName());
+		verify(fileGroupRepository, times(1)).findByGid(567);
+		verify(fileRepository, times(1)).findAllByGid(567);
+		verify(fileGroupRepository, times(1)).delete(argThat(x -> x.getGid() == 567));
 	}
 
 	@Test
-	public void delete_negative() {
-		int gid = -567;
-		fileGroupService.delete(gid);
-		verify(fileGroupRepository, times(0)).deleteById(gid);
+	public void delete_notFound() {
+		when(fileGroupRepository.findByGid(567)).thenReturn(null);
+		when(fileRepository.findAllByGid(567)).thenReturn(null);
+		doNothing().when(fileRepository).delete(argThat(x -> x.getGid() == 567));
+		FileGroupInfo groupInfo = fileGroupService.deleteGroup(567);
+		Assertions.assertEquals(null, groupInfo);
+		verify(fileGroupRepository, times(1)).findByGid(567);
+		verify(fileRepository, times(0)).findAllByGid(567);
+		verify(fileGroupRepository, times(0)).delete(argThat(x -> x.getGid() == 567));
 	}
 
 	private void add(List<FileGroupEntity> entities, int gid, String name) {

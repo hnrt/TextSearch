@@ -17,6 +17,7 @@ import org.springframework.stereotype.Service;
 
 import com.hideakin.textsearch.index.entity.PreferenceEntity;
 import com.hideakin.textsearch.index.entity.UserEntity;
+import com.hideakin.textsearch.index.exception.ForbiddenException;
 import com.hideakin.textsearch.index.model.AuthenticateResult;
 import com.hideakin.textsearch.index.model.UserInfo;
 import com.hideakin.textsearch.index.repository.PreferenceRepository;
@@ -86,6 +87,12 @@ public class UserServiceImpl implements UserService {
 	}
 
 	@Override
+	public UserInfo getUser(int uid) {
+		UserEntity entity = userRepository.findByUid(uid);
+		return entity != null ? new UserInfo(entity) : null;
+	}
+
+	@Override
 	public UserInfo getUser(String username) {
 		UserEntity entity = userRepository.findByUsername(username);
 		return entity != null ? new UserInfo(entity) : null;
@@ -108,10 +115,10 @@ public class UserServiceImpl implements UserService {
 		entity.setRoles(roles);
 		entity.setCreatedAt(ct);
 		entity.setUpdatedAt(ct);
-		entity.setExpiresAt(null);
 		entity.setAccessToken(null);
+		entity.setExpiresAt(null);
 		userRepository.saveAndFlush(entity);
-		logger.info(String.format("createUser(%s|%s) succeeded.", username, roles));
+		logger.info("createUser([{}] {}) succeeded.", entity.getUid(), entity.getUsername());
 		return new UserInfo(entity);
 	}
 	
@@ -132,10 +139,13 @@ public class UserServiceImpl implements UserService {
 	}
 
 	@Override
-	public UserInfo updateUser(String username, String password, String[] roles) {
-		UserEntity entity = userRepository.findByUsername(username);
+	public UserInfo updateUser(int uid, String username, String password, String[] roles) {
+		UserEntity entity = userRepository.findByUid(uid);
 		if (entity == null) {
 			return null;
+		}
+		if (username != null) {
+			entity.setUsername(username);
 		}
 		if (password != null) {
 			entity.setPassword(digestPassword(username, password));
@@ -145,19 +155,24 @@ public class UserServiceImpl implements UserService {
 			entity.setRoles(roles);
 		}
 		entity.setUpdatedAt(ZonedDateTime.now());
-		entity.setExpiresAt(null);
 		entity.setAccessToken(null);
+		entity.setExpiresAt(null);
 		userRepository.saveAndFlush(entity);
+		logger.info("updateUser([{}] {}) succeeded.", entity.getUid(), entity.getUsername());
 		return new UserInfo(entity);
 	}
 
 	@Override
-	public UserInfo deleteUser(String username) {
-		UserEntity entity = userRepository.findByUsername(username);
+	public UserInfo deleteUser(int uid) {
+		if (uid == 0) {
+			throw new ForbiddenException("Not allowed to delete the user of UID=0.");
+		}
+		UserEntity entity = userRepository.findByUid(uid);
 		if (entity == null) {
 			return null;
 		}
 		userRepository.delete(entity);
+		logger.info("deleteUser([{}] {}) succeeded.", entity.getUid(), entity.getUsername());
 		return new UserInfo(entity);
 	}
 

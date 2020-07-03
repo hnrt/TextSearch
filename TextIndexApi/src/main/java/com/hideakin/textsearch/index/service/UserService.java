@@ -7,10 +7,11 @@ public interface UserService {
 
 	AuthenticateResult authenticate(String username, String password);
 	UserInfo[] getUsers();
+	UserInfo getUser(int uid);
 	UserInfo getUser(String username);
 	UserInfo getUserByAccessToken(String accessToken);
 	UserInfo createUser(String username, String password, String[] roles);
-	UserInfo updateUser(String username, String password, String[] roles);
-	UserInfo deleteUser(String username);
+	UserInfo updateUser(int uid, String username, String password, String[] roles);
+	UserInfo deleteUser(int uid);
 
 }

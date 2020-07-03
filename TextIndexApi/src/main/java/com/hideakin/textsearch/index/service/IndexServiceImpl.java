@@ -83,12 +83,8 @@ public class IndexServiceImpl implements IndexService {
 				pp.addPositions(dist.getPositions());
 			} else {
 				FileEntity fileEntity = fileRepository.findByFid(fid);
-				String path = fileEntity != null ? fileEntity.getPath() : null;
-				if (path != null) {
-					pp = new PathPositions();
-					pp.setPath(path);
-					pp.setPositions(dist.getPositions());
-					map.put(fid, pp);
+				if (fileEntity != null && !fileEntity.isStale()) {
+					map.put(fid, new PathPositions(fid, fileEntity.getPath(), dist.getPositions()));
 				}
 			}
 		}

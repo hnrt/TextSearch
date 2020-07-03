@@ -72,6 +72,9 @@ public class FileGroupServiceImpl implements FileGroupService {
 
 	@Override
 	public FileGroupInfo updateGroup(int gid, String name, String[] ownedBy) {
+		if (gid == 0) {
+			throw new ForbiddenException("Not allowed to delete the group of GID=0.");
+		}
 		FileGroupEntity entity = fileGroupRepository.findByGid(gid);
 		if (entity == null) {
 			return null;

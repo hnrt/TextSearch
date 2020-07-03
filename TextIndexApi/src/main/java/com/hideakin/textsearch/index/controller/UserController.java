@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.hideakin.textsearch.index.model.UserRequest;
@@ -19,16 +20,26 @@ public class UserController {
 
 	@Autowired
 	private UserService userService;
-	
+
 	@RequestMapping(value="/v1/users",method=RequestMethod.GET)
-	public UserInfo[] getUsers() {
-		return userService.getUsers();
+	public ResponseEntity<?> getUsers(
+			@RequestParam(name="username",required=false) String username) {
+		if (username != null) {
+			UserInfo ui = userService.getUser(username);
+			if (ui != null) {
+				return new ResponseEntity<>(ui, HttpStatus.OK);
+			} else {
+				return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+			}
+		}
+		UserInfo[] uiArray = userService.getUsers();
+		return new ResponseEntity<>(uiArray, HttpStatus.OK);
 	}
 
-	@RequestMapping(value="/v1/users/{username}",method=RequestMethod.GET)
-	public ResponseEntity<?> getUser(
-			@PathVariable String username) {
-		UserInfo ui = userService.getUser(username);
+	@RequestMapping(value="/v1/users/{uid:[0-9]+}",method=RequestMethod.GET)
+	public ResponseEntity<?> getUserById(
+			@PathVariable int uid) {
+		UserInfo ui = userService.getUser(uid);
 		if (ui != null) {
 			return new ResponseEntity<>(ui, HttpStatus.OK);
 		} else {
@@ -47,10 +58,11 @@ public class UserController {
 		}
 	}
 
-	@RequestMapping(value="/v1/users",method=RequestMethod.PUT)
+	@RequestMapping(value="/v1/users/{uid:[0-9]+}",method=RequestMethod.PUT)
 	public ResponseEntity<?> updateUser(
+			@PathVariable int uid,
 			@RequestBody UserRequest req) {
-		UserInfo ui = userService.updateUser(req.getUsername(), req.getPassword(), req.getRoles());
+		UserInfo ui = userService.updateUser(uid, req.getUsername(), req.getPassword(), req.getRoles());
 		if (ui != null) {
 			return new ResponseEntity<>(ui, HttpStatus.OK);
 		} else {
@@ -58,10 +70,10 @@ public class UserController {
 		}
 	}
 
-	@RequestMapping(value="/v1/users/{username}",method=RequestMethod.DELETE)
+	@RequestMapping(value="/v1/users/{uid:[0-9]+}",method=RequestMethod.DELETE)
 	public ResponseEntity<?> deleteUser(
-			@PathVariable String username) {
-		UserInfo ui = userService.deleteUser(username);
+			@PathVariable int uid) {
+		UserInfo ui = userService.deleteUser(uid);
 		if (ui != null) {
 			return new ResponseEntity<>(ui, HttpStatus.OK);
 		} else {

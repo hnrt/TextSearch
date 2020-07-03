@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.hideakin.textsearch.index.entity.TextResourceHttpEntity;
+import com.hideakin.textsearch.index.model.FileDisposition;
 import com.hideakin.textsearch.index.model.FileInfo;
 import com.hideakin.textsearch.index.service.FileService;
 
@@ -27,7 +28,7 @@ public class FileController {
 	private FileService service;
 
 	@RequestMapping(value="/v1/files/{group:[^0-9].*}",method=RequestMethod.GET)
-	public ResponseEntity<?> getFilesByGroup(
+	public ResponseEntity<?> getFiles(
 			@PathVariable String group) {
 		FileInfo[] fiArray = service.getFiles(group);
 		if (fiArray != null) {
@@ -65,11 +66,29 @@ public class FileController {
 	}
 
 	@RequestMapping(value="/v1/files/{group:[^0-9].*}",method=RequestMethod.POST,consumes=MediaType.MULTIPART_FORM_DATA_VALUE)
-	public ResponseEntity<?> uploadFile(
+	public ResponseEntity<?> addFile(
 			@PathVariable String group,
 			@RequestParam("file") MultipartFile file) {
 		try {
-			FileInfo added = service.addFile(group, file.getOriginalFilename(), file.getBytes(), file.getContentType());
+			FileDisposition disp = new FileDisposition();
+			FileInfo added = service.addFile(group, file.getOriginalFilename(), file.getBytes(), file.getContentType(), disp);
+			if (added != null) {
+				return new ResponseEntity<>(added, disp.isCreated() ? HttpStatus.CREATED : HttpStatus.OK);
+			} else {
+				return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+		}
+	}
+
+	@RequestMapping(value="/v1/files/{fid:[0-9]+}/contents",method=RequestMethod.PUT,consumes=MediaType.MULTIPART_FORM_DATA_VALUE)
+	public ResponseEntity<?> updateFile(
+			@PathVariable int fid,
+			@RequestParam("file") MultipartFile file) {
+		try {
+			FileInfo added = service.updateFile(fid, file.getOriginalFilename(), file.getBytes(), file.getContentType());
 			if (added != null) {
 				return new ResponseEntity<>(added, HttpStatus.OK);
 			} else {

@@ -5,9 +5,29 @@ import java.util.List;
 
 public class PathPositions {
 
+	private int fid;
+
 	private String path;
 	
 	private int[] positions;
+	
+	public PathPositions() {
+		this(-1, null, null);
+	}
+
+	public PathPositions(int fid, String path, int[] positions) {
+		this.fid = fid;
+		this.path = path;
+		this.positions = positions;
+	}
+
+	public int getFid() {
+		return fid;
+	}
+
+	public void setFid(int fid) {
+		this.fid = fid;
+	}
 
 	public String getPath() {
 		return path;

@@ -15,7 +15,6 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.hideakin.textsearch.index.data.SearchOptions;
-import com.hideakin.textsearch.index.model.FindTextResponse;
 import com.hideakin.textsearch.index.model.PathPositions;
 import com.hideakin.textsearch.index.service.IndexService;
 
@@ -38,18 +37,17 @@ public class IndexControllerTests {
 
 	@Test
 	public void findTextByGroup_successful() throws Exception {
-		FindTextResponse rsp = new FindTextResponse();
-		PathPositions[] hits = new PathPositions[] { new PathPositions() };
-		hits[0].setPath("waldo.h");
-		hits[0].setPositions(new int[] { 55 });
-		rsp.setHits(hits);
-		when(indexService.findText("corge", "XYZZY", SearchOptions.Exact)).thenReturn(rsp);
+		when(indexService.findText("corge", "XYZZY", SearchOptions.Exact)).thenReturn(
+				new PathPositions[] {
+						new PathPositions(7, "waldo.h", new int[] { 55 })
+				});
 		mockMvc.perform(MockMvcRequestBuilders.get("/v1/index/corge")
 				.param("text", "XYZZY")
 				.param("option", "Exact"))
 	    	.andExpect(status().isOk())
-	    	.andExpect(jsonPath("$.hits[0].path").value(rsp.getHits()[0].getPath()))
-	    	.andExpect(jsonPath("$.hits[0].positions[0]").value(rsp.getHits()[0].getPositions()[0]));
+	    	.andExpect(jsonPath("$[0].fid").value(7))
+	    	.andExpect(jsonPath("$[0].path").value("waldo.h"))
+	    	.andExpect(jsonPath("$[0].positions[0]").value(55));
 	}
 
 }

@@ -1,5 +1,7 @@
 package com.hideakin.textsearch.index.service;
 
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -8,6 +10,8 @@ import java.util.Set;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,19 +22,26 @@ import com.hideakin.textsearch.index.entity.FileGroupEntity;
 import com.hideakin.textsearch.index.entity.PreferenceEntity;
 import com.hideakin.textsearch.index.entity.TextEntity;
 import com.hideakin.textsearch.index.model.Distribution;
+import com.hideakin.textsearch.index.model.FileDisposition;
 import com.hideakin.textsearch.index.model.FileInfo;
 import com.hideakin.textsearch.index.repository.FileContentRepository;
 import com.hideakin.textsearch.index.repository.FileGroupRepository;
 import com.hideakin.textsearch.index.repository.FileRepository;
 import com.hideakin.textsearch.index.repository.PreferenceRepository;
 import com.hideakin.textsearch.index.repository.TextRepository;
+import com.hideakin.textsearch.index.utility.ContentType;
 import com.hideakin.textsearch.index.utility.DistributionDecoder;
 import com.hideakin.textsearch.index.utility.GZipHelper;
+import com.hideakin.textsearch.index.utility.TextEncoding;
 import com.hideakin.textsearch.index.utility.TextTokenizer;
 
 @Service
 @Transactional
 public class FileServiceImpl implements FileService {
+
+	private static final Logger logger = LoggerFactory.getLogger(FileServiceImpl.class);
+
+	private static final String UTF_8 = "UTF-8";
 
 	@PersistenceContext
 	private EntityManager em;
@@ -86,27 +97,43 @@ public class FileServiceImpl implements FileService {
 	}
 	
 	@Override
-	public FileInfo addFile(String group, String path, byte[] data, String contentType) {
+	public FileInfo addFile(String group, String path, byte[] data, String contentType, FileDisposition disp) {
 		FileGroupEntity fileGroupEntity = fileGroupRepository.findByName(group);
 		if (fileGroupEntity == null) {
+			disp.setValue(FileDisposition.GROUP_NOT_FOUND);
 			return null;
 		}
 		int gid = fileGroupEntity.getGid();
 		FileEntity entity = fileRepository.findByGidAndPath(gid, path);
-		if (entity == null) {
-			entity = new FileEntity(getNextFid(), path, gid);
+		if (entity != null) {
+			entity.setStale(true);
+			fileRepository.save(entity);
+			disp.setValue(FileDisposition.UPDATED);
+		} else {
+			disp.setValue(FileDisposition.CREATED);
 		}
-		entity.setSize(data.length);
-		int fid = fileRepository.save(entity).getFid();
-		FileContentEntity fcEntity = new FileContentEntity(fid, GZipHelper.compress(data));
-        fileContentRepository.save(fcEntity);
-		TextTokenizer tokenizer = new TextTokenizer();
-		tokenizer.run(data, "UTF-8");
-		removeDistribution(fid);
-		applyTextMap(fid, tokenizer.populateTextMap());
+		saveFile(gid, path, data, contentType);
 		return new FileInfo(entity, fileGroupEntity);
 	}
 
+	@Override
+	public FileInfo updateFile(int fid, String path, byte[] data, String contentType) {
+		FileEntity entity = fileRepository.findByFid(fid);
+		if (entity == null) {
+			return null;
+		}
+		entity.setStale(true);
+		fileRepository.save(entity);
+		int gid = entity.getGid();
+		FileGroupEntity fileGroupEntity = fileGroupRepository.findByGid(gid);
+		if (fileGroupEntity == null) {
+			logger.error("Existing File entity {} has an invalid GID {}.", fid, gid);
+			return null;
+		}
+		saveFile(gid, path, data, contentType);
+		return new FileInfo(entity, fileGroupEntity);
+	}
+	
 	@Override
 	public FileInfo[] deleteFiles(String group) {
 		FileGroupEntity fileGroupEntity = fileGroupRepository.findByName(group);
@@ -173,6 +200,17 @@ public class FileServiceImpl implements FileService {
 		return nextId;
 	}
 
+	private void saveFile(int gid, String path, byte[] data, String contentType) {
+		data = convertToUTF8(data, contentType);
+		FileEntity entity = fileRepository.save(new FileEntity(getNextFid(), path, data.length, gid));
+		int fid = entity.getFid();
+		FileContentEntity fcEntity = new FileContentEntity(fid, GZipHelper.compress(data));
+        fileContentRepository.save(fcEntity);
+		TextTokenizer tokenizer = new TextTokenizer();
+		tokenizer.run(data, UTF_8);
+		applyTextMap(fid, tokenizer.populateTextMap());
+	}
+
 	private void removeDistribution(int fid) {
 		Set<Integer> fids = new HashSet<>(1);
 		fids.add(fid);
@@ -214,6 +252,15 @@ public class FileServiceImpl implements FileService {
 			entity.appendDist(fid, positions);
 			textRepository.save(entity);
 		}
+	}
+	
+	private static byte[] convertToUTF8(byte[] data, String contentType) {
+		ContentType ct = ContentType.parse(contentType);
+		Charset cs = ct.getCharset(UTF_8);
+		if (!cs.displayName().equals(UTF_8)) {
+			data = TextEncoding.convert(data, cs, StandardCharsets.UTF_8);
+		}
+		return data;
 	}
 
 }

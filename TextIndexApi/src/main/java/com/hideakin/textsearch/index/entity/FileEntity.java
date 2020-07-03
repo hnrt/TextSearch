@@ -26,21 +26,21 @@ public class FileEntity {
 
 	@Column(name="gid")
 	private int gid;
+
+	@Column(name="stale")
+	private boolean stale;
 	
 	public FileEntity() {
-		this.fid = -1;
-		this.path = null;
-		this.size = -1;
-		this.updatedAt = ZonedDateTime.now();
-		this.gid = -1;
+		this(-1, null, -1, -1);
 	}
 
-	public FileEntity(int fid, String path, int gid) {
+	public FileEntity(int fid, String path, int size, int gid) {
 		this.fid = fid;
 		this.path = path;
-		this.size = -1;
+		this.size = size;
 		this.updatedAt = ZonedDateTime.now();
 		this.gid = gid;
+		this.stale = false;
 	}
 
 	public int getFid() {
@@ -59,14 +59,6 @@ public class FileEntity {
 		this.path = path;
 	}
 
-	public int getGid() {
-		return gid;
-	}
-
-	public void setGid(int gid) {
-		this.gid = gid;
-	}
-
 	public int getSize() {
 		return size;
 	}
@@ -81,6 +73,22 @@ public class FileEntity {
 
 	public void setUpdatedAt(ZonedDateTime updatedAt) {
 		this.updatedAt = updatedAt;
+	}
+
+	public int getGid() {
+		return gid;
+	}
+
+	public void setGid(int gid) {
+		this.gid = gid;
+	}
+
+	public boolean isStale() {
+		return stale;
+	}
+
+	public void setStale(boolean stale) {
+		this.stale = stale;
 	}
 
 }

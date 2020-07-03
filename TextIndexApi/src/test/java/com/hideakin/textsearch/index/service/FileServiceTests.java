@@ -72,7 +72,7 @@ public class FileServiceTests {
 
 	@Test
 	public void getPath_successful() {
-		when(fileRepository.findByFid(456)).thenReturn(new FileEntity(456, "/home/plugh/thud.cs", 789));
+		when(fileRepository.findByFid(456)).thenReturn(new FileEntity(456, "/home/plugh/thud.cs", 1000, 789));
 		String path = fileService.getPath(456);
 		Assertions.assertEquals("/home/plugh/thud.cs", path);
 	}
@@ -109,7 +109,7 @@ public class FileServiceTests {
 	}
 
 	private void add(List<FileEntity> entities, int fid, String path, int gid) {
-		entities.add(new FileEntity(fid, path, gid));
+		entities.add(new FileEntity(fid, path, 1000, gid));
 	}
 
 }
