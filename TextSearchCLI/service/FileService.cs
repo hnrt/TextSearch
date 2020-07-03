@@ -74,5 +74,16 @@ namespace com.hideakin.textsearch.service
             }
             return task.Result;
         }
+
+        public void DeleteStaleFiles(string group)
+        {
+            var client = new IndexNetClient();
+            var task = client.DeleteStaleFiles(group);
+            task.Wait();
+            if (!task.Result)
+            {
+                throw NewResponseException(client.Response);
+            }
+        }
     }
 }

@@ -193,6 +193,25 @@ public class FileServiceImpl implements FileService {
 	}
 
 	@Override
+	public boolean deleteStaleFiles(String group) {
+		FileGroupEntity fileGroupEntity = fileGroupRepository.findByName(group);
+		if (fileGroupEntity == null) {
+			return false;
+		}
+		int gid = fileGroupEntity.getGid();
+		List<FileEntity> entities = fileRepository.findAllByGidAndStaleTrue(gid);
+		Set<Integer> fids = new HashSet<>(entities.size());
+		for (FileEntity e : entities) {
+			int fid = e.getFid();
+			fids.add(fid);
+			fileContentRepository.deleteByFid(fid);
+			fileRepository.deleteByFid(fid);
+		}
+		removeDistribution(fids);
+		return true;
+	}
+
+	@Override
 	public FileInfo deleteFile(int fid) {
 		FileEntity entity = fileRepository.findByFid(fid);
 		if (entity != null) {

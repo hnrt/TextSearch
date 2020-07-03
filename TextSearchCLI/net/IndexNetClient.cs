@@ -546,6 +546,16 @@ namespace com.hideakin.textsearch.net
             }
         }
 
+        public async Task<bool> DeleteStaleFiles(string group)
+        {
+            var uri = string.Format("{0}/v1/files/{1}/stale", Url, group);
+            var request = new HttpRequestMessage(HttpMethod.Delete, uri);
+            request.Headers.Add(AUTHORIZATION, BearerToken);
+            Response = await httpClient.SendAsync(request, cts.Token);
+            ResponseBody = await Response.Content.ReadAsStringAsync();
+            return Response.StatusCode == HttpStatusCode.OK;
+        }
+
         #endregion
 
         #region INDEX

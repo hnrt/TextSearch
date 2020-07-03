@@ -123,6 +123,16 @@ public class FileController {
 		}
 	}
 
+	@RequestMapping(value="/v1/files/{group:[^0-9].*}/stale",method=RequestMethod.DELETE)
+	public ResponseEntity<?> deleteStaleFiles(
+			@PathVariable String group) {
+		if (service.deleteStaleFiles(group)) {
+			return new ResponseEntity<>(HttpStatus.OK);
+		} else {
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
+	}
+
 	@RequestMapping(value="/v1/files/{fid:[0-9]+}",method=RequestMethod.DELETE)
 	public ResponseEntity<?> deleteFile(
 			@PathVariable int fid) {

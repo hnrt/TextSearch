@@ -35,7 +35,8 @@ namespace com.hideakin.textsearch
         PrintFiles,
         PrintFileStats,
         IndexFiles,
-        DeleteFiles
+        DeleteFiles,
+        DeleteStaleFiles
     }
 
     class Program
@@ -340,6 +341,14 @@ namespace com.hideakin.textsearch
                 }
                 commandType = CommandType.DeleteFiles;
             });
+            OptionMap.Add("-delete-stale-files", (e) =>
+            {
+                if (commandType != CommandType.None)
+                {
+                    throw new Exception(BAD_COMMAND_LINE_SYNTAX);
+                }
+                commandType = CommandType.DeleteStaleFiles;
+            });
             OptionMap.Add("-index-api", (e) =>
             {
                 if (!e.MoveNext())
@@ -402,6 +411,8 @@ namespace com.hideakin.textsearch
             OptionAltMap.Add("-pass", "-password");
             OptionAltMap.Add("-i", "-index-files");
             OptionAltMap.Add("-index", "-index-files");
+            OptionAltMap.Add("-shrink-index", "-delete-stale-files");
+            OptionAltMap.Add("-shrink", "-delete-stale-files");
 
             CommandMap.Add(CommandType.None, Help);
             CommandMap.Add(CommandType.Help, Help);
@@ -427,6 +438,7 @@ namespace com.hideakin.textsearch
             CommandMap.Add(CommandType.PrintFileStats, PrintFileStats);
             CommandMap.Add(CommandType.IndexFiles, IndexFiles);
             CommandMap.Add(CommandType.DeleteFiles, DeleteFiles);
+            CommandMap.Add(CommandType.DeleteStaleFiles, DeleteStaleFiles);
         }
 
         public void ParseCommandLine(string[] args)
@@ -827,6 +839,13 @@ namespace com.hideakin.textsearch
         {
             Console.WriteLine("Started deleting files...");
             FileSvc.DeleteFiles(groupName);
+            Console.WriteLine("Done.");
+        }
+
+        public void DeleteStaleFiles()
+        {
+            Console.WriteLine("Started deleting stale files...");
+            FileSvc.DeleteStaleFiles(groupName);
             Console.WriteLine("Done.");
         }
 

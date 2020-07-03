@@ -13,6 +13,7 @@ public interface FileService {
 	FileInfo addFile(String group, String path, byte[] data, String contentType, FileDisposition disp);
 	FileInfo updateFile(int fid, String path, byte[] data, String contentType);
 	FileInfo[] deleteFiles(String group);
+	boolean deleteStaleFiles(String group);
 	FileInfo deleteFile(int fid);
 	byte[] getFileContents(int fid);
 
