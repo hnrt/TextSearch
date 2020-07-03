@@ -465,7 +465,6 @@ namespace com.hideakin.textsearch.net
         public async Task<model.FileInfo> UploadFile(string group, string path)
         {
             var uri = string.Format("{0}/v1/files/{1}", Url, group);
-            //var uri = string.Format("{0}/v1/files", Url);
             var request = new HttpRequestMessage(HttpMethod.Post, uri);
             request.Headers.Add(AUTHORIZATION, BearerToken);
             var content = new MultipartFormDataContent();
@@ -530,6 +529,23 @@ namespace com.hideakin.textsearch.net
             }
         }
 
+        public async Task<model.FileInfo[]> DeleteFiles(string group)
+        {
+            var uri = string.Format("{0}/v1/files/{1}", Url, group);
+            var request = new HttpRequestMessage(HttpMethod.Delete, uri);
+            request.Headers.Add(AUTHORIZATION, BearerToken);
+            Response = await httpClient.SendAsync(request, cts.Token);
+            ResponseBody = await Response.Content.ReadAsStringAsync();
+            if (Response.StatusCode == HttpStatusCode.OK)
+            {
+                return JsonConvert.DeserializeObject<model.FileInfo[]>(ResponseBody);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
         #endregion
 
         #region INDEX
@@ -549,34 +565,6 @@ namespace com.hideakin.textsearch.net
             {
                 return null;
             }
-        }
-
-        public async Task<UpdateIndexResponse> UpdateIndex(UpdateIndexRequest input)
-        {
-            var uri = string.Format("{0}/v1/index/{1}", Url, GroupName);
-            var request = new HttpRequestMessage(HttpMethod.Post, uri);
-            request.Headers.Add(AUTHORIZATION, BearerToken);
-            request.Content = new StringContent(JsonConvert.SerializeObject(input), Encoding.UTF8, "application/json");
-            Response = await httpClient.SendAsync(request, cts.Token);
-            ResponseBody = await Response.Content.ReadAsStringAsync();
-            if (Response.StatusCode == HttpStatusCode.OK)
-            {
-                return JsonConvert.DeserializeObject<UpdateIndexResponse>(ResponseBody);
-            }
-            else
-            {
-                return null;
-            }
-        }
-
-        public async Task<bool> DeleteIndex()
-        {
-            var uri = string.Format("{0}/v1/index/{1}", Url, GroupName);
-            var request = new HttpRequestMessage(HttpMethod.Delete, uri);
-            request.Headers.Add(AUTHORIZATION, BearerToken);
-            Response = await httpClient.SendAsync(request, cts.Token);
-            ResponseBody = await Response.Content.ReadAsStringAsync();
-            return Response.StatusCode == HttpStatusCode.OK;
         }
 
         #endregion

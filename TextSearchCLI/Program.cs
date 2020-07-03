@@ -15,8 +15,6 @@ namespace com.hideakin.textsearch
         None,
         Help,
         Authenticate,
-        UpdateIndex,
-        DeleteIndex,
         Query,
         PrintExtensions,
         AddExtensions,
@@ -35,7 +33,9 @@ namespace com.hideakin.textsearch
         UpdateGroup,
         DeleteGroup,
         PrintFiles,
-        PrintFileStats
+        PrintFileStats,
+        IndexFiles,
+        DeleteFiles
     }
 
     class Program
@@ -103,31 +103,6 @@ namespace com.hideakin.textsearch
                     throw new Exception(BAD_COMMAND_LINE_SYNTAX);
                 }
                 groupName = (string)e.Current;
-            });
-            OptionMap.Add("-index", (e) =>
-            {
-                if (commandType != CommandType.None)
-                {
-                    throw new Exception(BAD_COMMAND_LINE_SYNTAX);
-                }
-                commandType = CommandType.UpdateIndex;
-                if (!e.MoveNext())
-                {
-                    throw new Exception(BAD_COMMAND_LINE_SYNTAX);
-                }
-                OperandList.Add((string)e.Current);
-                while (e.MoveNext())
-                {
-                    OperandList.Add((string)e.Current);
-                }
-            });
-            OptionMap.Add("-delete-index", (e) =>
-            {
-                if (commandType != CommandType.None)
-                {
-                    throw new Exception(BAD_COMMAND_LINE_SYNTAX);
-                }
-                commandType = CommandType.DeleteIndex;
             });
             OptionMap.Add("-query", (e) =>
             {
@@ -340,6 +315,31 @@ namespace com.hideakin.textsearch
                 }
                 commandType = CommandType.PrintFileStats;
             });
+            OptionMap.Add("-index-files", (e) =>
+            {
+                if (commandType != CommandType.None)
+                {
+                    throw new Exception(BAD_COMMAND_LINE_SYNTAX);
+                }
+                commandType = CommandType.IndexFiles;
+                if (!e.MoveNext())
+                {
+                    throw new Exception(BAD_COMMAND_LINE_SYNTAX);
+                }
+                OperandList.Add((string)e.Current);
+                while (e.MoveNext())
+                {
+                    OperandList.Add((string)e.Current);
+                }
+            });
+            OptionMap.Add("-delete-files", (e) =>
+            {
+                if (commandType != CommandType.None)
+                {
+                    throw new Exception(BAD_COMMAND_LINE_SYNTAX);
+                }
+                commandType = CommandType.DeleteFiles;
+            });
             OptionMap.Add("-index-api", (e) =>
             {
                 if (!e.MoveNext())
@@ -384,7 +384,6 @@ namespace com.hideakin.textsearch
             OptionAltMap.Add("-pf", "-print-files");
             OptionAltMap.Add("-g", "-group");
             OptionAltMap.Add("-q", "-query");
-            OptionAltMap.Add("-i", "-index");
             OptionAltMap.Add("-pe", "-print-extensions");
             OptionAltMap.Add("-print-ext", "-print-extensions");
             OptionAltMap.Add("-e", "-extensions");
@@ -401,12 +400,12 @@ namespace com.hideakin.textsearch
             OptionAltMap.Add("-user", "-username");
             OptionAltMap.Add("-p", "-password");
             OptionAltMap.Add("-pass", "-password");
+            OptionAltMap.Add("-i", "-index-files");
+            OptionAltMap.Add("-index", "-index-files");
 
             CommandMap.Add(CommandType.None, Help);
             CommandMap.Add(CommandType.Help, Help);
             CommandMap.Add(CommandType.Authenticate, Authenticate);
-            CommandMap.Add(CommandType.UpdateIndex, UpdateIndex);
-            CommandMap.Add(CommandType.DeleteIndex, DeleteIndex);
             CommandMap.Add(CommandType.Query, Query);
             CommandMap.Add(CommandType.PrintExtensions, PrintExtensions);
             CommandMap.Add(CommandType.AddExtensions, AddExtensions);
@@ -426,6 +425,8 @@ namespace com.hideakin.textsearch
             CommandMap.Add(CommandType.DeleteGroup, DeleteGroup);
             CommandMap.Add(CommandType.PrintFiles, PrintFiles);
             CommandMap.Add(CommandType.PrintFileStats, PrintFileStats);
+            CommandMap.Add(CommandType.IndexFiles, IndexFiles);
+            CommandMap.Add(CommandType.DeleteFiles, DeleteFiles);
         }
 
         public void ParseCommandLine(string[] args)
@@ -470,9 +471,11 @@ namespace com.hideakin.textsearch
             Console.WriteLine("  {0} -create-group GROUPNAME [USERNAME...]", Name);
             Console.WriteLine("  {0} -update-group GID [-group GROUPNAME] [-owned-by USERNAME...]", Name);
             Console.WriteLine("  {0} -delete-group GID", Name);
-            Console.WriteLine("Usage <index>:");
-            Console.WriteLine("  {0} -group GROUPNAME -index PATH...", Name);
-            Console.WriteLine("  {0} -group GROUPNAME -delete-index", Name);
+            Console.WriteLine("Usage <file>:");
+            Console.WriteLine("  {0} -group GROUPNAME -print-files", Name);
+            Console.WriteLine("  {0} -group GROUPNAME -print-file-stats", Name);
+            Console.WriteLine("  {0} -group GROUPNAME -index-files PATH...", Name);
+            Console.WriteLine("  {0} -group GROUPNAME -delete-files", Name);
             Console.WriteLine("Usage <search>:");
             Console.WriteLine("  {0} -group GROUPNAME -query EXPR [-html]", Name);
             Console.WriteLine("Usage <configuration>:");
@@ -747,7 +750,7 @@ namespace com.hideakin.textsearch
             Console.WriteLine("{0}", stats);
         }
 
-        private void UpdateIndex()
+        private void IndexFiles()
         {
             Console.WriteLine("Started indexing...");
             extensions = PrefSvc.GetExtensions();
@@ -820,10 +823,10 @@ namespace com.hideakin.textsearch
             Console.WriteLine("    Uploaded. FID={0}{1}", fileInfo.Fid, result == UploadFileStatus.Created ? " (NEW)" : "");
         }
 
-        public void DeleteIndex()
+        public void DeleteFiles()
         {
-            Console.WriteLine("Started deleting index...");
-            IndexSvc.DeleteIndex(groupName);
+            Console.WriteLine("Started deleting files...");
+            FileSvc.DeleteFiles(groupName);
             Console.WriteLine("Done.");
         }
 

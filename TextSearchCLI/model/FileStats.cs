@@ -36,7 +36,7 @@ namespace com.hideakin.textsearch.model
         public override string ToString()
         {
 			return string.Format("gid={0} group={1} files={2} bytes={3} stored={4} stale.files={5} stale.bytes={6} stale.stored={7}",
-				Gid, Group, Files, TotalBytes, TotalStoredBytes, StaleFiles, TotalStaleBytes, TotalStoredStaleBytes);
+                Gid, Group, Files, TotalBytes, TotalStoredBytes, StaleFiles, TotalStaleBytes, TotalStoredStaleBytes);
         }
     }
 }

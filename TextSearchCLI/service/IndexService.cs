@@ -74,37 +74,5 @@ namespace com.hideakin.textsearch.service
                 return rangesList != null ? SearchResult.ToArrayOfPathRowColumns(tokenizer.Texts, rangesList) : new PathRowColumns[0];
             }
         }
-
-        public void UpdateIndex(string group, string path)
-        {
-            using (var sr = new StreamReader(path, true))
-            {
-                var tokenizer = new Tokenizer();
-                tokenizer.Run(sr);
-                var texts = tokenizer.Texts;
-                DebugPut(null, path, texts);
-                var req = new UpdateIndexRequest();
-                req.Path = path;
-                req.Texts = texts.ToArray();
-                var client = new IndexNetClient() { GroupName = group };
-                var task = client.UpdateIndex(req);
-                task.Wait();
-                if (task.Result == null)
-                {
-                    throw NewResponseException(client.Response);
-                }
-            }
-        }
-
-        public void DeleteIndex(string group)
-        {
-            var client = new IndexNetClient() { GroupName = group };
-            var task = client.DeleteIndex();
-            task.Wait();
-            if (!task.Result)
-            {
-                throw NewResponseException(client.Response);
-            }
-        }
     }
 }

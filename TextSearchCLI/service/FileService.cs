@@ -49,7 +49,7 @@ namespace com.hideakin.textsearch.service
             return task.Result;
         }
 
-        public model.FileInfo UploadFile(string group, string path, out UploadFileStatus result)
+        public FileInfo UploadFile(string group, string path, out UploadFileStatus result)
         {
             result = UploadFileStatus.Failure;
             var client = new IndexNetClient();
@@ -60,6 +60,18 @@ namespace com.hideakin.textsearch.service
                 throw new Exception("Failed to upload file " + path);
             }
             result = client.Response.StatusCode == HttpStatusCode.Created ? UploadFileStatus.Created : UploadFileStatus.Updated;
+            return task.Result;
+        }
+
+        public FileInfo[] DeleteFiles(string group)
+        {
+            var client = new IndexNetClient();
+            var task = client.DeleteFiles(group);
+            task.Wait();
+            if (task.Result == null)
+            {
+                throw NewResponseException(client.Response);
+            }
             return task.Result;
         }
     }
