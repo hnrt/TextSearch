@@ -104,15 +104,23 @@ public class FileServiceImpl implements FileService {
 			return null;
 		}
 		int gid = fileGroupEntity.getGid();
-		FileEntity entity = fileRepository.findByGidAndPath(gid, path);
-		if (entity != null) {
-			entity.setStale(true);
-			fileRepository.save(entity);
-			disp.setValue(FileDisposition.UPDATED);
-		} else {
-			disp.setValue(FileDisposition.CREATED);
+		int changes = 0;
+		List<FileEntity> entities = fileRepository.findAllByGidAndPath(gid, path);
+		if (entities != null) {
+			for (FileEntity e : entities) {
+				if (!e.isStale()) {
+					e.setStale(true);
+					fileRepository.save(e);
+					changes++;
+				}
+			}
 		}
-		saveFile(gid, path, data, contentType);
+		if (changes == 0) {
+			disp.setValue(FileDisposition.CREATED);
+		} else {
+			disp.setValue(FileDisposition.UPDATED);
+		}
+		FileEntity entity = saveFile(gid, path, data, contentType);
 		return new FileInfo(entity, fileGroupEntity);
 	}
 
@@ -130,7 +138,7 @@ public class FileServiceImpl implements FileService {
 			logger.error("Existing File entity {} has an invalid GID {}.", fid, gid);
 			return null;
 		}
-		saveFile(gid, path, data, contentType);
+		entity = saveFile(gid, path, data, contentType);
 		return new FileInfo(entity, fileGroupEntity);
 	}
 	
@@ -200,7 +208,7 @@ public class FileServiceImpl implements FileService {
 		return nextId;
 	}
 
-	private void saveFile(int gid, String path, byte[] data, String contentType) {
+	private FileEntity saveFile(int gid, String path, byte[] data, String contentType) {
 		data = convertToUTF8(data, contentType);
 		FileEntity entity = fileRepository.save(new FileEntity(getNextFid(), path, data.length, gid));
 		int fid = entity.getFid();
@@ -209,6 +217,7 @@ public class FileServiceImpl implements FileService {
 		TextTokenizer tokenizer = new TextTokenizer();
 		tokenizer.run(data, UTF_8);
 		applyTextMap(fid, tokenizer.populateTextMap());
+		return entity;
 	}
 
 	private void removeDistribution(int fid) {
