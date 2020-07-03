@@ -4,12 +4,15 @@ namespace com.hideakin.textsearch.model
 {
     internal class PathRowColumns
     {
+        public int Fid { get; }
+
         public string Path { get; }
 
         public List<RowColumns> Rows { get; }
 
-        public PathRowColumns(string path, List<RowColumns> rows)
+        public PathRowColumns(int fid, string path, List<RowColumns> rows)
         {
+            Fid = fid;
             Path = path;
             Rows = rows;
         }

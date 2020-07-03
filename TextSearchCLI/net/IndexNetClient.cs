@@ -2,9 +2,14 @@
 using com.hideakin.textsearch.model;
 using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Net;
 using System.Net.Http;
+using System.Net.Http.Formatting;
+using System.Net.Http.Headers;
+using System.Net.Mime;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -14,6 +19,8 @@ namespace com.hideakin.textsearch.net
     internal class IndexNetClient
     {
         private static readonly HttpClient httpClient = new HttpClient();
+
+        private static readonly string AUTHORIZATION = "Authorization";
 
         public static string Url { get; set; } = @"http://localhost:8080";
 
@@ -74,7 +81,6 @@ namespace com.hideakin.textsearch.net
                             Credentials.EncryptedToken = c.EncryptedToken;
                             Credentials.ExpiresAt = c.ExpiresAt;
                         }
-                        cc.LastUser = Credentials.Username;
                     }
                     else
                     {
@@ -146,7 +152,7 @@ namespace com.hideakin.textsearch.net
         {
             var uri = string.Format("{0}/v1/authentication", Url);
             var request = new HttpRequestMessage(HttpMethod.Get, uri);
-            request.Headers.Add("Authorization", BasicToken);
+            request.Headers.Add(AUTHORIZATION, BasicToken);
             Response = await httpClient.SendAsync(request, cts.Token);
             ResponseBody = await Response.Content.ReadAsStringAsync();
             if (Response.StatusCode == HttpStatusCode.OK)
@@ -197,12 +203,29 @@ namespace com.hideakin.textsearch.net
         {
             var uri = string.Format("{0}/v1/users", Url);
             var request = new HttpRequestMessage(HttpMethod.Get, uri);
-            request.Headers.Add("Authorization", BearerToken);
+            request.Headers.Add(AUTHORIZATION, BearerToken);
             Response = await httpClient.SendAsync(request, cts.Token);
             ResponseBody = await Response.Content.ReadAsStringAsync();
             if (Response.StatusCode == HttpStatusCode.OK)
             {
-                return JsonConvert.DeserializeObject<GetUsersResponse>(ResponseBody).Values;
+                return JsonConvert.DeserializeObject<UserInfo[]>(ResponseBody);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        public async Task<UserInfo> GetUser(int uid)
+        {
+            var uri = string.Format("{0}/v1/users/{1}", Url, uid);
+            var request = new HttpRequestMessage(HttpMethod.Get, uri);
+            request.Headers.Add(AUTHORIZATION, BearerToken);
+            Response = await httpClient.SendAsync(request, cts.Token);
+            ResponseBody = await Response.Content.ReadAsStringAsync();
+            if (Response.StatusCode == HttpStatusCode.OK)
+            {
+                return JsonConvert.DeserializeObject<UserInfo>(ResponseBody);
             }
             else
             {
@@ -212,9 +235,9 @@ namespace com.hideakin.textsearch.net
 
         public async Task<UserInfo> GetUser(string username)
         {
-            var uri = string.Format("{0}/v1/users/{1}", Url, username);
+            var uri = string.Format("{0}/v1/users?username={1}", Url, username);
             var request = new HttpRequestMessage(HttpMethod.Get, uri);
-            request.Headers.Add("Authorization", BearerToken);
+            request.Headers.Add(AUTHORIZATION, BearerToken);
             Response = await httpClient.SendAsync(request, cts.Token);
             ResponseBody = await Response.Content.ReadAsStringAsync();
             if (Response.StatusCode == HttpStatusCode.OK)
@@ -231,7 +254,7 @@ namespace com.hideakin.textsearch.net
         {
             var uri = string.Format("{0}/v1/users", Url);
             var request = new HttpRequestMessage(HttpMethod.Post, uri);
-            request.Headers.Add("Authorization", BearerToken);
+            request.Headers.Add(AUTHORIZATION, BearerToken);
             var input = new UserRequest(username, password, roles);
             request.Content = new StringContent(JsonConvert.SerializeObject(input), Encoding.UTF8, "application/json");
             Response = await httpClient.SendAsync(request, cts.Token);
@@ -246,11 +269,11 @@ namespace com.hideakin.textsearch.net
             }
         }
 
-        public async Task<UserInfo> UpdateUser(string username, string password, string[] roles)
+        public async Task<UserInfo> UpdateUser(int uid, string username, string password, string[] roles)
         {
-            var uri = string.Format("{0}/v1/users", Url);
+            var uri = string.Format("{0}/v1/users/{1}", Url, uid);
             var request = new HttpRequestMessage(HttpMethod.Put, uri);
-            request.Headers.Add("Authorization", BearerToken);
+            request.Headers.Add(AUTHORIZATION, BearerToken);
             var input = new UserRequest(username, password, roles);
             request.Content = new StringContent(JsonConvert.SerializeObject(input), Encoding.UTF8, "application/json");
             Response = await httpClient.SendAsync(request, cts.Token);
@@ -265,11 +288,11 @@ namespace com.hideakin.textsearch.net
             }
         }
 
-        public async Task<UserInfo> DeleteUser(string username)
+        public async Task<UserInfo> DeleteUser(int uid)
         {
-            var uri = string.Format("{0}/v1/users/{1}", Url, username);
+            var uri = string.Format("{0}/v1/users/{1}", Url, uid);
             var request = new HttpRequestMessage(HttpMethod.Delete, uri);
-            request.Headers.Add("Authorization", BearerToken);
+            request.Headers.Add(AUTHORIZATION, BearerToken);
             Response = await httpClient.SendAsync(request, cts.Token);
             ResponseBody = await Response.Content.ReadAsStringAsync();
             if (Response.StatusCode == HttpStatusCode.OK)
@@ -290,7 +313,7 @@ namespace com.hideakin.textsearch.net
         {
             var uri = string.Format("{0}/v1/preferences/{1}", Url, name);
             var request = new HttpRequestMessage(HttpMethod.Get, uri);
-            request.Headers.Add("Authorization", BearerToken);
+            request.Headers.Add(AUTHORIZATION, BearerToken);
             Response = await httpClient.SendAsync(request, cts.Token);
             ResponseBody = await Response.Content.ReadAsStringAsync();
             if (Response.StatusCode == HttpStatusCode.OK)
@@ -307,19 +330,19 @@ namespace com.hideakin.textsearch.net
         {
             var uri = string.Format("{0}/v1/preferences", Url);
             var request = new HttpRequestMessage(HttpMethod.Post, uri);
-            request.Headers.Add("Authorization", BearerToken);
+            request.Headers.Add(AUTHORIZATION, BearerToken);
             var input = new UpdatePreferenceRequest(name, value);
             request.Content = new StringContent(JsonConvert.SerializeObject(input), Encoding.UTF8, "application/json");
             Response = await httpClient.SendAsync(request, cts.Token);
             ResponseBody = await Response.Content.ReadAsStringAsync();
-            return Response.StatusCode == HttpStatusCode.OK;
+            return Response.StatusCode == HttpStatusCode.Created || Response.StatusCode == HttpStatusCode.OK;
         }
 
         public async Task<bool> DeletePreference(string name)
         {
             var uri = string.Format("{0}/v1/preferences/{1}", Url, name);
             var request = new HttpRequestMessage(HttpMethod.Delete, uri);
-            request.Headers.Add("Authorization", BearerToken);
+            request.Headers.Add(AUTHORIZATION, BearerToken);
             Response = await httpClient.SendAsync(request, cts.Token);
             ResponseBody = await Response.Content.ReadAsStringAsync();
             return Response.StatusCode == HttpStatusCode.OK;
@@ -329,16 +352,71 @@ namespace com.hideakin.textsearch.net
 
         #region GROUP
 
-        public async Task<string[]> GetFileGroups()
+        public async Task<FileGroupInfo[]> GetFileGroups()
         {
             var uri = string.Format("{0}/v1/groups", Url);
             var request = new HttpRequestMessage(HttpMethod.Get, uri);
-            request.Headers.Add("Authorization", BearerToken);
+            request.Headers.Add(AUTHORIZATION, BearerToken);
             Response = await httpClient.SendAsync(request, cts.Token);
             ResponseBody = await Response.Content.ReadAsStringAsync();
             if (Response.StatusCode == HttpStatusCode.OK)
             {
-                return JsonConvert.DeserializeObject<ValuesResponse>(ResponseBody).Values;
+                return JsonConvert.DeserializeObject<FileGroupInfo[]>(ResponseBody);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        public async Task<FileGroupInfo> CreateFileGroup(string group, string[] ownedBy)
+        {
+            var uri = string.Format("{0}/v1/groups", Url);
+            var request = new HttpRequestMessage(HttpMethod.Post, uri);
+            request.Headers.Add(AUTHORIZATION, BearerToken);
+            var input = new FileGroupRequest(group, ownedBy);
+            request.Content = new StringContent(JsonConvert.SerializeObject(input), Encoding.UTF8, "application/json");
+            Response = await httpClient.SendAsync(request, cts.Token);
+            ResponseBody = await Response.Content.ReadAsStringAsync();
+            if (Response.StatusCode == HttpStatusCode.Created)
+            {
+                return JsonConvert.DeserializeObject<FileGroupInfo>(ResponseBody);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        public async Task<FileGroupInfo> UpdateFileGroup(int gid, string group, string[] ownedBy)
+        {
+            var uri = string.Format("{0}/v1/groups/{1}", Url, gid);
+            var request = new HttpRequestMessage(HttpMethod.Put, uri);
+            request.Headers.Add(AUTHORIZATION, BearerToken);
+            var input = new FileGroupRequest(group, ownedBy);
+            request.Content = new StringContent(JsonConvert.SerializeObject(input), Encoding.UTF8, "application/json");
+            Response = await httpClient.SendAsync(request, cts.Token);
+            ResponseBody = await Response.Content.ReadAsStringAsync();
+            if (Response.StatusCode == HttpStatusCode.OK)
+            {
+                return JsonConvert.DeserializeObject<FileGroupInfo>(ResponseBody);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        public async Task<FileGroupInfo> DeleteFileGroup(int gid)
+        {
+            var uri = string.Format("{0}/v1/groups/{1}", Url, gid);
+            var request = new HttpRequestMessage(HttpMethod.Delete, uri);
+            request.Headers.Add(AUTHORIZATION, BearerToken);
+            Response = await httpClient.SendAsync(request, cts.Token);
+            ResponseBody = await Response.Content.ReadAsStringAsync();
+            if (Response.StatusCode == HttpStatusCode.OK)
+            {
+                return JsonConvert.DeserializeObject<FileGroupInfo>(ResponseBody);
             }
             else
             {
@@ -350,16 +428,84 @@ namespace com.hideakin.textsearch.net
 
         #region FILE
 
-        public async Task<string[]> GetFiles(string group)
+        public async Task<model.FileInfo[]> GetFiles(string group)
         {
             var uri = string.Format("{0}/v1/files/{1}", Url, group);
             var request = new HttpRequestMessage(HttpMethod.Get, uri);
-            request.Headers.Add("Authorization", BearerToken);
+            request.Headers.Add(AUTHORIZATION, BearerToken);
             Response = await httpClient.SendAsync(request, cts.Token);
             ResponseBody = await Response.Content.ReadAsStringAsync();
             if (Response.StatusCode == HttpStatusCode.OK)
             {
-                return JsonConvert.DeserializeObject<ValuesResponse>(ResponseBody).Values;
+                return JsonConvert.DeserializeObject<model.FileInfo[]>(ResponseBody);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        public async Task<model.FileInfo> UploadFile(string group, string path)
+        {
+            var uri = string.Format("{0}/v1/files/{1}", Url, group);
+            //var uri = string.Format("{0}/v1/files", Url);
+            var request = new HttpRequestMessage(HttpMethod.Post, uri);
+            request.Headers.Add(AUTHORIZATION, BearerToken);
+            var content = new MultipartFormDataContent();
+            var fileContent = new StreamContent(File.OpenRead(path));
+            fileContent.Headers.ContentDisposition = new ContentDispositionHeaderValue("form-data")
+            {
+                Name = "file",
+                FileName = path
+            };
+            fileContent.Headers.ContentType = new MediaTypeHeaderValue("text/plain")
+            {
+                 CharSet = "UTF-8"
+            };
+            content.Add(fileContent);
+            request.Content = content;
+            Response = await httpClient.SendAsync(request, cts.Token);
+            ResponseBody = await Response.Content.ReadAsStringAsync();
+            if (Response.StatusCode == HttpStatusCode.OK || Response.StatusCode == HttpStatusCode.Created)
+            {
+                return JsonConvert.DeserializeObject<model.FileInfo>(ResponseBody);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        public async Task<string[]> DownloadFile(int fid)
+        {
+            var uri = string.Format("{0}/v1/files/{1}/contents", Url, fid);
+            var request = new HttpRequestMessage(HttpMethod.Get, uri);
+            request.Headers.Add(AUTHORIZATION, BearerToken);
+            Response = await httpClient.SendAsync(request, cts.Token);
+            if (Response.StatusCode == HttpStatusCode.OK)
+            {
+                // NOTE: System.Net.Http.Formatting.Extension NuGet Package needs to be installed to use ReadAsMultipartAsync extension method.
+                var provider = await Response.Content.ReadAsMultipartAsync();
+                foreach (var content in provider.Contents)
+                {
+                    var name = RemoveQuotePair(content.Headers.ContentDisposition.Name);
+                    if (name == "file")
+                    {
+                        var encoding = Encoding.GetEncoding(content.Headers.ContentType.CharSet ?? "UTF-8");
+                        using (var stream = await content.ReadAsStreamAsync())
+                        using (var input = new StreamReader(stream, encoding))
+                        {
+                            var lines = new List<string>();
+                            string line;
+                            while ((line = input.ReadLine()) != null)
+                            {
+                                lines.Add(line);
+                            }
+                            return lines.ToArray();
+                        }
+                    }
+                }
+                return null;
             }
             else
             {
@@ -375,12 +521,12 @@ namespace com.hideakin.textsearch.net
         {
             var uri = string.Format("{0}/v1/index/{1}?text={2}&option={3}", Url, GroupName, text, Enum.GetName(option.GetType(), option));
             var request = new HttpRequestMessage(HttpMethod.Get, uri);
-            request.Headers.Add("Authorization", BearerToken);
+            request.Headers.Add(AUTHORIZATION, BearerToken);
             Response = await httpClient.SendAsync(request, cts.Token);
             ResponseBody = await Response.Content.ReadAsStringAsync();
             if (Response.StatusCode == HttpStatusCode.OK)
             {
-                return JsonConvert.DeserializeObject<FindTextResponse>(ResponseBody).Hits;
+                return JsonConvert.DeserializeObject<PathPositions[]>(ResponseBody);
             }
             else
             {
@@ -392,7 +538,7 @@ namespace com.hideakin.textsearch.net
         {
             var uri = string.Format("{0}/v1/index/{1}", Url, GroupName);
             var request = new HttpRequestMessage(HttpMethod.Post, uri);
-            request.Headers.Add("Authorization", BearerToken);
+            request.Headers.Add(AUTHORIZATION, BearerToken);
             request.Content = new StringContent(JsonConvert.SerializeObject(input), Encoding.UTF8, "application/json");
             Response = await httpClient.SendAsync(request, cts.Token);
             ResponseBody = await Response.Content.ReadAsStringAsync();
@@ -410,12 +556,17 @@ namespace com.hideakin.textsearch.net
         {
             var uri = string.Format("{0}/v1/index/{1}", Url, GroupName);
             var request = new HttpRequestMessage(HttpMethod.Delete, uri);
-            request.Headers.Add("Authorization", BearerToken);
+            request.Headers.Add(AUTHORIZATION, BearerToken);
             Response = await httpClient.SendAsync(request, cts.Token);
             ResponseBody = await Response.Content.ReadAsStringAsync();
             return Response.StatusCode == HttpStatusCode.OK;
         }
 
         #endregion
+
+        private static string RemoveQuotePair(string s)
+        {
+            return (s.Length >= 2 && s[0] == '\"' && s[s.Length - 1] == '\"') ? s.Substring(1, s.Length - 2) : s;
+        }
     }
 }

@@ -24,7 +24,7 @@ namespace com.hideakin.textsearch.service
             var client = new IndexNetClient();
             var task = client.GetPreference(name);
             task.Wait();
-            if (client.Response.StatusCode != HttpStatusCode.OK)
+            if (client.Response.StatusCode != HttpStatusCode.OK && client.Response.StatusCode != HttpStatusCode.NotFound)
             {
                 throw NewResponseException(client.Response);
             }

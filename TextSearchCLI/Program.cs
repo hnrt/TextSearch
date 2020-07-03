@@ -1,4 +1,5 @@
-﻿using com.hideakin.textsearch.model;
+﻿using com.hideakin.textsearch.data;
+using com.hideakin.textsearch.model;
 using com.hideakin.textsearch.net;
 using com.hideakin.textsearch.service;
 using System;
@@ -14,7 +15,6 @@ namespace com.hideakin.textsearch
         None,
         Help,
         Authenticate,
-        PrintGroups,
         PrintFiles,
         UpdateIndex,
         DeleteIndex,
@@ -26,9 +26,15 @@ namespace com.hideakin.textsearch
         AddSkipDirs,
         ClearSkipDirs,
         PrintUsers,
+        PrintUserById,
+        PrintUserByName,
         CreateUser,
         UpdateUser,
-        DeleteUser
+        DeleteUser,
+        PrintGroups,
+        CreateGroup,
+        UpdateGroup,
+        DeleteGroup
     }
 
     class Program
@@ -88,14 +94,6 @@ namespace com.hideakin.textsearch
                     throw new Exception(BAD_COMMAND_LINE_SYNTAX);
                 }
                 commandType = CommandType.Authenticate;
-            });
-            OptionMap.Add("-print-groups", (e) =>
-            {
-                if (commandType != CommandType.None)
-                {
-                    throw new Exception(BAD_COMMAND_LINE_SYNTAX);
-                }
-                commandType = CommandType.PrintGroups;
             });
             OptionMap.Add("-print-files", (e) =>
             {
@@ -229,6 +227,30 @@ namespace com.hideakin.textsearch
                 }
                 commandType = CommandType.PrintUsers;
             });
+            OptionMap.Add("-print-user-by-id", (e) =>
+            {
+                if (commandType != CommandType.None)
+                {
+                    throw new Exception(BAD_COMMAND_LINE_SYNTAX);
+                }
+                commandType = CommandType.PrintUserById;
+                while (e.MoveNext())
+                {
+                    OperandList.Add((string)e.Current);
+                }
+            });
+            OptionMap.Add("-print-user-by-name", (e) =>
+            {
+                if (commandType != CommandType.None)
+                {
+                    throw new Exception(BAD_COMMAND_LINE_SYNTAX);
+                }
+                commandType = CommandType.PrintUserByName;
+                while (e.MoveNext())
+                {
+                    OperandList.Add((string)e.Current);
+                }
+            });
             OptionMap.Add("-create-user", (e) =>
             {
                 if (commandType != CommandType.None)
@@ -260,6 +282,50 @@ namespace com.hideakin.textsearch
                     throw new Exception(BAD_COMMAND_LINE_SYNTAX);
                 }
                 commandType = CommandType.DeleteUser;
+                while (e.MoveNext())
+                {
+                    OperandList.Add((string)e.Current);
+                }
+            });
+            OptionMap.Add("-print-groups", (e) =>
+            {
+                if (commandType != CommandType.None)
+                {
+                    throw new Exception(BAD_COMMAND_LINE_SYNTAX);
+                }
+                commandType = CommandType.PrintGroups;
+            });
+            OptionMap.Add("-create-group", (e) =>
+            {
+                if (commandType != CommandType.None)
+                {
+                    throw new Exception(BAD_COMMAND_LINE_SYNTAX);
+                }
+                commandType = CommandType.CreateGroup;
+                while (e.MoveNext())
+                {
+                    OperandList.Add((string)e.Current);
+                }
+            });
+            OptionMap.Add("-update-group", (e) =>
+            {
+                if (commandType != CommandType.None)
+                {
+                    throw new Exception(BAD_COMMAND_LINE_SYNTAX);
+                }
+                commandType = CommandType.UpdateGroup;
+                while (e.MoveNext())
+                {
+                    OperandList.Add((string)e.Current);
+                }
+            });
+            OptionMap.Add("-delete-group", (e) =>
+            {
+                if (commandType != CommandType.None)
+                {
+                    throw new Exception(BAD_COMMAND_LINE_SYNTAX);
+                }
+                commandType = CommandType.DeleteGroup;
                 while (e.MoveNext())
                 {
                     OperandList.Add((string)e.Current);
@@ -330,7 +396,6 @@ namespace com.hideakin.textsearch
             CommandMap.Add(CommandType.None, Help);
             CommandMap.Add(CommandType.Help, Help);
             CommandMap.Add(CommandType.Authenticate, Authenticate);
-            CommandMap.Add(CommandType.PrintGroups, PrintGroups);
             CommandMap.Add(CommandType.PrintFiles, PrintFiles);
             CommandMap.Add(CommandType.UpdateIndex, UpdateIndex);
             CommandMap.Add(CommandType.DeleteIndex, DeleteIndex);
@@ -342,9 +407,15 @@ namespace com.hideakin.textsearch
             CommandMap.Add(CommandType.AddSkipDirs, AddSkipDirs);
             CommandMap.Add(CommandType.ClearSkipDirs, ClearSkipDirs);
             CommandMap.Add(CommandType.PrintUsers, PrintUsers);
+            CommandMap.Add(CommandType.PrintUserById, PrintUserById);
+            CommandMap.Add(CommandType.PrintUserByName, PrintUserByName);
             CommandMap.Add(CommandType.CreateUser, CreateUser);
             CommandMap.Add(CommandType.UpdateUser, UpdateUser);
             CommandMap.Add(CommandType.DeleteUser, DeleteUser);
+            CommandMap.Add(CommandType.PrintGroups, PrintGroups);
+            CommandMap.Add(CommandType.CreateGroup, CreateGroup);
+            CommandMap.Add(CommandType.UpdateGroup, UpdateGroup);
+            CommandMap.Add(CommandType.DeleteGroup, DeleteGroup);
         }
 
         public void ParseCommandLine(string[] args)
@@ -376,15 +447,25 @@ namespace com.hideakin.textsearch
         private void Help()
         {
             Console.WriteLine("Usage:");
-            Console.WriteLine("  {0} -authenticate", Name);
+            Console.WriteLine("  {0} -authenticate -username USERNAME -password PASSWORD", Name);
+            Console.WriteLine("Usage <user>:");
             Console.WriteLine("  {0} -print-users", Name);
+            Console.WriteLine("  {0} -print-user-by-id UID", Name);
+            Console.WriteLine("  {0} -print-user-by-name USERNAME", Name);
             Console.WriteLine("  {0} -create-user USERNAME PASSWORD ROLE...", Name);
-            Console.WriteLine("  {0} -update-user USERNAME [-password PASSWORD] [-roles ROLE...]", Name);
-            Console.WriteLine("  {0} -delete-user USERNAME", Name);
-            Console.WriteLine("  {0} -group FILEGROUP -index PATH...", Name);
-            Console.WriteLine("  {0} -group FILEGROUP -delete-index", Name);
-            Console.WriteLine("  {0} -group FILEGROUP -query EXPR [-html]", Name);
-            Console.WriteLine("  {0} -print-grp", Name);
+            Console.WriteLine("  {0} -update-user UID [-username USERNAME] [-password PASSWORD] [-roles ROLE...]", Name);
+            Console.WriteLine("  {0} -delete-user UID", Name);
+            Console.WriteLine("Usage <group>:");
+            Console.WriteLine("  {0} -print-groups", Name);
+            Console.WriteLine("  {0} -create-group GROUPNAME [USERNAME...]", Name);
+            Console.WriteLine("  {0} -update-group GID [-group GROUPNAME] [-owned-by USERNAME...]", Name);
+            Console.WriteLine("  {0} -delete-group GID", Name);
+            Console.WriteLine("Usage <index>:");
+            Console.WriteLine("  {0} -group GROUPNAME -index PATH...", Name);
+            Console.WriteLine("  {0} -group GROUPNAME -delete-index", Name);
+            Console.WriteLine("Usage <search>:");
+            Console.WriteLine("  {0} -group GROUPNAME -query EXPR [-html]", Name);
+            Console.WriteLine("Usage <configuration>:");
             Console.WriteLine("  {0} -print-ext", Name);
             Console.WriteLine("  {0} -ext EXT1,EXT2,...", Name);
             Console.WriteLine("  {0} -clear-ext", Name);
@@ -397,34 +478,256 @@ namespace com.hideakin.textsearch
             Console.WriteLine("  -password PASSWORD");
         }
 
+        #region USER
+
         private void Authenticate()
         {
-            FileGrpSvc.Authenticate();
+            UserSvc.Authenticate();
         }
+
+        private void PrintUsers()
+        {
+            var users = UserSvc.GetUsers();
+
+            foreach (var entry in users.OrderBy(x => x.Uid))
+            {
+                if (entry.Expiry != null)
+                {
+                    Console.WriteLine("uid={0} username={1} roles={2} created={3} updated={4} expires={5} apikey={6}", entry.Uid, entry.Username, entry.RolesString, entry.CreatedAt.ToString(DTFMT), entry.UpdatedAt.ToString(DTFMT), entry.Expiry.Value.ToString(DTFMT), entry.ApiKey);
+                }
+                else
+                {
+                    Console.WriteLine("uid={0} username={1} roles={2} created={3} updated={4} expires= apikey=", entry.Uid, entry.Username, entry.RolesString, entry.CreatedAt.ToString(DTFMT), entry.UpdatedAt.ToString(DTFMT));
+                }
+            }
+        }
+
+        private void PrintUserById()
+        {
+            for (int index = 0; index < OperandList.Count; index++)
+            {
+                var entry = UserSvc.GetUser(int.Parse(OperandList[index]));
+                if (entry.Expiry != null)
+                {
+                    Console.WriteLine("uid={0} username={1} roles={2} created={3} updated={4} expires={5} apikey={6}", entry.Uid, entry.Username, entry.RolesString, entry.CreatedAt.ToString(DTFMT), entry.UpdatedAt.ToString(DTFMT), entry.Expiry.Value.ToString(DTFMT), entry.ApiKey);
+                }
+                else
+                {
+                    Console.WriteLine("uid={0} username={1} roles={2} created={3} updated={4} expires= apikey=", entry.Uid, entry.Username, entry.RolesString, entry.CreatedAt.ToString(DTFMT), entry.UpdatedAt.ToString(DTFMT));
+                }
+            }
+        }
+
+        private void PrintUserByName()
+        {
+            for (int index = 0; index < OperandList.Count; index++)
+            {
+                var entry = UserSvc.GetUser(OperandList[index]);
+                if (entry.Expiry != null)
+                {
+                    Console.WriteLine("uid={0} username={1} roles={2} created={3} updated={4} expires={5} apikey={6}", entry.Uid, entry.Username, entry.RolesString, entry.CreatedAt.ToString(DTFMT), entry.UpdatedAt.ToString(DTFMT), entry.Expiry.Value.ToString(DTFMT), entry.ApiKey);
+                }
+                else
+                {
+                    Console.WriteLine("uid={0} username={1} roles={2} created={3} updated={4} expires= apikey=", entry.Uid, entry.Username, entry.RolesString, entry.CreatedAt.ToString(DTFMT), entry.UpdatedAt.ToString(DTFMT));
+                }
+            }
+        }
+
+        private void CreateUser()
+        {
+            if (OperandList.Count < 3)
+            {
+                throw new Exception("Specify username, password, and one or more roles.");
+            }
+            var username = OperandList[0];
+            var password = OperandList[1];
+            var roles = new List<string>();
+            roles.Add(OperandList[2]);
+            for (int index = 3; index < OperandList.Count; index++)
+            {
+                roles.Add(OperandList[index]);
+            }
+            var entry = UserSvc.CreateUser(username, password, roles.ToArray());
+            Console.WriteLine("uid={0} username={1} roles={2} created={3} updated={4}", entry.Uid, entry.Username, entry.RolesString, entry.CreatedAt.ToString(DTFMT), entry.UpdatedAt.ToString(DTFMT));
+        }
+
+        private void UpdateUser()
+        {
+            if (OperandList.Count < 1)
+            {
+                throw new Exception("Specify username to update at least.");
+            }
+            var uid = int.Parse(OperandList[0]);
+            string username = null;
+            string password = null;
+            List<string> roles = null;
+            for (int index = 1; index < OperandList.Count; index++)
+            {
+                if (roles != null)
+                {
+                    roles.Add(OperandList[index]);
+                }
+                else if (OperandList[index] == "-username")
+                {
+                    if (username != null)
+                    {
+                        throw new Exception("You can specify username only once.");
+                    }
+                    if (++index == OperandList.Count)
+                    {
+                        throw new Exception("Specify username after -username.");
+                    }
+                    username = OperandList[index];
+                }
+                else if (OperandList[index] == "-password")
+                {
+                    if (password != null)
+                    {
+                        throw new Exception("You can specify password only once.");
+                    }
+                    if (++index == OperandList.Count)
+                    {
+                        throw new Exception("Specify password after -password.");
+                    }
+                    password = OperandList[index];
+                }
+                else if (OperandList[index] == "-roles")
+                {
+                    roles = new List<string>();
+                    if (++index == OperandList.Count)
+                    {
+                        throw new Exception("Specify one or more roles after -roles.");
+                    }
+                    roles.Add(OperandList[index]);
+                }
+                else
+                {
+                    throw new Exception(BAD_COMMAND_LINE_SYNTAX);
+                }
+            }
+            var entry = UserSvc.UpdateUser(uid, username, password, roles != null ? roles.ToArray() : null);
+            Console.WriteLine("uid={0} username={1} roles={2} created={3} updated={4}", entry.Uid, entry.Username, entry.RolesString, entry.CreatedAt.ToString(DTFMT), entry.UpdatedAt.ToString(DTFMT));
+        }
+
+        private void DeleteUser()
+        {
+            if (OperandList.Count < 1)
+            {
+                throw new Exception("Specify username to delete.");
+            }
+            var uid = int.Parse(OperandList[0]);
+            var entry = UserSvc.DeleteUser(uid);
+            Console.WriteLine("uid={0} username={1} roles={2} created={3} updated={4}", entry.Uid, entry.Username, entry.RolesString, entry.CreatedAt.ToString(DTFMT), entry.UpdatedAt.ToString(DTFMT));
+        }
+
+        #endregion
+
+        #region GROUP
 
         private void PrintGroups()
         {
-            var names = FileGrpSvc.GetFileGroups();
-            if (names == null)
+            var values = FileGrpSvc.GetFileGroups();
+            if (values == null)
             {
                 return;
             }
-            foreach (string name in names)
+            foreach (FileGroupInfo entry in values)
             {
-                Console.WriteLine("{0}", name);
+                Console.WriteLine("{0}", entry);
             }
         }
 
+        private void CreateGroup()
+        {
+            if (OperandList.Count < 1)
+            {
+                throw new Exception("Specify groupname and zero or more owner usernames.");
+            }
+            var groupname = OperandList[0];
+            var ownedBy = new List<string>();
+            for (int index = 1; index < OperandList.Count; index++)
+            {
+                ownedBy.Add(OperandList[index]);
+            }
+            var entry = FileGrpSvc.CreateFileGroup(groupname, ownedBy.ToArray());
+            Console.WriteLine("{0}", entry);
+        }
+
+        private void UpdateGroup()
+        {
+            if (OperandList.Count < 1)
+            {
+                throw new Exception("Specify GID to update at least.");
+            }
+            var gid = int.Parse(OperandList[0]);
+            string groupname = null;
+            List<string> ownedBy = null;
+            for (int index = 1; index < OperandList.Count; index++)
+            {
+                if (ownedBy != null)
+                {
+                    ownedBy.Add(OperandList[index]);
+                }
+                else if (OperandList[index] == "-group")
+                {
+                    if (groupname != null)
+                    {
+                        throw new Exception("You can specify groupname only once.");
+                    }
+                    if (++index == OperandList.Count)
+                    {
+                        throw new Exception("Specify groupname after -group.");
+                    }
+                    groupname = OperandList[index];
+                }
+                else if (OperandList[index] == "-owned-by")
+                {
+                    ownedBy = new List<string>();
+                    if (++index == OperandList.Count)
+                    {
+                        throw new Exception("Specify one or more roles after -owned-by.");
+                    }
+                    ownedBy.Add(OperandList[index]);
+                }
+                else
+                {
+                    throw new Exception(BAD_COMMAND_LINE_SYNTAX);
+                }
+            }
+            var entry = FileGrpSvc.UpdateFileGroup(gid, groupname, ownedBy != null ? ownedBy.ToArray() : null);
+            Console.WriteLine("{0}", entry);
+        }
+
+        private void DeleteGroup()
+        {
+            if (OperandList.Count < 1)
+            {
+                throw new Exception("Specify GID of the group to delete.");
+            }
+            else if(OperandList.Count > 1)
+            {
+                throw new Exception(BAD_COMMAND_LINE_SYNTAX);
+            }
+            var gid = int.Parse(OperandList[0]);
+            var entry = FileGrpSvc.DeleteFileGroup(gid);
+            Console.WriteLine("{0}", entry);
+        }
+
+        #endregion
+
+        #region FILE
+
         private void PrintFiles()
         {
-            var names = FileSvc.GetFiles(groupName);
-            if (names == null)
+            var fi = FileSvc.GetFiles(groupName);
+            if (fi == null)
             {
                 return;
             }
-            foreach (string name in names)
+            foreach (var entry in fi.OrderBy(x => x.Fid))
             {
-                Console.WriteLine("{0}", name);
+                Console.WriteLine("[{0}] {1}", entry.Fid, entry.Path);
             }
         }
 
@@ -497,7 +800,8 @@ namespace com.hideakin.textsearch
         {
             path = Path.GetFullPath(path);
             Console.WriteLine("{0}", path);
-            IndexSvc.UpdateIndex(groupName, path);
+            var fileInfo = FileSvc.UploadFile(groupName, path, out var result);
+            Console.WriteLine("    Uploaded. FID={0}{1}", fileInfo.Fid, result == UploadFileStatus.Created ? " (NEW)" : "");
         }
 
         public void DeleteIndex()
@@ -506,6 +810,10 @@ namespace com.hideakin.textsearch
             IndexSvc.DeleteIndex(groupName);
             Console.WriteLine("Done.");
         }
+
+        #endregion
+
+        #region SEARCH
 
         private void Query()
         {
@@ -541,7 +849,7 @@ namespace com.hideakin.textsearch
             foreach (var prc in results)
             {
                 Console.WriteLine("{0}", prc.Path);
-                var lines = File.ReadAllLines(prc.Path);
+                var lines = FileSvc.DownloadFile(prc.Fid);
                 foreach (var entry in prc.Rows)
                 {
                     Console.WriteLine("{0,6}: {1}", entry.Row + 1, lines[entry.Row]);
@@ -569,7 +877,7 @@ namespace com.hideakin.textsearch
                 Console.WriteLine("<p>");
                 Console.WriteLine("<font class=\"path\">{0}</font>", prc.Path);
                 Console.WriteLine("<table>");
-                var lines = File.ReadAllLines(prc.Path);
+                var lines = FileSvc.DownloadFile(prc.Fid);
                 foreach (var entry in prc.Rows)
                 {
                     var line = lines[entry.Row];
@@ -610,6 +918,10 @@ namespace com.hideakin.textsearch
             Console.WriteLine("</body>");
             Console.WriteLine("</html>");
         }
+
+        #endregion
+
+        #region CONFIGURATION
 
         private void PrintExtensions()
         {
@@ -675,96 +987,7 @@ namespace com.hideakin.textsearch
             Console.WriteLine("Done.");
         }
 
-        private void PrintUsers()
-        {
-            var users = UserSvc.GetUsers();
-
-            foreach (var entry in users.OrderBy(x => x.Uid))
-            {
-                if (entry.Expiry != null)
-                {
-                    Console.WriteLine("uid={0} username={1} roles={2} created={3} updated={4} expires={5} apikey={6}", entry.Uid, entry.Username, entry.RolesString, entry.CreatedAt.ToString(DTFMT), entry.UpdatedAt.ToString(DTFMT), entry.Expiry.Value.ToString(DTFMT), entry.ApiKey);
-                }
-                else
-                {
-                    Console.WriteLine("uid={0} username={1} roles={2} created={3} updated={4} expires= apikey=", entry.Uid, entry.Username, entry.RolesString, entry.CreatedAt.ToString(DTFMT), entry.UpdatedAt.ToString(DTFMT));
-                }
-            }
-        }
-
-        private void CreateUser()
-        {
-            if (OperandList.Count < 3)
-            {
-                throw new Exception("Specify username, password, and one or more roles.");
-            }
-            var username = OperandList[0];
-            var password = OperandList[1];
-            var roles = new List<string>();
-            roles.Add(OperandList[2]);
-            for (int index = 3; index < OperandList.Count; index++)
-            {
-                roles.Add(OperandList[index]);
-            }
-            var entry = UserSvc.CreateUser(username, password, roles.ToArray());
-            Console.WriteLine("uid={0} username={1} roles={2} created={3} updated={4}", entry.Uid, entry.Username, entry.RolesString, entry.CreatedAt.ToString(DTFMT), entry.UpdatedAt.ToString(DTFMT));
-        }
-
-        private void UpdateUser()
-        {
-            if (OperandList.Count < 1)
-            {
-                throw new Exception("Specify username to update at least.");
-            }
-            var username = OperandList[0];
-            string password = null;
-            List<string> roles = null;
-            for (int index = 1; index < OperandList.Count; index++)
-            {
-                if (roles != null)
-                {
-                    roles.Add(OperandList[index]);
-                }
-                else if (OperandList[index] == "-password")
-                {
-                    if (password != null)
-                    {
-                        throw new Exception("You can specify password only once.");
-                    }
-                    if (++index == OperandList.Count)
-                    {
-                        throw new Exception("Specify password after -password.");
-                    }
-                    password = OperandList[index];
-                }
-                else if (OperandList[index] == "-roles")
-                {
-                    roles = new List<string>();
-                    if (++index == OperandList.Count)
-                    {
-                        throw new Exception("Specify one or more roles after -roles.");
-                    }
-                    roles.Add(OperandList[index]);
-                }
-                else
-                {
-                    throw new Exception(BAD_COMMAND_LINE_SYNTAX);
-                }
-            }
-            var entry = UserSvc.UpdateUser(username, password, roles != null ? roles.ToArray() : null);
-            Console.WriteLine("uid={0} username={1} roles={2} created={3} updated={4}", entry.Uid, entry.Username, entry.RolesString, entry.CreatedAt.ToString(DTFMT), entry.UpdatedAt.ToString(DTFMT));
-        }
-
-        private void DeleteUser()
-        {
-            if (OperandList.Count < 1)
-            {
-                throw new Exception("Specify username to delete.");
-            }
-            var username = OperandList[0];
-            var entry = UserSvc.DeleteUser(username);
-            Console.WriteLine("uid={0} username={1} roles={2} created={3} updated={4}", entry.Uid, entry.Username, entry.RolesString, entry.CreatedAt.ToString(DTFMT), entry.UpdatedAt.ToString(DTFMT));
-        }
+        #endregion
 
         static void Main(string[] args)
         {

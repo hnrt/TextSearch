@@ -22,6 +22,18 @@ namespace com.hideakin.textsearch.service
             return task.Result;
         }
 
+        public UserInfo GetUser(int uid)
+        {
+            var client = new IndexNetClient();
+            var task = client.GetUser(uid);
+            task.Wait();
+            if (task.Result == null)
+            {
+                throw NewResponseException(client.Response);
+            }
+            return task.Result;
+        }
+
         public UserInfo GetUser(string username)
         {
             var client = new IndexNetClient();
@@ -46,10 +58,10 @@ namespace com.hideakin.textsearch.service
             return task.Result;
         }
 
-        public UserInfo UpdateUser(string username, string password, string[] roles)
+        public UserInfo UpdateUser(int uid, string username, string password, string[] roles)
         {
             var client = new IndexNetClient();
-            var task = client.UpdateUser(username, password, roles);
+            var task = client.UpdateUser(uid, username, password, roles);
             task.Wait();
             if (task.Result == null)
             {
@@ -58,10 +70,10 @@ namespace com.hideakin.textsearch.service
             return task.Result;
         }
 
-        public UserInfo DeleteUser(string username)
+        public UserInfo DeleteUser(int uid)
         {
             var client = new IndexNetClient();
-            var task = client.DeleteUser(username);
+            var task = client.DeleteUser(uid);
             task.Wait();
             if (task.Result == null)
             {

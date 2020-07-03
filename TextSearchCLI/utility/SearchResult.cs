@@ -17,7 +17,7 @@ namespace com.hideakin.textsearch.utility
                 List<RowColumns> rcList = ToLines(qTexts, ranges.Path, ranges.Ranges);
                 if (rcList.Count > 0)
                 {
-                    prcList.Add(new PathRowColumns(ranges.Path, rcList));
+                    prcList.Add(new PathRowColumns(ranges.Fid, ranges.Path, rcList));
                 }
             }
             return prcList.ToArray();

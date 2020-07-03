@@ -4,6 +4,8 @@ namespace com.hideakin.textsearch.model
 {
     internal class PathRanges
     {
+        public int Fid { get; set; }
+
         public string Path { get; set; }
 
         public List<(int Start, int End)> Ranges { get; } = new List<(int Start, int End)>();
@@ -14,6 +16,7 @@ namespace com.hideakin.textsearch.model
 
         public PathRanges(PathPositions pp)
         {
+            Fid = pp.Fid;
             Path = pp.Path;
             foreach (int position in pp.Positions)
             {
@@ -38,7 +41,7 @@ namespace com.hideakin.textsearch.model
             {
                 for (int index = 0; index < pparray.Length; index++)
                 {
-                    if (pparray[index].Path == entry.Path)
+                    if (pparray[index].Fid == entry.Fid)
                     {
                         var result = Merge(entry, pparray[index]);
                         if (result != null)
@@ -54,6 +57,7 @@ namespace com.hideakin.textsearch.model
         private static PathRanges Merge(PathRanges entry, PathPositions pp)
         {
             var result = new PathRanges();
+            result.Fid = entry.Fid;
             result.Path = entry.Path;
             foreach (var range in entry.Ranges)
             {

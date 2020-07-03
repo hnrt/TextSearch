@@ -21,10 +21,10 @@ namespace com.hideakin.textsearch.model
 		[JsonProperty("updatedAt")]
 		public DateTime UpdatedAt { get; set; }
 
-		[JsonProperty("expiry")]
+		[JsonProperty("expiresAt")]
 		public DateTime? Expiry { get; set; }
 
-		[JsonProperty("apiKey")]
+		[JsonProperty("accessToken")]
 		public string ApiKey { get; set; }
 
 		public string RolesString
