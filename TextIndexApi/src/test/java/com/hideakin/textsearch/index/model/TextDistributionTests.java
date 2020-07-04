@@ -1,12 +1,12 @@
-package com.hideakin.textsearch.index.utility;
+package com.hideakin.textsearch.index.model;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
 @SpringBootTest
-public class DistributionCoderTests {
-	
+public class TextDistributionTests {
+
 	public static final int START1 = 0;
 	public static final int START2 = 128;
 	public static final int START3 = 2048;
@@ -44,32 +44,30 @@ public class DistributionCoderTests {
 		testByRange(START6, Integer.MAX_VALUE);
 	}
 
-	private void testByRange(long start, long end) throws Exception {
+	private void testByRange(long start, long end) {
 		int count = 0;
 		int[] data = new int[65536];
 		for (long value = start; value <= end; value++) {
 			data[count++] = (int)value;
 			if (count == data.length) {
-				doit(data, count);
+				doit(data);
 				count = 0;
 			}
 		}
 		if (count > 0) {
-			doit(data, count);
+			int[] data2 = new int[count];
+			System.arraycopy(data, 0, data2, 0, count);
+			doit(data2);
 		}
 	}
 
-	private void doit(int[] data, int count) throws Exception {
-		DistributionEncoder encoder = new DistributionEncoder();
-		for (int index = 0; index < count; index++) {
-			encoder.write(data[index]);
+	private void doit(int[] data) {
+		TextDistribution.Packed packed = (new TextDistribution(1, data)).pack();
+		TextDistribution output = TextDistribution.sequence(packed.copy()).get();
+		Assertions.assertEquals(data.length, output.getPositions().length);
+		for (int index = 0; index < data.length; index++) {
+			Assertions.assertEquals(data[index], output.getPositions()[index]);
 		}
-		DistributionDecoder decoder = new DistributionDecoder(encoder.flush());
-		int decoded = decoder.read();
-		for (int index = 0; index < count; index++) {
-			Assertions.assertEquals(data[index], decoded);
-			decoded = decoder.read();
-		}
-		Assertions.assertTrue(decoded < 0);
 	}
+
 }

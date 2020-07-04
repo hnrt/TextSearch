@@ -1,15 +1,14 @@
 package com.hideakin.textsearch.index.entity;
 
 import java.util.List;
+import java.util.Set;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
 
-import com.hideakin.textsearch.index.model.Distribution;
-import com.hideakin.textsearch.index.utility.DistributionDecoder;
-import com.hideakin.textsearch.index.utility.DistributionEncoder;
+import com.hideakin.textsearch.index.model.TextDistribution;
 
 @Entity(name = "texts")
 @Table(name = "texts")
@@ -23,8 +22,7 @@ public class TextEntity {
 	private byte[] dist;
 
 	public TextEntity() {
-		this.text = null;
-		this.dist = null;
+		this(null, null);
 	}
 
 	public TextEntity(String text, byte[] dist) {
@@ -48,85 +46,16 @@ public class TextEntity {
 		this.dist = dist;
 	}
 	
-	public void appendDist(int fid, List<Integer> positions) {
-		DistributionEncoder enc = new DistributionEncoder();
-		try {
-			enc.write(fid);
-			enc.write(positions.size());
-			for (int position : positions) {
-				enc.write(position);
-			}
-			appendDist(enc.getBuf());
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
-
-	public void appendDist(Distribution d) {
-		DistributionEncoder enc = new DistributionEncoder();
-		try {
-			enc.write(d.getFid());
-			enc.write(d.getPositions().length);
-			for (int position : d.getPositions()) {
-				enc.write(position);
-			}
-			appendDist(enc.getBuf());
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
-	}
-
-	private void appendDist(List<Byte> byteList) {
-		byte[] next;
-		int dstIdx;
-		if (dist != null) {
-			next = new byte[dist.length + byteList.size()];
-			System.arraycopy(dist, 0, next, 0, dist.length);
-			dstIdx = dist.length;
-		} else {
-			next = new byte[byteList.size()];
-			dstIdx = 0;
-		}
-		int srcIdx = 0;
-		while (srcIdx < byteList.size()) {
-			next[dstIdx++] = byteList.get(srcIdx++);
-		}
-		dist = next;
+	public boolean hasDist() {
+		return dist != null && dist.length > 0;
 	}
 	
-	public boolean removeDistByFid(int fid) {
-		DistributionDecoder dec = new DistributionDecoder(dist);
-		while (true) {
-			int currentFid = dec.read();
-			if (currentFid < 0) {
-				return false;
-			}
-			int startIndex = dec.getIndex();
-			int count = dec.read();
-			if (count < 0) {
-				//ERROR
-				return false;
-			}
-			int previous = -1;
-			for (int i = 0; i < count; i++) {
-				int position = dec.read();
-				if (position <= previous) {
-					//ERROR
-					return false;
-				}
-			}
-			if (currentFid == fid) {
-				removeDist(startIndex, dec.getIndex() + dec.getLength());
-				return true;
-			}
-		}
+	public void appendDist(int fid, List<Integer> positions) {
+		dist = TextDistribution.sequence(dist).append(TextDistribution.pack(fid, positions)).array();
 	}
 
-	private void removeDist(int startIndex, int endIndex) {
-		byte[] next = new byte[dist.length - (endIndex - startIndex)];
-		System.arraycopy(dist, 0, next, 0, startIndex);
-		System.arraycopy(dist, endIndex, next, startIndex, dist.length - endIndex);
-		dist = next;
+	public void removeDist(Set<Integer> fids) {
+		dist = TextDistribution.sequence(dist).remove(fids).array();
 	}
 
 }

@@ -13,12 +13,11 @@ import com.hideakin.textsearch.index.data.SearchOptions;
 import com.hideakin.textsearch.index.entity.FileEntity;
 import com.hideakin.textsearch.index.entity.FileGroupEntity;
 import com.hideakin.textsearch.index.entity.TextEntity;
-import com.hideakin.textsearch.index.model.Distribution;
+import com.hideakin.textsearch.index.model.TextDistribution;
 import com.hideakin.textsearch.index.model.PathPositions;
 import com.hideakin.textsearch.index.repository.FileGroupRepository;
 import com.hideakin.textsearch.index.repository.FileRepository;
 import com.hideakin.textsearch.index.repository.TextRepository;
-import com.hideakin.textsearch.index.utility.DistributionDecoder;
 
 @Service
 @Transactional
@@ -75,8 +74,8 @@ public class IndexServiceImpl implements IndexService {
 	}
 
 	private void populateHitMap(Map<Integer,PathPositions> map, TextEntity textEntity, int gid) {
-		DistributionDecoder dec = new DistributionDecoder(textEntity.getDist());
-		for (Distribution dist = dec.get(); dist != null; dist = dec.get()) {
+		TextDistribution.PackedSequence sequence = TextDistribution.sequence(textEntity.getDist());
+		for (TextDistribution dist = sequence.get(); dist != null; dist = sequence.get()) {
 			int fid = dist.getFid();
 			PathPositions pp = map.get(fid);
 			if (pp != null) {
