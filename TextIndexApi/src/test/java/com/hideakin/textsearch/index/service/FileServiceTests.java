@@ -47,7 +47,7 @@ public class FileServiceTests {
 		add(entities, 801, "/home/src/quux/foo.java", 333);
 		add(entities, 802, "/home/src/quux/bar.java", 333);
 		add(entities, 803, "/home/src/quux/baz.java", 333);
-		when(fileRepository.findAllByGid(333)).thenReturn(entities);
+		when(fileRepository.findAllByGidAndStaleFalse(333)).thenReturn(entities);
 		FileInfo[] fi = fileService.getFiles("quux");
 		Assertions.assertEquals(3, fi.length);
 		Assertions.assertEquals(entities.get(0).getPath(), fi[0].getPath());
