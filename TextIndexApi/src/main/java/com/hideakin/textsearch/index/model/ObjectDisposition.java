@@ -1,6 +1,6 @@
 package com.hideakin.textsearch.index.model;
 
-public class FileDisposition {
+public class ObjectDisposition {
 
 	public static final int UNDETERMINED = 0;
 	public static final int CREATED = 1;
@@ -9,7 +9,7 @@ public class FileDisposition {
 
 	private int value;
 
-	public FileDisposition() {
+	public ObjectDisposition() {
 		this.setValue(UNDETERMINED);
 	}
 

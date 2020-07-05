@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.hideakin.textsearch.index.entity.TextResourceHttpEntity;
-import com.hideakin.textsearch.index.model.FileDisposition;
+import com.hideakin.textsearch.index.model.ObjectDisposition;
 import com.hideakin.textsearch.index.model.FileInfo;
 import com.hideakin.textsearch.index.model.FileStats;
 import com.hideakin.textsearch.index.service.FileService;
@@ -82,7 +82,7 @@ public class FileController {
 			@PathVariable String group,
 			@RequestParam("file") MultipartFile file) {
 		try {
-			FileDisposition disp = new FileDisposition();
+			ObjectDisposition disp = new ObjectDisposition();
 			FileInfo added = service.addFile(group, file.getOriginalFilename(), file.getBytes(), file.getContentType(), disp);
 			if (added != null) {
 				return new ResponseEntity<>(added, disp.isCreated() ? HttpStatus.CREATED : HttpStatus.OK);

@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.hideakin.textsearch.index.model.FileGroupInfo;
 import com.hideakin.textsearch.index.model.FileGroupRequest;
+import com.hideakin.textsearch.index.model.ObjectDisposition;
 import com.hideakin.textsearch.index.service.FileGroupService;
 
 @RestController
@@ -38,8 +39,13 @@ public class FileGroupController {
 	@RequestMapping(value="/v1/groups",method=RequestMethod.POST)
 	public ResponseEntity<?> createGroup(
 			@RequestBody FileGroupRequest req) {
-		FileGroupInfo body = service.createGroup(req.getName(), req.getOwnedBy());
-		return new ResponseEntity<>(body, HttpStatus.CREATED);
+		ObjectDisposition disp = new ObjectDisposition();
+		FileGroupInfo body = service.createGroup(req.getName(), req.getOwnedBy(), disp);
+		if (disp.isCreated()) {
+			return new ResponseEntity<>(body, HttpStatus.CREATED);
+		} else {
+			return new ResponseEntity<>(body, HttpStatus.OK);
+		}
 	}
 
 	@RequestMapping(value="/v1/groups/{gid:[0-9]+}",method=RequestMethod.PUT)

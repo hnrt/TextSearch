@@ -1,6 +1,6 @@
 package com.hideakin.textsearch.index.service;
 
-import com.hideakin.textsearch.index.model.FileDisposition;
+import com.hideakin.textsearch.index.model.ObjectDisposition;
 import com.hideakin.textsearch.index.model.FileInfo;
 import com.hideakin.textsearch.index.model.FileStats;
 
@@ -10,7 +10,7 @@ public interface FileService {
 	FileStats getFileStats(String group);
 	FileInfo getFile(int fid);
 	String getPath(int fid);
-	FileInfo addFile(String group, String path, byte[] data, String contentType, FileDisposition disp);
+	FileInfo addFile(String group, String path, byte[] data, String contentType, ObjectDisposition disp);
 	FileInfo updateFile(int fid, String path, byte[] data, String contentType);
 	FileInfo[] deleteFiles(String group);
 	boolean deleteStaleFiles(String group);

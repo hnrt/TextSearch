@@ -18,7 +18,9 @@ import com.hideakin.textsearch.index.aspect.RequestContext;
 import com.hideakin.textsearch.index.entity.FileGroupEntity;
 import com.hideakin.textsearch.index.entity.PreferenceEntity;
 import com.hideakin.textsearch.index.entity.UserEntity;
+import com.hideakin.textsearch.index.exception.InvalidParameterException;
 import com.hideakin.textsearch.index.model.FileGroupInfo;
+import com.hideakin.textsearch.index.model.ObjectDisposition;
 import com.hideakin.textsearch.index.model.UserInfo;
 import com.hideakin.textsearch.index.repository.FileGroupRepository;
 import com.hideakin.textsearch.index.repository.FileRepository;
@@ -67,12 +69,16 @@ public class FileGroupServiceTests {
 
 	@Test
 	public void createGroup_successful1() {
+		when(fileGroupRepository.findByName("def")).thenReturn(null);
 		when(preferenceRepository.findByName("GID.next")).thenReturn(null);
 		when(preferenceRepository.save(argThat(x -> x.getName().equals("GID.next") && x.getValue().equals("791")))).thenReturn(new PreferenceEntity("GID.next", "791"));
 		when(em.createQuery("SELECT MAX(gid) FROM file_groups")).thenReturn(new PseudoQuery(789));
 		when(fileGroupRepository.save(argThat(x -> x.getGid() == 790))).thenReturn(new FileGroupEntity(790, "def", "root"));
-		FileGroupInfo groupInfo = fileGroupService.createGroup("def", new String[] { "user" });
+		ObjectDisposition disp = new ObjectDisposition();
+		FileGroupInfo groupInfo = fileGroupService.createGroup("def", new String[] { "user" }, disp);
 		Assertions.assertEquals(790, groupInfo.getGid());
+		Assertions.assertTrue(disp.isCreated());
+		verify(fileGroupRepository, times(1)).findByName("def");
 		verify(preferenceRepository, times(1)).findByName("GID.next");
 		verify(em, times(1)).createQuery("SELECT MAX(gid) FROM file_groups");
 		verify(preferenceRepository, times(1)).save(argThat(x -> x.getName().equals("GID.next") && x.getValue().equals("791")));
@@ -80,17 +86,78 @@ public class FileGroupServiceTests {
 	}
 
 	@Test
-	public void addGroup_successful2() {
+	public void createGroup_successful2() {
+		when(fileGroupRepository.findByName("ghi")).thenReturn(null);
 		when(preferenceRepository.findByName("GID.next")).thenReturn(new PreferenceEntity("GID.next", "791"));
 		when(em.createQuery("SELECT MAX(gid) FROM file_groups")).thenReturn(new PseudoQuery(700));
 		when(preferenceRepository.save(argThat(x -> x.getName().equals("GID.next") && x.getValue().equals("792")))).thenReturn(new PreferenceEntity("GID.next", "792"));
 		when(fileGroupRepository.save(argThat(x -> x.getGid() == 791))).thenReturn(new FileGroupEntity(791, "ghi", "root"));
-		FileGroupInfo groupInfo = fileGroupService.createGroup("ghi", new String[] { "user" });
+		ObjectDisposition disp = new ObjectDisposition();
+		FileGroupInfo groupInfo = fileGroupService.createGroup("ghi", new String[] { "user" }, disp);
 		Assertions.assertEquals(791, groupInfo.getGid());
+		Assertions.assertTrue(disp.isCreated());
+		verify(fileGroupRepository, times(1)).findByName("ghi");
 		verify(preferenceRepository, times(1)).findByName("GID.next");
 		verify(em, times(0)).createQuery("SELECT MAX(gid) FROM file_groups");
 		verify(preferenceRepository, times(1)).save(argThat(x -> x.getName().equals("GID.next") && x.getValue().equals("792")));
 		verify(fileGroupRepository, times(1)).save(argThat(x -> x.getGid() == 791));
+	}
+
+	@Test
+	public void createGroup_successful3() {
+		when(fileGroupRepository.findByName("ghi")).thenReturn(new FileGroupEntity(800, "ghi", "root"));
+		when(preferenceRepository.findByName("GID.next")).thenReturn(new PreferenceEntity("GID.next", "791"));
+		when(em.createQuery("SELECT MAX(gid) FROM file_groups")).thenReturn(new PseudoQuery(700));
+		when(preferenceRepository.save(argThat(x -> x.getName().equals("GID.next") && x.getValue().equals("792")))).thenReturn(new PreferenceEntity("GID.next", "792"));
+		when(fileGroupRepository.save(argThat(x -> x.getGid() == 791))).thenReturn(new FileGroupEntity(791, "ghi", "root"));
+		ObjectDisposition disp = new ObjectDisposition();
+		FileGroupInfo groupInfo = fileGroupService.createGroup("ghi", new String[] { "user" }, disp);
+		Assertions.assertEquals(800, groupInfo.getGid());
+		Assertions.assertTrue(disp.isUpdated());
+		verify(fileGroupRepository, times(1)).findByName("ghi");
+		verify(preferenceRepository, times(0)).findByName("GID.next");
+		verify(em, times(0)).createQuery("SELECT MAX(gid) FROM file_groups");
+		verify(preferenceRepository, times(0)).save(argThat(x -> x.getName().equals("GID.next") && x.getValue().equals("792")));
+		verify(fileGroupRepository, times(1)).save(argThat(x -> x.getGid() == 800));
+	}
+
+	@Test
+	public void createGroup_invalidName() {
+		when(fileGroupRepository.findByName("123")).thenReturn(null);
+		when(preferenceRepository.findByName("GID.next")).thenReturn(new PreferenceEntity("GID.next", "791"));
+		when(em.createQuery("SELECT MAX(gid) FROM file_groups")).thenReturn(new PseudoQuery(700));
+		when(preferenceRepository.save(argThat(x -> x.getName().equals("GID.next") && x.getValue().equals("792")))).thenReturn(new PreferenceEntity("GID.next", "792"));
+		when(fileGroupRepository.save(argThat(x -> x.getGid() == 791))).thenReturn(new FileGroupEntity(791, "ghi", "root"));
+		ObjectDisposition disp = new ObjectDisposition();
+		InvalidParameterException exception = Assertions.assertThrows(InvalidParameterException.class, () -> {
+			fileGroupService.createGroup("123", new String[] { "user" }, disp);
+		});
+		Assertions.assertEquals("Invalid group name.", exception.getMessage());
+		verify(fileGroupRepository, times(1)).findByName("123");
+		verify(preferenceRepository, times(0)).findByName("GID.next");
+		verify(em, times(0)).createQuery("SELECT MAX(gid) FROM file_groups");
+		verify(preferenceRepository, times(0)).save(argThat(x -> x.getName().equals("GID.next") && x.getValue().equals("792")));
+		verify(fileGroupRepository, times(0)).save(argThat(x -> x.getGid() == 800));
+	}
+
+	@Test
+	public void updateGroup_successful() {
+		when(fileGroupRepository.findByGid(234)).thenReturn(new FileGroupEntity(234, "ghh", "root"));
+		when(fileGroupRepository.save(argThat(x -> x.getGid() == 234))).thenReturn(new FileGroupEntity(234, "ghi", "user"));
+		FileGroupInfo groupInfo = fileGroupService.updateGroup(234, "ghi", new String[] { "user" });
+		Assertions.assertEquals(234, groupInfo.getGid());
+		verify(fileGroupRepository, times(1)).findByGid(234);
+		verify(fileGroupRepository, times(1)).save(argThat(x -> x.getGid() == 234));
+	}
+
+	@Test
+	public void updateGroup_notFound() {
+		when(fileGroupRepository.findByGid(345)).thenReturn(null);
+		when(fileGroupRepository.save(argThat(x -> x.getGid() == 345))).thenReturn(null);
+		FileGroupInfo groupInfo = fileGroupService.updateGroup(345, "ghi", new String[] { "user" });
+		Assertions.assertEquals(null, groupInfo);
+		verify(fileGroupRepository, times(1)).findByGid(345);
+		verify(fileGroupRepository, times(0)).save(argThat(x -> x.getGid() == 345));
 	}
 
 	@Test

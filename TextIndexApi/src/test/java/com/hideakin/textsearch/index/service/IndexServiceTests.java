@@ -64,26 +64,18 @@ public class IndexServiceTests {
 
 	@Test
 	public void findText_exact() {
-		when(fileGroupRepository.findByName("xyzzy")).thenReturn(new FileGroupEntity(3, "xyzzy", "root"));
+		when(fileGroupRepository.findByName("xyzzy")).thenReturn(new FileGroupEntity(4, "xyzzy", "root"));
 		when(textRepository.findByText("FOO")).thenReturn(
 				new TextEntity("FOO", new byte[] { 3, 1, 11, 5, 2, 13, 17, 7, 3, 19, 23, 29 }));
-		when(fileRepository.findByFid(3)).thenReturn(new FileEntity(3, "quux.cpp", 1024, 9));
-		when(fileRepository.findByFid(5)).thenReturn(new FileEntity(5, "fred.cs", 2048, 9));
-		when(fileRepository.findByFid(7)).thenReturn(new FileEntity(7, "waldo.java", 8192, 9));
+		when(fileRepository.findByFid(3)).thenReturn(new FileEntity(3, "quux.cpp", 1024, 2));
+		when(fileRepository.findByFid(5)).thenReturn(new FileEntity(5, "fred.cs", 2048, 4));
+		when(fileRepository.findByFid(7)).thenReturn(new FileEntity(7, "waldo.java", 8192, 6));
 		PathPositions[] hits = indexService.findText("xyzzy", "FOO", SearchOptions.Exact);
-		Assertions.assertEquals(3, hits.length);
-		Assertions.assertEquals("quux.cpp", hits[0].getPath());
-		Assertions.assertEquals(1, hits[0].getPositions().length);
-		Assertions.assertEquals(11, hits[0].getPositions()[0]);
-		Assertions.assertEquals("fred.cs", hits[1].getPath());
-		Assertions.assertEquals(2, hits[1].getPositions().length);
-		Assertions.assertEquals(13, hits[1].getPositions()[0]);
-		Assertions.assertEquals(17, hits[1].getPositions()[1]);
-		Assertions.assertEquals("waldo.java", hits[2].getPath());
-		Assertions.assertEquals(3, hits[2].getPositions().length);
-		Assertions.assertEquals(19, hits[2].getPositions()[0]);
-		Assertions.assertEquals(23, hits[2].getPositions()[1]);
-		Assertions.assertEquals(29, hits[2].getPositions()[2]);
+		Assertions.assertEquals(1, hits.length);
+		Assertions.assertEquals("fred.cs", hits[0].getPath());
+		Assertions.assertEquals(2, hits[0].getPositions().length);
+		Assertions.assertEquals(13, hits[0].getPositions()[0]);
+		Assertions.assertEquals(17, hits[0].getPositions()[1]);
 		verify(fileGroupRepository, times(1)).findByName("xyzzy");
 		verify(textRepository, times(1)).findByText("FOO");
 		verify(textRepository, times(0)).findAllByTextContaining("FOO");
@@ -102,9 +94,9 @@ public class IndexServiceTests {
 						new TextEntity("XBARX", new byte[] { 3, 1, 11, 5, 1, 17, 7, 1, 23 }),
 						new TextEntity("YBARY", new byte[] { 5, 1, 13, 7, 2, 19, 29 })
 				)));
-		when(fileRepository.findByFid(3)).thenReturn(new FileEntity(3, "quux.cpp", 1024, 9));
-		when(fileRepository.findByFid(5)).thenReturn(new FileEntity(5, "fred.cs", 2048, 9));
-		when(fileRepository.findByFid(7)).thenReturn(new FileEntity(7, "waldo.java", 8192, 9));
+		when(fileRepository.findByFid(3)).thenReturn(new FileEntity(3, "quux.cpp", 1024, 4));
+		when(fileRepository.findByFid(5)).thenReturn(new FileEntity(5, "fred.cs", 2048, 4));
+		when(fileRepository.findByFid(7)).thenReturn(new FileEntity(7, "waldo.java", 8192, 4));
 		PathPositions[] hits = indexService.findText("corge", "BAR", SearchOptions.Contains);
 		Assertions.assertEquals(3, hits.length);
 		Assertions.assertEquals("quux.cpp", hits[0].getPath());
@@ -137,9 +129,9 @@ public class IndexServiceTests {
 						new TextEntity("BAZX", new byte[] { 3, 1, 11, 5, 1, 17, 7, 1, 23 }),
 						new TextEntity("BAZY", new byte[] { 5, 1, 13, 7, 2, 19, 29 })
 				)));
-		when(fileRepository.findByFid(3)).thenReturn(new FileEntity(3, "quux.cpp", 1024, 9));
-		when(fileRepository.findByFid(5)).thenReturn(new FileEntity(5, "fred.cs", 2048, 9));
-		when(fileRepository.findByFid(7)).thenReturn(new FileEntity(7, "waldo.java", 8192, 9));
+		when(fileRepository.findByFid(3)).thenReturn(new FileEntity(3, "quux.cpp", 1024, 4));
+		when(fileRepository.findByFid(5)).thenReturn(new FileEntity(5, "fred.cs", 2048, 4));
+		when(fileRepository.findByFid(7)).thenReturn(new FileEntity(7, "waldo.java", 8192, 4));
 		PathPositions[] hits = indexService.findText("corge", "BAZ", SearchOptions.StartsWith);
 		Assertions.assertEquals(3, hits.length);
 		Assertions.assertEquals("quux.cpp", hits[0].getPath());
@@ -172,9 +164,9 @@ public class IndexServiceTests {
 						new TextEntity("XTHUD", new byte[] { 3, 1, 11, 5, 1, 17, 7, 1, 23 }),
 						new TextEntity("YTHUD", new byte[] { 5, 1, 13, 7, 2, 19, 29 })
 				)));
-		when(fileRepository.findByFid(3)).thenReturn(new FileEntity(3, "quux.cpp", 1024, 9));
-		when(fileRepository.findByFid(5)).thenReturn(new FileEntity(5, "fred.cs", 2048, 9));
-		when(fileRepository.findByFid(7)).thenReturn(new FileEntity(7, "waldo.java", 8192, 9));
+		when(fileRepository.findByFid(3)).thenReturn(new FileEntity(3, "quux.cpp", 1024, 4));
+		when(fileRepository.findByFid(5)).thenReturn(new FileEntity(5, "fred.cs", 2048, 4));
+		when(fileRepository.findByFid(7)).thenReturn(new FileEntity(7, "waldo.java", 8192, 4));
 		PathPositions[] hits = indexService.findText("corge", "THUD", SearchOptions.EndsWith);
 		Assertions.assertEquals(3, hits.length);
 		Assertions.assertEquals("quux.cpp", hits[0].getPath());

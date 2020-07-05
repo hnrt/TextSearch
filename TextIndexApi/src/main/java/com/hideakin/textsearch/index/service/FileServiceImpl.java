@@ -20,7 +20,7 @@ import com.hideakin.textsearch.index.entity.FileEntity;
 import com.hideakin.textsearch.index.entity.FileGroupEntity;
 import com.hideakin.textsearch.index.entity.PreferenceEntity;
 import com.hideakin.textsearch.index.entity.TextEntity;
-import com.hideakin.textsearch.index.model.FileDisposition;
+import com.hideakin.textsearch.index.model.ObjectDisposition;
 import com.hideakin.textsearch.index.model.FileInfo;
 import com.hideakin.textsearch.index.model.FileStats;
 import com.hideakin.textsearch.index.repository.FileContentRepository;
@@ -116,10 +116,10 @@ public class FileServiceImpl implements FileService {
 	}
 	
 	@Override
-	public FileInfo addFile(String group, String path, byte[] data, String contentType, FileDisposition disp) {
+	public FileInfo addFile(String group, String path, byte[] data, String contentType, ObjectDisposition disp) {
 		FileGroupEntity fileGroupEntity = fileGroupRepository.findByName(group);
 		if (fileGroupEntity == null) {
-			disp.setValue(FileDisposition.GROUP_NOT_FOUND);
+			disp.setValue(ObjectDisposition.GROUP_NOT_FOUND);
 			return null;
 		}
 		int gid = fileGroupEntity.getGid();
@@ -133,9 +133,9 @@ public class FileServiceImpl implements FileService {
 			}
 		}
 		if (changes == 0) {
-			disp.setValue(FileDisposition.CREATED);
+			disp.setValue(ObjectDisposition.CREATED);
 		} else {
-			disp.setValue(FileDisposition.UPDATED);
+			disp.setValue(ObjectDisposition.UPDATED);
 		}
 		FileEntity entity = saveFile(gid, path, data, contentType);
 		return new FileInfo(entity, fileGroupEntity);
