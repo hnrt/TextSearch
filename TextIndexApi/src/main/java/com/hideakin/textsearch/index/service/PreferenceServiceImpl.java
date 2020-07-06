@@ -10,7 +10,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.hideakin.textsearch.index.entity.PreferenceEntity;
+import com.hideakin.textsearch.index.exception.InvalidParameterException;
 import com.hideakin.textsearch.index.repository.PreferenceRepository;
+import com.hideakin.textsearch.index.validator.PreferenceNameValidator;
 
 @Service
 @Transactional
@@ -34,6 +36,9 @@ public class PreferenceServiceImpl implements PreferenceService {
 	public boolean setPreference(String name, String value) {
 		PreferenceEntity entity = preferenceRepository.findByName(name);
 		if (entity == null) {
+			if (!PreferenceNameValidator.isValid(name)) {
+				throw new InvalidParameterException("Invalid preference name.");
+			}
 			preferenceRepository.save(new PreferenceEntity(name, value));
 			return true;
 		} else {
@@ -50,6 +55,9 @@ public class PreferenceServiceImpl implements PreferenceService {
 			return false;
 		}
 		if (!original.equals(name)) {
+			if (!PreferenceNameValidator.isValid(name)) {
+				throw new InvalidParameterException("Invalid preference name.");
+			}
 			preferenceRepository.delete(entity);
 			entity.setName(name);
 		}

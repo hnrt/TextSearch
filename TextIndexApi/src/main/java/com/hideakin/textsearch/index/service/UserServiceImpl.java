@@ -18,12 +18,14 @@ import org.springframework.stereotype.Service;
 import com.hideakin.textsearch.index.entity.PreferenceEntity;
 import com.hideakin.textsearch.index.entity.UserEntity;
 import com.hideakin.textsearch.index.exception.ForbiddenException;
+import com.hideakin.textsearch.index.exception.InvalidParameterException;
 import com.hideakin.textsearch.index.model.AuthenticateResult;
 import com.hideakin.textsearch.index.model.UserInfo;
 import com.hideakin.textsearch.index.repository.PreferenceRepository;
 import com.hideakin.textsearch.index.repository.UserRepository;
 import com.hideakin.textsearch.index.utility.HmacSHA256;
 import com.hideakin.textsearch.index.utility.RoleComparator;
+import com.hideakin.textsearch.index.validator.UserObjectValidator;
 
 @Service
 @Transactional
@@ -106,6 +108,14 @@ public class UserServiceImpl implements UserService {
 
 	@Override
 	public UserInfo createUser(String username, String password, String[] roles) {
+		if (!UserObjectValidator.isValidUsername(username)) {
+			throw new InvalidParameterException("Invalid username.");
+		}
+		for (String role : roles) {
+			if (!UserObjectValidator.isValidRole(role)) {
+				throw new InvalidParameterException("Invalid role.");
+			}
+		}
 		Arrays.sort(roles, roleComp);
 		ZonedDateTime ct = ZonedDateTime.now();
 		UserEntity entity = new UserEntity();
@@ -145,12 +155,20 @@ public class UserServiceImpl implements UserService {
 			return null;
 		}
 		if (username != null) {
+			if (!UserObjectValidator.isValidUsername(username)) {
+				throw new InvalidParameterException("Invalid username.");
+			}
 			entity.setUsername(username);
 		}
 		if (password != null) {
 			entity.setPassword(digestPassword(username, password));
 		}
 		if (roles != null) {
+			for (String role : roles) {
+				if (!UserObjectValidator.isValidRole(role)) {
+					throw new InvalidParameterException("Invalid role.");
+				}
+			}
 			Arrays.sort(roles, roleComp);
 			entity.setRoles(roles);
 		}

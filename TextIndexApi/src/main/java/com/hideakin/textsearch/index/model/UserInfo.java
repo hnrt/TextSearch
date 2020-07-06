@@ -2,22 +2,30 @@ package com.hideakin.textsearch.index.model;
 
 import java.time.ZonedDateTime;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.hideakin.textsearch.index.entity.UserEntity;
 
 public class UserInfo {
 
+	@JsonProperty("uid")
 	private int uid;
 	
+	@JsonProperty("username")
 	private String username;
 	
+	@JsonProperty("roles")
 	private String[] roles;
 	
+	@JsonProperty("created_at")
 	private ZonedDateTime createdAt;
 	
+	@JsonProperty("updated_at")
 	private ZonedDateTime updatedAt;
 	
+	@JsonProperty("access_token")
 	private String accessToken;
 	
+	@JsonProperty("expires_at")
 	private ZonedDateTime expiresAt;
 	
 	public UserInfo(UserEntity entity) {

@@ -30,10 +30,10 @@ public class CustomExceptionHandler extends ResponseEntityExceptionHandler {
 		return new ResponseEntity<>(body, HttpStatus.UNAUTHORIZED);
 	}
 
-	@ResponseStatus(HttpStatus.FORBIDDEN)
 	@ExceptionHandler(ForbiddenException.class)
-	public void onForbidden() {
-		// nothing needs to be done
+	public ResponseEntity<?> onForbidden(ForbiddenException ex, WebRequest request) {
+		ErrorResponse body = new ErrorResponse("access_denied", ex.getMessage());
+		return new ResponseEntity<>(body, HttpStatus.FORBIDDEN);
 	}
 
 	@ResponseStatus(HttpStatus.SERVICE_UNAVAILABLE)

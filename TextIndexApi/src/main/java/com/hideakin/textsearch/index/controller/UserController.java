@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.hideakin.textsearch.index.model.UserRequest;
+import com.hideakin.textsearch.index.model.ErrorResponse;
 import com.hideakin.textsearch.index.model.UserInfo;
 import com.hideakin.textsearch.index.service.UserService;
 
@@ -53,8 +54,14 @@ public class UserController {
 		try {
 			UserInfo ui = userService.createUser(req.getUsername(), req.getPassword(), req.getRoles());
 			return new ResponseEntity<>(ui, HttpStatus.CREATED);
-		} catch (DataAccessException e) { // e.g. constraint violation
-			return new ResponseEntity<>(e.getMessage(), HttpStatus.BAD_REQUEST);
+		} catch (DataAccessException e) {
+			ErrorResponse body;
+			if (e.getMessage().contains("constraint [users_username_key]")) {
+				body = new ErrorResponse("constraint_violation", "Username already exists.");
+			} else {
+				body = new ErrorResponse("invalid_data_access", e.getMessage());
+			}
+			return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
 		}
 	}
 
@@ -62,11 +69,21 @@ public class UserController {
 	public ResponseEntity<?> updateUser(
 			@PathVariable int uid,
 			@RequestBody UserRequest req) {
-		UserInfo ui = userService.updateUser(uid, req.getUsername(), req.getPassword(), req.getRoles());
-		if (ui != null) {
-			return new ResponseEntity<>(ui, HttpStatus.OK);
-		} else {
-			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		try {
+			UserInfo ui = userService.updateUser(uid, req.getUsername(), req.getPassword(), req.getRoles());
+			if (ui != null) {
+				return new ResponseEntity<>(ui, HttpStatus.OK);
+			} else {
+				return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+			}
+		} catch (DataAccessException e) {
+			ErrorResponse body;
+			if (e.getMessage().contains("constraint [users_username_key]")) {
+				body = new ErrorResponse("constraint_violation", "Username already exists.");
+			} else {
+				body = new ErrorResponse("invalid_data_access", e.getMessage());
+			}
+			return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
 		}
 	}
 
