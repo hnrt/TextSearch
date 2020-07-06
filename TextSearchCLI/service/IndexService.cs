@@ -25,8 +25,8 @@ namespace com.hideakin.textsearch.service
                 DebugPut("phrase", text, tokenizer.Texts);
                 if (tokenizer.Tokens.Count == 1)
                 {
-                    var client = new IndexNetClient() { GroupName = group };
-                    var task = client.FindText(tokenizer.Tokens[0].Text, SearchOptions.Contains);
+                    var client = new IndexApiClient();
+                    var task = client.FindText(group, tokenizer.Tokens[0].Text, SearchOptions.Contains);
                     task.Wait();
                     if (task.Result == null)
                     {
@@ -38,20 +38,20 @@ namespace com.hideakin.textsearch.service
                 }
                 else if (tokenizer.Tokens.Count > 1)
                 {
-                    var clients = new IndexNetClient[tokenizer.Tokens.Count];
+                    var clients = new IndexApiClient[tokenizer.Tokens.Count];
                     var tasks = new Task<PathPositions[]>[tokenizer.Tokens.Count];
-                    var client = new IndexNetClient() { GroupName = group };
+                    var client = new IndexApiClient();
                     clients[0] = client;
-                    tasks[0] = client.FindText(tokenizer.Tokens[0].Text, SearchOptions.EndsWith);
+                    tasks[0] = client.FindText(group, tokenizer.Tokens[0].Text, SearchOptions.EndsWith);
                     for (int i = 1; i < tasks.Length - 1; i++)
                     {
-                        client = new IndexNetClient() { GroupName = group };
+                        client = new IndexApiClient();
                         clients[i] = client;
-                        tasks[i] = client.FindText(tokenizer.Tokens[i].Text, SearchOptions.Exact);
+                        tasks[i] = client.FindText(group, tokenizer.Tokens[i].Text, SearchOptions.Exact);
                     }
-                    client = new IndexNetClient() { GroupName = group };
+                    client = new IndexApiClient();
                     clients[tasks.Length - 1] = client;
-                    tasks[tasks.Length - 1] = client.FindText(tokenizer.Tokens[tasks.Length - 1].Text, SearchOptions.StartsWith);
+                    tasks[tasks.Length - 1] = client.FindText(group, tokenizer.Tokens[tasks.Length - 1].Text, SearchOptions.StartsWith);
                     Task.WaitAll(tasks);
                     if (tasks[0].Result == null)
                     {

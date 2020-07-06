@@ -2,7 +2,7 @@
 
 namespace com.hideakin.textsearch.model
 {
-    internal class AuthenticateErrorResponse
+    internal class ErrorResponse
     {
         [JsonProperty("error")]
         public string Error { get; set; }

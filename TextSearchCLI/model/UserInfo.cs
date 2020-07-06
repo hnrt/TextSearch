@@ -1,11 +1,14 @@
 ﻿using System;
 using System.Text;
 using Newtonsoft.Json;
+using com.hideakin.textsearch.utility;
 
 namespace com.hideakin.textsearch.model
 {
     internal class UserInfo
     {
+		private static readonly string DTFMT = "yyyy-MM-ddTHH:mm:ss.fff";
+
 		[JsonProperty("uid")]
 		public int Uid { get; set; }
 
@@ -15,17 +18,17 @@ namespace com.hideakin.textsearch.model
 		[JsonProperty("roles")]
 		public string[] Roles { get; set; }
 
-		[JsonProperty("createdAt")]
+		[JsonProperty("created_at")]
 		public DateTime CreatedAt { get; set; }
 
-		[JsonProperty("updatedAt")]
+		[JsonProperty("updated_at")]
 		public DateTime UpdatedAt { get; set; }
 
-		[JsonProperty("expiresAt")]
-		public DateTime? Expiry { get; set; }
+		[JsonProperty("access_token")]
+		public string AccessToken { get; set; }
 
-		[JsonProperty("accessToken")]
-		public string ApiKey { get; set; }
+		[JsonProperty("expires_at")]
+		public DateTime? ExpiresAt { get; set; }
 
 		public string RolesString
 		{
@@ -44,5 +47,20 @@ namespace com.hideakin.textsearch.model
 				return sb.ToString();
 			}
 		}
-	}
+
+        public override string ToString()
+        {
+			if (ExpiresAt != null)
+			{
+				return string.Format("uid={0} username={1} roles={2} created={3} updated={4} token={5} expires={6}",
+					Uid, Username, RolesString, CreatedAt.ToString(DTFMT), UpdatedAt.ToString(DTFMT),
+					AccessToken, ExpiresAt.Value.ToString(DTFMT));
+			}
+			else
+			{
+				return string.Format("uid={0} username={1} roles={2} created={3} updated={4} token= expires=",
+					Uid, Username, RolesString, CreatedAt.ToString(DTFMT), UpdatedAt.ToString(DTFMT));
+			}
+        }
+    }
 }

@@ -15,7 +15,7 @@ namespace com.hideakin.textsearch.service
 
         public FileInfo[] GetFiles(string group)
         {
-            var client = new IndexNetClient();
+            var client = new IndexApiClient();
             var task = client.GetFiles(group);
             task.Wait();
             if (task.Result == null)
@@ -27,7 +27,7 @@ namespace com.hideakin.textsearch.service
 
         public FileStats GetFileStats(string group)
         {
-            var client = new IndexNetClient();
+            var client = new IndexApiClient();
             var task = client.GetFileStats(group);
             task.Wait();
             if (task.Result == null)
@@ -39,7 +39,7 @@ namespace com.hideakin.textsearch.service
 
         public string[] DownloadFile(int fid)
         {
-            var client = new IndexNetClient();
+            var client = new IndexApiClient();
             var task = client.DownloadFile(fid);
             task.Wait();
             if (task.Result == null)
@@ -52,7 +52,7 @@ namespace com.hideakin.textsearch.service
         public FileInfo UploadFile(string group, string path, out UploadFileStatus result)
         {
             result = UploadFileStatus.Failure;
-            var client = new IndexNetClient();
+            var client = new IndexApiClient();
             var task = client.UploadFile(group, path);
             task.Wait();
             if (task.Result == null)
@@ -65,7 +65,7 @@ namespace com.hideakin.textsearch.service
 
         public FileInfo[] DeleteFiles(string group)
         {
-            var client = new IndexNetClient();
+            var client = new IndexApiClient();
             var task = client.DeleteFiles(group);
             task.Wait();
             if (task.Result == null)
@@ -77,7 +77,7 @@ namespace com.hideakin.textsearch.service
 
         public void DeleteStaleFiles(string group)
         {
-            var client = new IndexNetClient();
+            var client = new IndexApiClient();
             var task = client.DeleteStaleFiles(group);
             task.Wait();
             if (!task.Result)

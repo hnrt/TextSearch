@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System;
 using System.Net;
 using System.Text;
+using com.hideakin.textsearch.utility;
 
 namespace com.hideakin.textsearch.service
 {
@@ -21,7 +22,7 @@ namespace com.hideakin.textsearch.service
 
         public string GetPreference(string name)
         {
-            var client = new IndexNetClient();
+            var client = new IndexApiClient();
             var task = client.GetPreference(name);
             task.Wait();
             if (client.Response.StatusCode != HttpStatusCode.OK && client.Response.StatusCode != HttpStatusCode.NotFound)
@@ -31,20 +32,21 @@ namespace com.hideakin.textsearch.service
             return task.Result;
         }
 
-        public void UpdatePreference(string name, string value)
+        public string SetPreference(string name, string value)
         {
-            var client = new IndexNetClient();
-            var task = client.UpdatePreference(name, value);
+            var client = new IndexApiClient();
+            var task = client.SetPreference(name, value);
             task.Wait();
-            if (!task.Result)
+            if (task.Result != null)
             {
-                throw NewResponseException(client.Response);
+                throw new Exception(task.Result.ErrorDescription);
             }
+            return client.Response.StatusCode == HttpStatusCode.Created ? "Created." : "Updated.";
         }
 
         public void DeletePreference(string name)
         {
-            var client = new IndexNetClient();
+            var client = new IndexApiClient();
             var task = client.DeletePreference(name);
             task.Wait();
             if (!task.Result)
@@ -56,40 +58,19 @@ namespace com.hideakin.textsearch.service
         public List<string> GetExtensions()
         {
             var list = new List<string>();
-            var extensions = GetPreference(EXTENSIONS);
-            if (extensions != null)
-            {
-                var ss = extensions.Split(new char[] { ',' });
-                foreach (string s in ss)
-                {
-                    list.Add(s.StartsWith(".") ? s : ("." + s));
-                }
-            }
+            list.MergeItems(GetPreference(EXTENSIONS));
             return list;
         }
 
-        public void AddExtensions(string extensions)
+        public string AddExtensions(string extensions)
         {
             var list = GetExtensions();
-            var ss = extensions.Split(new char[] { ',', ';', ':' });
-            foreach (string s in ss)
-            {
-                list.Add(s.StartsWith(".") ? s : ("." + s));
-            }
-            var sb = new StringBuilder();
-            foreach (string s in list)
-            {
-                if (sb.Length > 0)
-                {
-                    sb.Append(",");
-                }
-                sb.Append(s);
-            }
-            if (sb.Length > MAX_LEN)
+            var csv = list.MergeItems(extensions, s => s.StartsWith(".") ? s : ("." + s)).ToCsvString();
+            if (csv.Length > MAX_LEN)
             {
                 throw new Exception(EXTENSIONS + ": Too long.");
             }
-            UpdatePreference(EXTENSIONS, sb.ToString());
+            return SetPreference(EXTENSIONS, csv);
         }
 
         public void ClearExtensions()
@@ -100,40 +81,19 @@ namespace com.hideakin.textsearch.service
         public List<string> GetSkipDirs()
         {
             var list = new List<string>();
-            var dirs = GetPreference(SKIPDIRS);
-            if (dirs != null)
-            {
-                var ss = dirs.Split(new char[] { ',' });
-                foreach (string s in ss)
-                {
-                    list.Add(s);
-                }
-            }
+            list.MergeItems(GetPreference(SKIPDIRS));
             return list;
         }
 
-        public void AddSkipDirs(string dirs)
+        public string AddSkipDirs(string dirs)
         {
             var list = GetSkipDirs();
-            var ss = dirs.Split(new char[] { ',', ';', ':' });
-            foreach (string s in ss)
-            {
-                list.Add(s);
-            }
-            var sb = new StringBuilder();
-            foreach (string s in list)
-            {
-                if (sb.Length > 0)
-                {
-                    sb.Append(",");
-                }
-                sb.Append(s);
-            }
-            if (sb.Length > MAX_LEN)
+            var csv = list.MergeItems(dirs).ToCsvString();
+            if (csv.Length > MAX_LEN)
             {
                 throw new Exception(SKIPDIRS + ": Too long.");
             }
-            UpdatePreference(SKIPDIRS, sb.ToString());
+            return SetPreference(SKIPDIRS, csv);
         }
 
         public void ClearSkipDirs()

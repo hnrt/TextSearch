@@ -4,20 +4,19 @@ using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net;
 using System.Net.Http;
-using System.Net.Http.Formatting;
 using System.Net.Http.Headers;
-using System.Net.Mime;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace com.hideakin.textsearch.net
 {
-    internal class IndexNetClient
+    internal class IndexApiClient
     {
+        #region CLASS FIELDS
+
         private static readonly HttpClient httpClient = new HttpClient();
 
         private static readonly string AUTHORIZATION = "Authorization";
@@ -26,7 +25,11 @@ namespace com.hideakin.textsearch.net
 
         public static ApiCredentials Credentials { get; } = new ApiCredentials();
 
-        static IndexNetClient()
+        #endregion
+
+        #region CLASS INITIALIZER
+
+        static IndexApiClient()
         {
             var envUrl = Environment.GetEnvironmentVariable("TEXTINDEXAPI_URL");
             if (envUrl != null)
@@ -45,21 +48,29 @@ namespace com.hideakin.textsearch.net
             }
         }
 
-        public string GroupName { get; set; } = "default";
+        #endregion
 
-        private CancellationTokenSource cts = new CancellationTokenSource();
+        #region FIELDS
 
         public HttpResponseMessage Response { get; private set; }
 
         public string ResponseBody { get; private set; }
 
-        public IndexNetClient()
+        private CancellationTokenSource cts = new CancellationTokenSource();
+
+        #endregion
+
+        #region CONSTRUCTOR
+
+        public IndexApiClient()
         {
             if (Credentials.EncryptedToken == null)
             {
                 Initialize();
             }
         }
+
+        #endregion
 
         #region SETUP
 
@@ -111,9 +122,9 @@ namespace com.hideakin.textsearch.net
                 }
                 var task = Authenticate();
                 task.Wait();
-                if (task.Result is AuthenticateErrorResponse)
+                if (task.Result is ErrorResponse)
                 {
-                    throw new Exception(((AuthenticateErrorResponse)task.Result).ErrorDescription);
+                    throw new Exception(((ErrorResponse)task.Result).ErrorDescription);
                 }
                 var ar = (AuthenticateResponse)task.Result;
                 Credentials.AccessToken = ar.AccessToken;
@@ -161,7 +172,7 @@ namespace com.hideakin.textsearch.net
             }
             else
             {
-                return JsonConvert.DeserializeObject<AuthenticateErrorResponse>(ResponseBody);
+                return JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody);
             }
         }
 
@@ -250,7 +261,7 @@ namespace com.hideakin.textsearch.net
             }
         }
 
-        public async Task<UserInfo> CreateUser(string username, string password, string[] roles)
+        public async Task<object> CreateUser(string username, string password, string[] roles)
         {
             var uri = string.Format("{0}/v1/users", Url);
             var request = new HttpRequestMessage(HttpMethod.Post, uri);
@@ -263,13 +274,17 @@ namespace com.hideakin.textsearch.net
             {
                 return JsonConvert.DeserializeObject<UserInfo>(ResponseBody);
             }
+            else if (Response.StatusCode == HttpStatusCode.BadRequest || Response.StatusCode == HttpStatusCode.Forbidden)
+            {
+                return JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody);
+            }
             else
             {
                 return null;
             }
         }
 
-        public async Task<UserInfo> UpdateUser(int uid, string username, string password, string[] roles)
+        public async Task<object> UpdateUser(int uid, string username, string password, string[] roles)
         {
             var uri = string.Format("{0}/v1/users/{1}", Url, uid);
             var request = new HttpRequestMessage(HttpMethod.Put, uri);
@@ -282,13 +297,17 @@ namespace com.hideakin.textsearch.net
             {
                 return JsonConvert.DeserializeObject<UserInfo>(ResponseBody);
             }
+            else if (Response.StatusCode == HttpStatusCode.BadRequest || Response.StatusCode == HttpStatusCode.Forbidden)
+            {
+                return JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody);
+            }
             else
             {
                 return null;
             }
         }
 
-        public async Task<UserInfo> DeleteUser(int uid)
+        public async Task<object> DeleteUser(int uid)
         {
             var uri = string.Format("{0}/v1/users/{1}", Url, uid);
             var request = new HttpRequestMessage(HttpMethod.Delete, uri);
@@ -298,6 +317,98 @@ namespace com.hideakin.textsearch.net
             if (Response.StatusCode == HttpStatusCode.OK)
             {
                 return JsonConvert.DeserializeObject<UserInfo>(ResponseBody);
+            }
+            else if (Response.StatusCode == HttpStatusCode.BadRequest || Response.StatusCode == HttpStatusCode.Forbidden)
+            {
+                return JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        #endregion
+
+        #region GROUP
+
+        public async Task<FileGroupInfo[]> GetFileGroups()
+        {
+            var uri = string.Format("{0}/v1/groups", Url);
+            var request = new HttpRequestMessage(HttpMethod.Get, uri);
+            request.Headers.Add(AUTHORIZATION, BearerToken);
+            Response = await httpClient.SendAsync(request, cts.Token);
+            ResponseBody = await Response.Content.ReadAsStringAsync();
+            if (Response.StatusCode == HttpStatusCode.OK)
+            {
+                return JsonConvert.DeserializeObject<FileGroupInfo[]>(ResponseBody);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        public async Task<object> CreateFileGroup(string group, string[] ownedBy)
+        {
+            var uri = string.Format("{0}/v1/groups", Url);
+            var request = new HttpRequestMessage(HttpMethod.Post, uri);
+            request.Headers.Add(AUTHORIZATION, BearerToken);
+            var input = new FileGroupRequest(group, ownedBy);
+            request.Content = new StringContent(JsonConvert.SerializeObject(input), Encoding.UTF8, "application/json");
+            Response = await httpClient.SendAsync(request, cts.Token);
+            ResponseBody = await Response.Content.ReadAsStringAsync();
+            if (Response.StatusCode == HttpStatusCode.Created)
+            {
+                return JsonConvert.DeserializeObject<FileGroupInfo>(ResponseBody);
+            }
+            else if (Response.StatusCode == HttpStatusCode.BadRequest || Response.StatusCode == HttpStatusCode.Forbidden)
+            {
+                return JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        public async Task<object> UpdateFileGroup(int gid, string group, string[] ownedBy)
+        {
+            var uri = string.Format("{0}/v1/groups/{1}", Url, gid);
+            var request = new HttpRequestMessage(HttpMethod.Put, uri);
+            request.Headers.Add(AUTHORIZATION, BearerToken);
+            var input = new FileGroupRequest(group, ownedBy);
+            request.Content = new StringContent(JsonConvert.SerializeObject(input), Encoding.UTF8, "application/json");
+            Response = await httpClient.SendAsync(request, cts.Token);
+            ResponseBody = await Response.Content.ReadAsStringAsync();
+            if (Response.StatusCode == HttpStatusCode.OK)
+            {
+                return JsonConvert.DeserializeObject<FileGroupInfo>(ResponseBody);
+            }
+            else if (Response.StatusCode == HttpStatusCode.BadRequest || Response.StatusCode == HttpStatusCode.Forbidden)
+            {
+                return JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        public async Task<object> DeleteFileGroup(int gid)
+        {
+            var uri = string.Format("{0}/v1/groups/{1}", Url, gid);
+            var request = new HttpRequestMessage(HttpMethod.Delete, uri);
+            request.Headers.Add(AUTHORIZATION, BearerToken);
+            Response = await httpClient.SendAsync(request, cts.Token);
+            ResponseBody = await Response.Content.ReadAsStringAsync();
+            if (Response.StatusCode == HttpStatusCode.OK)
+            {
+                return JsonConvert.DeserializeObject<FileGroupInfo>(ResponseBody);
+            }
+            else if (Response.StatusCode == HttpStatusCode.Forbidden)
+            {
+                return JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody);
             }
             else
             {
@@ -326,7 +437,7 @@ namespace com.hideakin.textsearch.net
             }
         }
 
-        public async Task<bool> UpdatePreference(string name, string value)
+        public async Task<ErrorResponse> SetPreference(string name, string value)
         {
             var uri = string.Format("{0}/v1/preferences", Url);
             var request = new HttpRequestMessage(HttpMethod.Post, uri);
@@ -335,7 +446,14 @@ namespace com.hideakin.textsearch.net
             request.Content = new StringContent(JsonConvert.SerializeObject(input), Encoding.UTF8, "application/json");
             Response = await httpClient.SendAsync(request, cts.Token);
             ResponseBody = await Response.Content.ReadAsStringAsync();
-            return Response.StatusCode == HttpStatusCode.Created || Response.StatusCode == HttpStatusCode.OK;
+            if (Response.StatusCode == HttpStatusCode.Created || Response.StatusCode == HttpStatusCode.OK)
+            {
+                return null;
+            }
+            else
+            {
+                return JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody);
+            }
         }
 
         public async Task<bool> DeletePreference(string name)
@@ -346,82 +464,6 @@ namespace com.hideakin.textsearch.net
             Response = await httpClient.SendAsync(request, cts.Token);
             ResponseBody = await Response.Content.ReadAsStringAsync();
             return Response.StatusCode == HttpStatusCode.OK;
-        }
-
-        #endregion
-
-        #region GROUP
-
-        public async Task<FileGroupInfo[]> GetFileGroups()
-        {
-            var uri = string.Format("{0}/v1/groups", Url);
-            var request = new HttpRequestMessage(HttpMethod.Get, uri);
-            request.Headers.Add(AUTHORIZATION, BearerToken);
-            Response = await httpClient.SendAsync(request, cts.Token);
-            ResponseBody = await Response.Content.ReadAsStringAsync();
-            if (Response.StatusCode == HttpStatusCode.OK)
-            {
-                return JsonConvert.DeserializeObject<FileGroupInfo[]>(ResponseBody);
-            }
-            else
-            {
-                return null;
-            }
-        }
-
-        public async Task<FileGroupInfo> CreateFileGroup(string group, string[] ownedBy)
-        {
-            var uri = string.Format("{0}/v1/groups", Url);
-            var request = new HttpRequestMessage(HttpMethod.Post, uri);
-            request.Headers.Add(AUTHORIZATION, BearerToken);
-            var input = new FileGroupRequest(group, ownedBy);
-            request.Content = new StringContent(JsonConvert.SerializeObject(input), Encoding.UTF8, "application/json");
-            Response = await httpClient.SendAsync(request, cts.Token);
-            ResponseBody = await Response.Content.ReadAsStringAsync();
-            if (Response.StatusCode == HttpStatusCode.Created)
-            {
-                return JsonConvert.DeserializeObject<FileGroupInfo>(ResponseBody);
-            }
-            else
-            {
-                return null;
-            }
-        }
-
-        public async Task<FileGroupInfo> UpdateFileGroup(int gid, string group, string[] ownedBy)
-        {
-            var uri = string.Format("{0}/v1/groups/{1}", Url, gid);
-            var request = new HttpRequestMessage(HttpMethod.Put, uri);
-            request.Headers.Add(AUTHORIZATION, BearerToken);
-            var input = new FileGroupRequest(group, ownedBy);
-            request.Content = new StringContent(JsonConvert.SerializeObject(input), Encoding.UTF8, "application/json");
-            Response = await httpClient.SendAsync(request, cts.Token);
-            ResponseBody = await Response.Content.ReadAsStringAsync();
-            if (Response.StatusCode == HttpStatusCode.OK)
-            {
-                return JsonConvert.DeserializeObject<FileGroupInfo>(ResponseBody);
-            }
-            else
-            {
-                return null;
-            }
-        }
-
-        public async Task<FileGroupInfo> DeleteFileGroup(int gid)
-        {
-            var uri = string.Format("{0}/v1/groups/{1}", Url, gid);
-            var request = new HttpRequestMessage(HttpMethod.Delete, uri);
-            request.Headers.Add(AUTHORIZATION, BearerToken);
-            Response = await httpClient.SendAsync(request, cts.Token);
-            ResponseBody = await Response.Content.ReadAsStringAsync();
-            if (Response.StatusCode == HttpStatusCode.OK)
-            {
-                return JsonConvert.DeserializeObject<FileGroupInfo>(ResponseBody);
-            }
-            else
-            {
-                return null;
-            }
         }
 
         #endregion
@@ -560,9 +602,9 @@ namespace com.hideakin.textsearch.net
 
         #region INDEX
 
-        public async Task<PathPositions[]> FindText(string text, SearchOptions option)
+        public async Task<PathPositions[]> FindText(string group, string text, SearchOptions option)
         {
-            var uri = string.Format("{0}/v1/index/{1}?text={2}&option={3}", Url, GroupName, text, Enum.GetName(option.GetType(), option));
+            var uri = string.Format("{0}/v1/index/{1}?text={2}&option={3}", Url, group, text, Enum.GetName(option.GetType(), option));
             var request = new HttpRequestMessage(HttpMethod.Get, uri);
             request.Headers.Add(AUTHORIZATION, BearerToken);
             Response = await httpClient.SendAsync(request, cts.Token);
@@ -579,9 +621,13 @@ namespace com.hideakin.textsearch.net
 
         #endregion
 
+        #region HELPER
+
         private static string RemoveQuotePair(string s)
         {
             return (s.Length >= 2 && s[0] == '\"' && s[s.Length - 1] == '\"') ? s.Substring(1, s.Length - 2) : s;
         }
+
+        #endregion
     }
 }

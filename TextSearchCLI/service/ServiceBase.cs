@@ -14,7 +14,7 @@ namespace com.hideakin.textsearch.service
 
         public void Authenticate()
         {
-            var client = new IndexNetClient();
+            var client = new IndexApiClient();
             var task = client.Check();
             task.Wait();
         }
