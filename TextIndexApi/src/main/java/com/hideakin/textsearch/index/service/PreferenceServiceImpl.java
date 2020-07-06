@@ -31,15 +31,27 @@ public class PreferenceServiceImpl implements PreferenceService {
 	}
 
 	@Override
-	public void createPreference(String name, String value) {
-		preferenceRepository.save(new PreferenceEntity(name, value));
+	public boolean setPreference(String name, String value) {
+		PreferenceEntity entity = preferenceRepository.findByName(name);
+		if (entity == null) {
+			preferenceRepository.save(new PreferenceEntity(name, value));
+			return true;
+		} else {
+			entity.setValue(value);
+			preferenceRepository.save(entity);
+			return false;
+		}
 	}
 
 	@Override
-	public boolean updatePreference(String name, String value) {
-		PreferenceEntity entity = preferenceRepository.findByName(name);
+	public boolean resetPreference(String original, String name, String value) {
+		PreferenceEntity entity = preferenceRepository.findByName(original);
 		if (entity == null) {
 			return false;
+		}
+		if (!original.equals(name)) {
+			preferenceRepository.delete(entity);
+			entity.setName(name);
 		}
 		entity.setValue(value);
 		preferenceRepository.save(entity);

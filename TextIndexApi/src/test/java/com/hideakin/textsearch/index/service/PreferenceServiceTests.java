@@ -39,73 +39,88 @@ public class PreferenceServiceTests {
 	}
 
 	@Test
-	public void createPreference_successful() {
+	public void setPreference_successful1() {
+		when(preferenceRepository.findByName("foo")).thenReturn(null);
 		when(preferenceRepository.save(argThat(x -> x.getName().equals("foo") && x.getValue().equals("bar")))).thenReturn(new PreferenceEntity("foo", "bar"));
-		preferenceService.createPreference("foo", "bar");
+		boolean result = preferenceService.setPreference("foo", "bar");
+		Assertions.assertTrue(result);
+		verify(preferenceRepository, times(1)).findByName("foo");
 		verify(preferenceRepository, times(1)).save(argThat(x -> x.getName().equals("foo") && x.getValue().equals("bar")));
 	}
 
 	@Test
-	public void updatePreference_successful() {
+	public void setPreference_successful2() {
 		when(preferenceRepository.findByName("foo")).thenReturn(new PreferenceEntity("foo", "bar"));
-		boolean ret = preferenceService.updatePreference("foo", "baz");
-		Assertions.assertEquals(true, ret);
+		when(preferenceRepository.save(argThat(x -> x.getName().equals("foo") && x.getValue().equals("baz")))).thenReturn(new PreferenceEntity("foo", "baz"));
+		boolean result = preferenceService.setPreference("foo", "baz");
+		Assertions.assertFalse(result);
+		verify(preferenceRepository, times(1)).findByName("foo");
 		verify(preferenceRepository, times(1)).save(argThat(x -> x.getName().equals("foo") && x.getValue().equals("baz")));
+	}
+
+	@Test
+	public void resetPreference_successful() {
+		when(preferenceRepository.findByName("foo")).thenReturn(new PreferenceEntity("foo", "bar"));
+		boolean result = preferenceService.resetPreference("foo", "fred", "baz");
+		Assertions.assertTrue(result);
+		verify(preferenceRepository, times(1)).findByName("foo");
+		verify(preferenceRepository, times(1)).save(argThat(x -> x.getName().equals("fred") && x.getValue().equals("baz")));
 	}
 
 	@Test
 	public void updatePreference_notFound() {
 		when(preferenceRepository.findByName("foo")).thenReturn(null);
-		boolean ret = preferenceService.updatePreference("foo", "baz");
-		Assertions.assertEquals(false, ret);
+		boolean result = preferenceService.resetPreference("foo", "fred", "baz");
+		Assertions.assertFalse(result);
+		verify(preferenceRepository, times(1)).findByName("foo");
 		verify(preferenceRepository, times(0)).save(any(PreferenceEntity.class));
 	}
 
 	@Test
 	public void deletePreference_successful() {
 		when(preferenceRepository.findByName("quux")).thenReturn(new PreferenceEntity("quux", "fred"));
-		boolean ret = preferenceService.deletePreference("quux");
-		Assertions.assertEquals(true, ret);
+		boolean result = preferenceService.deletePreference("quux");
+		Assertions.assertTrue(result);
 		verify(preferenceRepository, times(1)).delete(argThat(x -> x.getName().equals("quux") && x.getValue().equals("fred")));
 	}
 
 	@Test
 	public void deletePreference_notfound() {
 		when(preferenceRepository.findByName("quux")).thenReturn(null);
-		boolean ret = preferenceService.deletePreference("quux");
-		Assertions.assertEquals(false, ret);
+		boolean result = preferenceService.deletePreference("quux");
+		Assertions.assertFalse(result);
 		verify(preferenceRepository, times(0)).delete(any(PreferenceEntity.class));
 	}
 	
 	@Test
 	public void isServiceUnavailable_true() {
 		when(preferenceRepository.findByName("enabled")).thenReturn(new PreferenceEntity("enabled", "false"));
-		boolean ret = preferenceService.isServiceUnavailable();
-		Assertions.assertEquals(true, ret);
+		boolean result = preferenceService.isServiceUnavailable();
+		Assertions.assertTrue(result);
 		verify(preferenceRepository, times(1)).findByName("enabled");
 	}
 	
 	@Test
 	public void isServiceUnavailable_false() {
 		when(preferenceRepository.findByName("enabled")).thenReturn(new PreferenceEntity("enabled", "true"));
-		boolean ret = preferenceService.isServiceUnavailable();
-		Assertions.assertEquals(false, ret);
+		boolean result = preferenceService.isServiceUnavailable();
+		Assertions.assertFalse(result);
 		verify(preferenceRepository, times(1)).findByName("enabled");
 	}
 	
 	@Test
 	public void isServiceUnavailable_invalid() {
 		when(preferenceRepository.findByName("enabled")).thenReturn(new PreferenceEntity("enabled", "xyzzy"));
-		boolean ret = preferenceService.isServiceUnavailable();
-		Assertions.assertEquals(false, ret);
+		boolean result = preferenceService.isServiceUnavailable();
+		Assertions.assertFalse(result);
 		verify(preferenceRepository, times(1)).findByName("enabled");
 	}
 	
 	@Test
 	public void isServiceUnavailable_null() {
 		when(preferenceRepository.findByName("enabled")).thenReturn(null);
-		boolean ret = preferenceService.isServiceUnavailable();
-		Assertions.assertEquals(false, ret);
+		boolean result = preferenceService.isServiceUnavailable();
+		Assertions.assertFalse(result);
 		verify(preferenceRepository, times(1)).findByName("enabled");
 	}
 

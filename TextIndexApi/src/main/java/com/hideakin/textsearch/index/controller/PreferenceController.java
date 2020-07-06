@@ -33,28 +33,20 @@ public class PreferenceController {
 	@RequestMapping(value="/v1/preferences",method=RequestMethod.POST)
 	public ResponseEntity<?> createPreference(
 			@RequestBody PreferenceRequest req) {
-		preferenceService.createPreference(req.getName(), req.getValue());
-		return new ResponseEntity<>(HttpStatus.CREATED);
+		return new ResponseEntity<>(preferenceService.setPreference(req.getName(), req.getValue()) ? HttpStatus.CREATED : HttpStatus.OK);
 	}
 
-	@RequestMapping(value="/v1/preferences",method=RequestMethod.PUT)
+	@RequestMapping(value="/v1/preferences/{name}",method=RequestMethod.PUT)
 	public ResponseEntity<?> updatePreference(
+			@PathVariable String name,
 			@RequestBody PreferenceRequest req) {
-		if (preferenceService.updatePreference(req.getName(), req.getValue())) {
-			return new ResponseEntity<>(HttpStatus.OK);
-		} else {
-			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-		}
+		return new ResponseEntity<>(preferenceService.resetPreference(name, req.getName(), req.getValue()) ? HttpStatus.OK : HttpStatus.NOT_FOUND);
 	}
 
 	@RequestMapping(value="/v1/preferences/{name}",method=RequestMethod.DELETE)
 	public ResponseEntity<?> deletePreference(
 			@PathVariable String name) {
-		if (preferenceService.deletePreference(name)) {
-			return new ResponseEntity<>(HttpStatus.OK);
-		} else {
-			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-		}
+		return new ResponseEntity<>(preferenceService.deletePreference(name) ? HttpStatus.OK : HttpStatus.NOT_FOUND);
 	}
 
 }

@@ -1,7 +1,5 @@
 package com.hideakin.textsearch.index.controller;
 
-import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -56,8 +54,8 @@ public class PreferenceControllerTests {
 	}
 
 	@Test
-	public void createPreference_successful() throws Exception {
-		doNothing().when(preferenceService).createPreference(argThat(x -> x.equals("quux")), argThat(x -> x.equals("fred")));
+	public void createPreference_successful1() throws Exception {
+		when(preferenceService.setPreference("quux", "fred")).thenReturn(true);
 		ObjectMapper om = new ObjectMapper();
 		String json = om.writeValueAsString(new PreferenceRequest("quux", "fred"));
 		mockMvc.perform(MockMvcRequestBuilders
@@ -65,33 +63,46 @@ public class PreferenceControllerTests {
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(json))
 			.andExpect(status().isCreated());
-		verify(preferenceService, times(1)).createPreference("quux", "fred");
+		verify(preferenceService, times(1)).setPreference("quux", "fred");
+	}
+
+	@Test
+	public void createPreference_successful2() throws Exception {
+		when(preferenceService.setPreference("quux", "fred")).thenReturn(false);
+		ObjectMapper om = new ObjectMapper();
+		String json = om.writeValueAsString(new PreferenceRequest("quux", "fred"));
+		mockMvc.perform(MockMvcRequestBuilders
+				.post("/v1/preferences")
+				.contentType(MediaType.APPLICATION_JSON)
+				.content(json))
+			.andExpect(status().isOk());
+		verify(preferenceService, times(1)).setPreference("quux", "fred");
 	}
 
 	@Test
 	public void updatePreference_successful() throws Exception {
-		when(preferenceService.updatePreference("quux", "fred")).thenReturn(true);
+		when(preferenceService.resetPreference("foobar", "quux", "fred")).thenReturn(true);
 		ObjectMapper om = new ObjectMapper();
 		String json = om.writeValueAsString(new PreferenceRequest("quux", "fred"));
 		mockMvc.perform(MockMvcRequestBuilders
-				.put("/v1/preferences")
+				.put("/v1/preferences/foobar")
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(json))
 			.andExpect(status().isOk());
-		verify(preferenceService, times(1)).updatePreference("quux", "fred");
+		verify(preferenceService, times(1)).resetPreference("foobar", "quux", "fred");
 	}
 
 	@Test
 	public void updatePreference_notFound() throws Exception {
-		when(preferenceService.updatePreference("quux", "fred")).thenReturn(false);
+		when(preferenceService.resetPreference("foobar", "quux", "fred")).thenReturn(false);
 		ObjectMapper om = new ObjectMapper();
 		String json = om.writeValueAsString(new PreferenceRequest("quux", "fred"));
 		mockMvc.perform(MockMvcRequestBuilders
-				.put("/v1/preferences")
+				.put("/v1/preferences/foobar")
 				.contentType(MediaType.APPLICATION_JSON)
 				.content(json))
 			.andExpect(status().isNotFound());
-		verify(preferenceService, times(1)).updatePreference("quux", "fred");
+		verify(preferenceService, times(1)).resetPreference("foobar", "quux", "fred");
 	}
 	
 	@Test
