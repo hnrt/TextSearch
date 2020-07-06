@@ -16,7 +16,6 @@ import com.hideakin.textsearch.index.entity.PreferenceEntity;
 import com.hideakin.textsearch.index.exception.InvalidParameterException;
 import com.hideakin.textsearch.index.exception.ForbiddenException;
 import com.hideakin.textsearch.index.model.FileGroupInfo;
-import com.hideakin.textsearch.index.model.ObjectDisposition;
 import com.hideakin.textsearch.index.model.UserInfo;
 import com.hideakin.textsearch.index.repository.FileGroupRepository;
 import com.hideakin.textsearch.index.repository.FileRepository;
@@ -63,24 +62,14 @@ public class FileGroupServiceImpl implements FileGroupService {
 	}
 
 	@Override
-	public FileGroupInfo createGroup(String name, String[] ownedBy, ObjectDisposition disp) {
-		FileGroupEntity entity = fileGroupRepository.findByName(name);
-		if (entity == null) {
-			if (!FileGroupNameValidator.isValid(name)) {
-				throw new InvalidParameterException("Invalid group name.");
-			}
-			disp.setValue(ObjectDisposition.CREATED);
-			entity = new FileGroupEntity(getNextGid(), name, ownedBy);
-			if (entity.getOwnedBy() == null) {
-				UserInfo ui = RequestContext.getUserInfo();
-				entity.setOwnedBy(ui.getUsername());
-			}
-		} else {
-			disp.setValue(ObjectDisposition.UPDATED);
-			if (ownedBy != null) {
-				entity.setOwnedBy(ownedBy);
-			}
-			entity.setUpdatedAt(ZonedDateTime.now());
+	public FileGroupInfo createGroup(String name, String[] ownedBy) {
+		if (!FileGroupNameValidator.isValid(name)) {
+			throw new InvalidParameterException("Invalid group name.");
+		}
+		FileGroupEntity entity = new FileGroupEntity(getNextGid(), name, ownedBy);
+		if (entity.getOwnedBy() == null) {
+			UserInfo ui = RequestContext.getUserInfo();
+			entity.setOwnedBy(ui.getUsername());
 		}
 		fileGroupRepository.save(entity);
 		return new FileGroupInfo(entity);
@@ -93,6 +82,9 @@ public class FileGroupServiceImpl implements FileGroupService {
 			return null;
 		}
 		if (name != null) {
+			if (!FileGroupNameValidator.isValid(name)) {
+				throw new InvalidParameterException("Invalid group name.");
+			}
 			entity.setName(name);
 		}
 		if (ownedBy != null) {
@@ -106,19 +98,19 @@ public class FileGroupServiceImpl implements FileGroupService {
 	@Override
 	public FileGroupInfo deleteGroup(int gid) {
 		if (gid == 0) {
-			throw new ForbiddenException("Not allowed to delete the group of GID=0.");
+			throw new ForbiddenException("Group 0 cannot be deleted.");
 		}
 		FileGroupEntity entity = fileGroupRepository.findByGid(gid);
 		if (entity == null) {
 			return null;
 		}
 		List<FileEntity> fileEntities = fileRepository.findAllByGid(gid);
-		if (fileEntities != null && fileEntities.size() > 0) {
-			throw new ForbiddenException("There is one or more files associated with the group to delete.");
+		if (fileEntities.size() > 0) {
+			throw new ForbiddenException("There is one or more files associated with the group.");
 		}
 		UserInfo ui = RequestContext.getUserInfo();
 		if (!entity.isOwner(ui.getUsername()) && !ui.isAdministrator()) {
-			throw new ForbiddenException();
+			throw new ForbiddenException("You are neither owner nor administrator.");
 		}
 		entity.setUpdatedAt(ZonedDateTime.now());
 		fileGroupRepository.delete(entity);

@@ -7,7 +7,7 @@ public interface FileGroupService {
 
 	FileGroupInfo[] getGroups();
 	FileGroupInfo getGroup(int gid);
-	FileGroupInfo createGroup(String name, String[] ownedBy, ObjectDisposition disp);
+	FileGroupInfo createGroup(String name, String[] ownedBy);
 	FileGroupInfo updateGroup(int gid, String name, String[] ownedBy);
 	FileGroupInfo deleteGroup(int gid);
 
