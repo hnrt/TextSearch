@@ -59,7 +59,7 @@ public class FileGroupServiceImpl implements FileGroupService {
 	@Override
 	public FileGroupInfo createGroup(String name) {
 		if (!FileGroupNameValidator.isValid(name)) {
-			throw new InvalidParameterException("Invalid group name.");
+			throw new InvalidParameterException("invalid_group", "Invalid group name.");
 		}
 		FileGroupEntity entity = new FileGroupEntity(getNextGid(), name);
 		fileGroupRepository.save(entity);
@@ -74,7 +74,7 @@ public class FileGroupServiceImpl implements FileGroupService {
 		}
 		if (name != null) {
 			if (!FileGroupNameValidator.isValid(name)) {
-				throw new InvalidParameterException("Invalid group name.");
+				throw new InvalidParameterException("invalid_group", "Invalid group name.");
 			}
 			entity.setName(name);
 		}
@@ -86,7 +86,7 @@ public class FileGroupServiceImpl implements FileGroupService {
 	@Override
 	public FileGroupInfo deleteGroup(int gid) {
 		if (gid == 0) {
-			throw new ForbiddenException("Group 0 cannot be deleted.");
+			throw new ForbiddenException("access_denied", "Group 0 cannot be deleted.");
 		}
 		FileGroupEntity entity = fileGroupRepository.findByGid(gid);
 		if (entity == null) {
@@ -94,7 +94,7 @@ public class FileGroupServiceImpl implements FileGroupService {
 		}
 		List<FileEntity> fileEntities = fileRepository.findAllByGid(gid);
 		if (fileEntities.size() > 0) {
-			throw new ForbiddenException("There is one or more files associated with the group.");
+			throw new ForbiddenException("invalid_operation", "There is one or more files associated with the group.");
 		}
 		entity.setUpdatedAt(ZonedDateTime.now());
 		fileGroupRepository.delete(entity);

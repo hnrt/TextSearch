@@ -37,7 +37,7 @@ public class PreferenceServiceImpl implements PreferenceService {
 		PreferenceEntity entity = preferenceRepository.findByName(name);
 		if (entity == null) {
 			if (!PreferenceNameValidator.isValid(name)) {
-				throw new InvalidParameterException("Invalid preference name.");
+				throw new InvalidParameterException("invalid_prefname", "Invalid preference name.");
 			}
 			preferenceRepository.save(new PreferenceEntity(name, value));
 			return true;
@@ -56,7 +56,7 @@ public class PreferenceServiceImpl implements PreferenceService {
 		}
 		if (!original.equals(name)) {
 			if (!PreferenceNameValidator.isValid(name)) {
-				throw new InvalidParameterException("Invalid preference name.");
+				throw new InvalidParameterException("invalid_prefname", "Invalid preference name.");
 			}
 			preferenceRepository.delete(entity);
 			entity.setName(name);

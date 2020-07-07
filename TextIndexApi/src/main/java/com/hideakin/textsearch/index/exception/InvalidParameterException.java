@@ -4,8 +4,19 @@ public class InvalidParameterException extends RuntimeException {
 
 	private static final long serialVersionUID = 4L;
 
-	public InvalidParameterException(String message) {
-		super(message);
+	private String error;
+
+	public InvalidParameterException(String error, String errorDescription) {
+		super(errorDescription);
+		this.error = error;
+	}
+
+	public String getError() {
+		return error;
+	}
+
+	public String getErrorDescription() {
+		return super.getMessage();
 	}
 
 }

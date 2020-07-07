@@ -122,7 +122,7 @@ public class ControllerAspect {
 	    }
 	    String[] roles = mrc.find(request.getMethod());
 	    if (roles != null && !RolesIntersection.Exists(roles, userInfo.getRoles())) {
-	    	throw new ForbiddenException();
+	    	throw new ForbiddenException("access_denied", "You don't have an appropriate role to access the resource.");
 	    }
 	    RequestContext.setUserInfo(userInfo);
 	}

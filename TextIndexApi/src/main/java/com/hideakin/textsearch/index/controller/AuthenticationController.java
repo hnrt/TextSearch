@@ -65,7 +65,7 @@ public class AuthenticationController {
 			}
 			throw new UnauthorizedException(AuthenticateError.INVALID_REQUEST, "Invalid credentials.");
 		}
-		return new AuthenticateResponse(ar.getApiKey(), "bearer", ar.getExpiresIn());
+		return new AuthenticateResponse(ar.getAccessToken(), "bearer", ar.getExpiresIn());
 	}
 
 }

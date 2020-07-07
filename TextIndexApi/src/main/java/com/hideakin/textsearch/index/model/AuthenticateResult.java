@@ -2,17 +2,17 @@ package com.hideakin.textsearch.index.model;
 
 public class AuthenticateResult {
 
-	private String apiKey;
+	private String accessToken;
 	
 	private int expiresIn;
 	
-	public AuthenticateResult(String apiKey, int expiresIn) {
-		this.apiKey = apiKey;
+	public AuthenticateResult(String accessToken, int expiresIn) {
+		this.accessToken = accessToken;
 		this.expiresIn = expiresIn;
 	}
 
-	public String getApiKey() {
-		return apiKey;
+	public String getAccessToken() {
+		return accessToken;
 	}
 
 	public int getExpiresIn() {

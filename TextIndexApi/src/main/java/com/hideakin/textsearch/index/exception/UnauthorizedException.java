@@ -6,28 +6,17 @@ public class UnauthorizedException extends RuntimeException {
 
 	private String error;
 	
-	private String errorDescription;
-	
 	public UnauthorizedException(String error, String errorDescription) {
-		super("Authorization failed.");
+		super(errorDescription);
 		this.error = error;
-		this.errorDescription = errorDescription;
 	}
 
 	public String getError() {
 		return error;
 	}
 
-	public void setError(String error) {
-		this.error = error;
-	}
-
 	public String getErrorDescription() {
-		return errorDescription;
-	}
-
-	public void setErrorDescription(String errorDescription) {
-		this.errorDescription = errorDescription;
+		return super.getMessage();
 	}
 
 }

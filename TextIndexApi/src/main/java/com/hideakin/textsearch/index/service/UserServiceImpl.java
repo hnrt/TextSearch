@@ -94,10 +94,10 @@ public class UserServiceImpl implements UserService {
 	@Override
 	public UserInfo createUser(String username, String password, String[] roles) {
 		if (!UserNameValidator.isValidUsername(username)) {
-			throw new InvalidParameterException("Invalid username.");
+			throw new InvalidParameterException("invalid_username", "Invalid username.");
 		}
 		if (!UserNameValidator.areValidRoles(roles)) {
-			throw new InvalidParameterException("Invalid role.");
+			throw new InvalidParameterException("invalid_role", "Invalid role.");
 		}
 		Arrays.sort(roles, roleComp);
 		ZonedDateTime ct = ZonedDateTime.now();
@@ -123,7 +123,7 @@ public class UserServiceImpl implements UserService {
 		}
 		if (username != null) {
 			if (!UserNameValidator.isValidUsername(username)) {
-				throw new InvalidParameterException("Invalid username.");
+				throw new InvalidParameterException("invalid_username", "Invalid username.");
 			}
 			entity.setUsername(username);
 		}
@@ -132,7 +132,7 @@ public class UserServiceImpl implements UserService {
 		}
 		if (roles != null) {
 			if (!UserNameValidator.areValidRoles(roles)) {
-				throw new InvalidParameterException("Invalid role.");
+				throw new InvalidParameterException("invalid_role", "Invalid role.");
 			}
 			Arrays.sort(roles, roleComp);
 			entity.setRoles(roles);
@@ -148,7 +148,7 @@ public class UserServiceImpl implements UserService {
 	@Override
 	public UserInfo deleteUser(int uid) {
 		if (uid == 0) {
-			throw new ForbiddenException("Not allowed to delete the user of UID=0.");
+			throw new ForbiddenException("access_denied", "User 0 cannot be deleted.");
 		}
 		UserEntity entity = userRepository.findByUid(uid);
 		if (entity == null) {
