@@ -349,12 +349,12 @@ namespace com.hideakin.textsearch.net
             }
         }
 
-        public async Task<object> CreateFileGroup(string group, string[] ownedBy)
+        public async Task<object> CreateFileGroup(string group)
         {
             var uri = string.Format("{0}/v1/groups", Url);
             var request = new HttpRequestMessage(HttpMethod.Post, uri);
             request.Headers.Add(AUTHORIZATION, BearerToken);
-            var input = new FileGroupRequest(group, ownedBy);
+            var input = new FileGroupRequest(group);
             request.Content = new StringContent(JsonConvert.SerializeObject(input), Encoding.UTF8, "application/json");
             Response = await httpClient.SendAsync(request, cts.Token);
             ResponseBody = await Response.Content.ReadAsStringAsync();
@@ -372,12 +372,12 @@ namespace com.hideakin.textsearch.net
             }
         }
 
-        public async Task<object> UpdateFileGroup(int gid, string group, string[] ownedBy)
+        public async Task<object> UpdateFileGroup(int gid, string group)
         {
             var uri = string.Format("{0}/v1/groups/{1}", Url, gid);
             var request = new HttpRequestMessage(HttpMethod.Put, uri);
             request.Headers.Add(AUTHORIZATION, BearerToken);
-            var input = new FileGroupRequest(group, ownedBy);
+            var input = new FileGroupRequest(group);
             request.Content = new StringContent(JsonConvert.SerializeObject(input), Encoding.UTF8, "application/json");
             Response = await httpClient.SendAsync(request, cts.Token);
             ResponseBody = await Response.Content.ReadAsStringAsync();

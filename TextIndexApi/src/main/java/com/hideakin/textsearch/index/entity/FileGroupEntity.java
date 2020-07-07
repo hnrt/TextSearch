@@ -18,9 +18,6 @@ public class FileGroupEntity {
 	@Column(name="name")
 	private String name;
 
-	@Column(name="owned_by")
-	private String ownedBy;
-	
 	@Column(name="created_at")
 	private ZonedDateTime createdAt;
 
@@ -28,21 +25,16 @@ public class FileGroupEntity {
 	private ZonedDateTime updatedAt;
 
 	public FileGroupEntity() {
-		this(-1, null, null, null);
+		this(-1, null, null);
 	}
 
-	public FileGroupEntity(int gid, String name, String[] ownedBy) {
-		this(gid, name, csv(ownedBy), ZonedDateTime.now());
+	public FileGroupEntity(int gid, String name) {
+		this(gid, name, ZonedDateTime.now());
 	}
 
-	public FileGroupEntity(int gid, String name, String ownedBy) {
-		this(gid, name, ownedBy, ZonedDateTime.now());
-	}
-
-	public FileGroupEntity(int gid, String name, String ownedBy, ZonedDateTime at) {
+	public FileGroupEntity(int gid, String name, ZonedDateTime at) {
 		this.gid = gid;
 		this.name = name;
-		this.ownedBy = ownedBy;
 		this.createdAt = at;
 		this.updatedAt = at;
 	}
@@ -63,27 +55,6 @@ public class FileGroupEntity {
 		this.name = name;
 	}
 
-	public String getOwnedBy() {
-		return ownedBy;
-	}
-
-	public void setOwnedBy(String ownedBy) {
-		this.ownedBy = ownedBy;
-	}
-
-	public void setOwnedBy(String[] ownedBy) {
-		this.ownedBy = csv(ownedBy);
-	}
-
-	public boolean isOwner(String username) {
-		for (String owner : ownedBy.split(",")) {
-			if (owner.equals(username)) {
-				return true;
-			}
-		}
-		return false;
-	}
-
 	public ZonedDateTime getCreatedAt() {
 		return createdAt;
 	}
@@ -98,18 +69,6 @@ public class FileGroupEntity {
 
 	public void setUpdatedAt(ZonedDateTime updatedAt) {
 		this.updatedAt = updatedAt;
-	}
-
-	private static String csv(String[] array) {
-		if (array == null || array.length == 0) {
-			return null;
-		}
-		String value = array[0];
-		for (int index = 1; index < array.length; index++) {
-			value += ",";
-			value += array[index];
-		}
-		return value;
 	}
 
 }

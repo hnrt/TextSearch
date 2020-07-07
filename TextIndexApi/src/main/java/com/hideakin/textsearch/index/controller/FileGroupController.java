@@ -41,7 +41,7 @@ public class FileGroupController {
 	public ResponseEntity<?> createGroup(
 			@RequestBody FileGroupRequest req) {
 		try {
-			FileGroupInfo body = service.createGroup(req.getName(), req.getOwnedBy());
+			FileGroupInfo body = service.createGroup(req.getName());
 			return new ResponseEntity<>(body, HttpStatus.CREATED);
 		} catch (DataAccessException e) {
 			ErrorResponse body;
@@ -59,7 +59,7 @@ public class FileGroupController {
 			@PathVariable int gid,
 			@RequestBody FileGroupRequest req) {
 		try {
-			FileGroupInfo body = service.updateGroup(gid, req.getName(), req.getOwnedBy());
+			FileGroupInfo body = service.updateGroup(gid, req.getName());
 			if (body != null) {
 				return new ResponseEntity<>(body, HttpStatus.OK);
 			} else {

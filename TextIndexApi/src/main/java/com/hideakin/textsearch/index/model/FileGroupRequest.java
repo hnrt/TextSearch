@@ -3,8 +3,14 @@ package com.hideakin.textsearch.index.model;
 public class FileGroupRequest {
 
 	private String name;
-	
-	private String[] ownedBy;
+
+	public FileGroupRequest() {
+		this(null);
+	}
+
+	public FileGroupRequest(String name) {
+		this.name = name;
+	}
 
 	public String getName() {
 		return name;
@@ -12,14 +18,6 @@ public class FileGroupRequest {
 
 	public void setName(String name) {
 		this.name = name;
-	}
-
-	public String[] getOwnedBy() {
-		return ownedBy;
-	}
-
-	public void setOwnedBy(String[] ownedBy) {
-		this.ownedBy = ownedBy;
 	}
 
 }

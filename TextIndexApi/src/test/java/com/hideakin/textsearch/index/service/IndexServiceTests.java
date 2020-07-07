@@ -51,7 +51,7 @@ public class IndexServiceTests {
 
 	@Test
 	public void findText_nohit() {
-		when(fileGroupRepository.findByName("xyzzy")).thenReturn(new FileGroupEntity(3, "xyzzy", "root"));
+		when(fileGroupRepository.findByName("xyzzy")).thenReturn(new FileGroupEntity(3, "xyzzy"));
 		when(textRepository.findByText("FOO")).thenReturn(null);
 		PathPositions[] hits = indexService.findText("xyzzy", "FOO", SearchOptions.Exact);
 		Assertions.assertEquals(0, hits.length);
@@ -64,7 +64,7 @@ public class IndexServiceTests {
 
 	@Test
 	public void findText_exact() {
-		when(fileGroupRepository.findByName("xyzzy")).thenReturn(new FileGroupEntity(4, "xyzzy", "root"));
+		when(fileGroupRepository.findByName("xyzzy")).thenReturn(new FileGroupEntity(4, "xyzzy"));
 		when(textRepository.findByText("FOO")).thenReturn(
 				new TextEntity("FOO", new byte[] { 3, 1, 11, 5, 2, 13, 17, 7, 3, 19, 23, 29 }));
 		when(fileRepository.findByFid(3)).thenReturn(new FileEntity(3, "quux.cpp", 1024, 2));
@@ -88,7 +88,7 @@ public class IndexServiceTests {
 
 	@Test
 	public void findText_contains() {
-		when(fileGroupRepository.findByName("corge")).thenReturn(new FileGroupEntity(4, "corge", "root"));
+		when(fileGroupRepository.findByName("corge")).thenReturn(new FileGroupEntity(4, "corge"));
 		when(textRepository.findAllByTextContaining("BAR")).thenReturn(
 				new ArrayList<TextEntity>(Arrays.asList(
 						new TextEntity("XBARX", new byte[] { 3, 1, 11, 5, 1, 17, 7, 1, 23 }),
@@ -123,7 +123,7 @@ public class IndexServiceTests {
 
 	@Test
 	public void findText_startsWith() {
-		when(fileGroupRepository.findByName("corge")).thenReturn(new FileGroupEntity(4, "corge", "root"));
+		when(fileGroupRepository.findByName("corge")).thenReturn(new FileGroupEntity(4, "corge"));
 		when(textRepository.findAllByTextStartingWith("BAZ")).thenReturn(
 				new ArrayList<TextEntity>(Arrays.asList(
 						new TextEntity("BAZX", new byte[] { 3, 1, 11, 5, 1, 17, 7, 1, 23 }),
@@ -158,7 +158,7 @@ public class IndexServiceTests {
 
 	@Test
 	public void findText_endsWith() {
-		when(fileGroupRepository.findByName("corge")).thenReturn(new FileGroupEntity(4, "corge", "root"));
+		when(fileGroupRepository.findByName("corge")).thenReturn(new FileGroupEntity(4, "corge"));
 		when(textRepository.findAllByTextEndingWith("THUD")).thenReturn(
 				new ArrayList<TextEntity>(Arrays.asList(
 						new TextEntity("XTHUD", new byte[] { 3, 1, 11, 5, 1, 17, 7, 1, 23 }),

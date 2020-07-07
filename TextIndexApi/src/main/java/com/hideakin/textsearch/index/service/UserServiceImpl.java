@@ -25,7 +25,7 @@ import com.hideakin.textsearch.index.repository.PreferenceRepository;
 import com.hideakin.textsearch.index.repository.UserRepository;
 import com.hideakin.textsearch.index.utility.HmacSHA256;
 import com.hideakin.textsearch.index.utility.RoleComparator;
-import com.hideakin.textsearch.index.validator.UserObjectValidator;
+import com.hideakin.textsearch.index.validator.UserNameValidator;
 
 @Service
 @Transactional
@@ -62,21 +62,6 @@ public class UserServiceImpl implements UserService {
 		return new AuthenticateResult(entity.getAccessToken(), accessTokenExpiresIn);
 	}
 	
-	private static String digestPassword(String username, String password) {
-		final String SALT = "ah";
-		return HmacSHA256.compute(password, SALT + username);
-	}
-
-	private static void generateAccessToken(UserEntity entity, int seconds) {
-		entity.setExpiresAt(ZonedDateTime.now().plusSeconds(seconds));
-		StringBuilder ibuf = new StringBuilder();
-		ibuf.append(entity.getUsername());
-		ibuf.append("|");
-		ibuf.append(entity.getExpiresAt().format(DateTimeFormatter.ISO_DATE_TIME));
-		String accessToken = HmacSHA256.compute(ibuf.toString(), entity.getPassword());
-		entity.setAccessToken(accessToken);
-	}
-	
 	@Override
 	public UserInfo[] getUsers() {
 		List<UserEntity> entities = userRepository.findAll();
@@ -108,13 +93,11 @@ public class UserServiceImpl implements UserService {
 
 	@Override
 	public UserInfo createUser(String username, String password, String[] roles) {
-		if (!UserObjectValidator.isValidUsername(username)) {
+		if (!UserNameValidator.isValidUsername(username)) {
 			throw new InvalidParameterException("Invalid username.");
 		}
-		for (String role : roles) {
-			if (!UserObjectValidator.isValidRole(role)) {
-				throw new InvalidParameterException("Invalid role.");
-			}
+		if (!UserNameValidator.areValidRoles(roles)) {
+			throw new InvalidParameterException("Invalid role.");
 		}
 		Arrays.sort(roles, roleComp);
 		ZonedDateTime ct = ZonedDateTime.now();
@@ -132,22 +115,6 @@ public class UserServiceImpl implements UserService {
 		return new UserInfo(entity);
 	}
 	
-	private int getNextUid() {
-		int nextId;
-		final String name = "UID.next";
-		PreferenceEntity entity = preferenceRepository.findByName(name);
-		if (entity != null) {
-			nextId = entity.getIntValue();
-		} else {
-			entity = new PreferenceEntity(name);
-			Integer maxId = (Integer)em.createQuery("SELECT MAX(uid) FROM users").getSingleResult();
-			nextId = (maxId != null ? maxId : 0) + 1;
-		}
-		entity.setValue(nextId + 1);
-		preferenceRepository.save(entity);
-		return nextId;
-	}
-
 	@Override
 	public UserInfo updateUser(int uid, String username, String password, String[] roles) {
 		UserEntity entity = userRepository.findByUid(uid);
@@ -155,7 +122,7 @@ public class UserServiceImpl implements UserService {
 			return null;
 		}
 		if (username != null) {
-			if (!UserObjectValidator.isValidUsername(username)) {
+			if (!UserNameValidator.isValidUsername(username)) {
 				throw new InvalidParameterException("Invalid username.");
 			}
 			entity.setUsername(username);
@@ -164,10 +131,8 @@ public class UserServiceImpl implements UserService {
 			entity.setPassword(digestPassword(username, password));
 		}
 		if (roles != null) {
-			for (String role : roles) {
-				if (!UserObjectValidator.isValidRole(role)) {
-					throw new InvalidParameterException("Invalid role.");
-				}
+			if (!UserNameValidator.areValidRoles(roles)) {
+				throw new InvalidParameterException("Invalid role.");
 			}
 			Arrays.sort(roles, roleComp);
 			entity.setRoles(roles);
@@ -192,6 +157,37 @@ public class UserServiceImpl implements UserService {
 		userRepository.delete(entity);
 		logger.info("deleteUser([{}] {}) succeeded.", entity.getUid(), entity.getUsername());
 		return new UserInfo(entity);
+	}
+	
+	private static String digestPassword(String username, String password) {
+		final String SALT = "ah";
+		return HmacSHA256.compute(password, SALT + username);
+	}
+
+	private static void generateAccessToken(UserEntity entity, int seconds) {
+		entity.setExpiresAt(ZonedDateTime.now().plusSeconds(seconds));
+		StringBuilder ibuf = new StringBuilder();
+		ibuf.append(entity.getUsername());
+		ibuf.append("|");
+		ibuf.append(entity.getExpiresAt().format(DateTimeFormatter.ISO_DATE_TIME));
+		String accessToken = HmacSHA256.compute(ibuf.toString(), entity.getPassword());
+		entity.setAccessToken(accessToken);
+	}
+
+	private int getNextUid() {
+		int nextId;
+		final String name = "UID.next";
+		PreferenceEntity entity = preferenceRepository.findByName(name);
+		if (entity != null) {
+			nextId = entity.getIntValue();
+		} else {
+			entity = new PreferenceEntity(name);
+			Integer maxId = (Integer)em.createQuery("SELECT MAX(uid) FROM users").getSingleResult();
+			nextId = (maxId != null ? maxId : 0) + 1;
+		}
+		entity.setValue(nextId + 1);
+		preferenceRepository.save(entity);
+		return nextId;
 	}
 
 }

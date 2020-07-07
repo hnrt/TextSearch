@@ -1,5 +1,6 @@
 package com.hideakin.textsearch.index.service;
 
+import java.time.ZonedDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -138,6 +139,8 @@ public class FileServiceImpl implements FileService {
 			disp.setValue(ObjectDisposition.UPDATED);
 		}
 		FileEntity entity = saveFile(gid, path, data, contentType);
+		fileGroupEntity.setUpdatedAt(ZonedDateTime.now());
+		fileGroupRepository.save(fileGroupEntity);
 		return new FileInfo(entity, fileGroupEntity);
 	}
 
@@ -156,6 +159,8 @@ public class FileServiceImpl implements FileService {
 			return null;
 		}
 		entity = saveFile(gid, path, data, contentType);
+		fileGroupEntity.setUpdatedAt(ZonedDateTime.now());
+		fileGroupRepository.save(fileGroupEntity);
 		return new FileInfo(entity, fileGroupEntity);
 	}
 	
@@ -182,6 +187,8 @@ public class FileServiceImpl implements FileService {
 		}
 		fileRepository.deleteByGid(gid);
 		removeDistribution(fids);
+		fileGroupEntity.setUpdatedAt(ZonedDateTime.now());
+		fileGroupRepository.save(fileGroupEntity);
 		return values;
 	}
 
@@ -204,6 +211,8 @@ public class FileServiceImpl implements FileService {
 			fileRepository.deleteByFid(fid);
 		}
 		removeDistribution(fids);
+		fileGroupEntity.setUpdatedAt(ZonedDateTime.now());
+		fileGroupRepository.save(fileGroupEntity);
 		return true;
 	}
 
@@ -215,6 +224,8 @@ public class FileServiceImpl implements FileService {
 			fileContentRepository.deleteByFid(fid);
 			fileRepository.deleteByFid(fid);
 			removeDistribution(fid);
+			fileGroupEntity.setUpdatedAt(ZonedDateTime.now());
+			fileGroupRepository.save(fileGroupEntity);
 			return new FileInfo(entity, fileGroupEntity);
 		} else {
 			return null;

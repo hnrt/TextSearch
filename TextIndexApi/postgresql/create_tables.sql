@@ -1,11 +1,11 @@
 CREATE TABLE IF NOT EXISTS users (
 	uid int PRIMARY KEY,
-	username varchar(260) UNIQUE NOT NULL,
-	password varchar(260),
-	roles varchar(260),
+	username varchar(256) UNIQUE NOT NULL,
+	password varchar(256),
+	roles varchar(256),
 	created_at timestamp with time zone,
 	updated_at timestamp with time zone,
-	access_token varchar(260),
+	access_token varchar(256),
 	expires_at timestamp with time zone
 );
 
@@ -14,13 +14,12 @@ INSERT INTO users (uid,username,password,roles,created_at,updated_at) VALUES(0,'
 
 CREATE TABLE IF NOT EXISTS file_groups (
 	gid int PRIMARY KEY,
-	name varchar(260) UNIQUE NOT NULL,
-	owned_by varchar(260) NOT NULL,
+	name varchar(256) UNIQUE NOT NULL,
 	created_at timestamp with time zone,
 	updated_at timestamp with time zone
 );
 
-INSERT INTO file_groups (gid,name,owned_by,created_at,updated_at) VALUES(0,'default','root',now(),now());
+INSERT INTO file_groups (gid,name,created_at,updated_at) VALUES(0,'default',now(),now());
 
 CREATE TABLE IF NOT EXISTS files (
 	fid int PRIMARY KEY,
@@ -37,11 +36,11 @@ CREATE TABLE IF NOT EXISTS file_contents (
 );
 
 CREATE TABLE IF NOT EXISTS texts (
-	txt varchar(260) PRIMARY KEY,
+	txt varchar(256) PRIMARY KEY,
 	dst bytea
 );
 
 CREATE TABLE IF NOT EXISTS preferences (
-	name varchar(260) PRIMARY KEY,
+	name varchar(256) PRIMARY KEY,
 	value varchar(8192)
 );

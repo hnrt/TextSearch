@@ -42,7 +42,7 @@ public class FileServiceTests {
 
 	@Test
 	public void getFiles_successful() {
-		when(fileGroupRepository.findByName("quux")).thenReturn(new FileGroupEntity(333, "quux", "root"));
+		when(fileGroupRepository.findByName("quux")).thenReturn(new FileGroupEntity(333, "quux"));
 		List<FileEntity> entities = new ArrayList<FileEntity>();
 		add(entities, 801, "/home/src/quux/foo.java", 333);
 		add(entities, 802, "/home/src/quux/bar.java", 333);
@@ -64,7 +64,7 @@ public class FileServiceTests {
 
 	@Test
 	public void getFiles_null() {
-		when(fileGroupRepository.findByName("quux")).thenReturn(new FileGroupEntity(333, "quux", "root"));
+		when(fileGroupRepository.findByName("quux")).thenReturn(new FileGroupEntity(333, "quux"));
 		when(fileRepository.findAllByGid(333)).thenReturn(null);
 		FileInfo[] fi = fileService.getFiles("quux");
 		Assertions.assertEquals(0, fi.length);
@@ -86,7 +86,7 @@ public class FileServiceTests {
 
 	@Test
 	public void deleteFiles_successful() {
-		when(fileGroupRepository.findByName("xyzzy")).thenReturn(new FileGroupEntity(111, "xyzzy", "root"));
+		when(fileGroupRepository.findByName("xyzzy")).thenReturn(new FileGroupEntity(111, "xyzzy"));
 		List<FileEntity> entities = new ArrayList<FileEntity>();
 		add(entities, 801, "/home/src/quux/foo.java", 111);
 		add(entities, 802, "/home/src/quux/bar.java", 111);

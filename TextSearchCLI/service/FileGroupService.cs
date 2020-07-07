@@ -23,10 +23,10 @@ namespace com.hideakin.textsearch.service
             return task.Result;
         }
 
-        public FileGroupInfo CreateFileGroup(string group, string[] ownedBy)
+        public FileGroupInfo CreateFileGroup(string group)
         {
             var client = new IndexApiClient();
-            var task = client.CreateFileGroup(group, ownedBy);
+            var task = client.CreateFileGroup(group);
             task.Wait();
             if (task.Result == null)
             {
@@ -39,10 +39,10 @@ namespace com.hideakin.textsearch.service
             return task.Result as FileGroupInfo;
         }
 
-        public FileGroupInfo UpdateFileGroup(int gid, string group, string[] ownedBy)
+        public FileGroupInfo UpdateFileGroup(int gid, string group)
         {
             var client = new IndexApiClient();
-            var task = client.UpdateFileGroup(gid, group, ownedBy);
+            var task = client.UpdateFileGroup(gid, group);
             task.Wait();
             if (task.Result == null)
             {

@@ -9,14 +9,12 @@ import javax.transaction.Transactional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import com.hideakin.textsearch.index.aspect.RequestContext;
 import com.hideakin.textsearch.index.entity.FileEntity;
 import com.hideakin.textsearch.index.entity.FileGroupEntity;
 import com.hideakin.textsearch.index.entity.PreferenceEntity;
 import com.hideakin.textsearch.index.exception.InvalidParameterException;
 import com.hideakin.textsearch.index.exception.ForbiddenException;
 import com.hideakin.textsearch.index.model.FileGroupInfo;
-import com.hideakin.textsearch.index.model.UserInfo;
 import com.hideakin.textsearch.index.repository.FileGroupRepository;
 import com.hideakin.textsearch.index.repository.FileRepository;
 import com.hideakin.textsearch.index.repository.PreferenceRepository;
@@ -41,10 +39,7 @@ public class FileGroupServiceImpl implements FileGroupService {
 	@Override
 	public FileGroupInfo[] getGroups() {
 		List<FileGroupEntity> entities = fileGroupRepository.findAll();
-		int count;
-		if (entities == null || (count = entities.size()) == 0) {
-			return new FileGroupInfo[0];
-		}
+		int count = entities.size();
 		FileGroupInfo[] values = new FileGroupInfo[count];
 		for (int index = 0; index < count; index++) {
 			values[index] = new FileGroupInfo(entities.get(index));
@@ -62,21 +57,17 @@ public class FileGroupServiceImpl implements FileGroupService {
 	}
 
 	@Override
-	public FileGroupInfo createGroup(String name, String[] ownedBy) {
+	public FileGroupInfo createGroup(String name) {
 		if (!FileGroupNameValidator.isValid(name)) {
 			throw new InvalidParameterException("Invalid group name.");
 		}
-		FileGroupEntity entity = new FileGroupEntity(getNextGid(), name, ownedBy);
-		if (entity.getOwnedBy() == null) {
-			UserInfo ui = RequestContext.getUserInfo();
-			entity.setOwnedBy(ui.getUsername());
-		}
+		FileGroupEntity entity = new FileGroupEntity(getNextGid(), name);
 		fileGroupRepository.save(entity);
 		return new FileGroupInfo(entity);
 	}
 
 	@Override
-	public FileGroupInfo updateGroup(int gid, String name, String[] ownedBy) {
+	public FileGroupInfo updateGroup(int gid, String name) {
 		FileGroupEntity entity = fileGroupRepository.findByGid(gid);
 		if (entity == null) {
 			return null;
@@ -86,9 +77,6 @@ public class FileGroupServiceImpl implements FileGroupService {
 				throw new InvalidParameterException("Invalid group name.");
 			}
 			entity.setName(name);
-		}
-		if (ownedBy != null) {
-			entity.setOwnedBy(ownedBy);
 		}
 		entity.setUpdatedAt(ZonedDateTime.now());
 		fileGroupRepository.save(entity);
@@ -107,10 +95,6 @@ public class FileGroupServiceImpl implements FileGroupService {
 		List<FileEntity> fileEntities = fileRepository.findAllByGid(gid);
 		if (fileEntities.size() > 0) {
 			throw new ForbiddenException("There is one or more files associated with the group.");
-		}
-		UserInfo ui = RequestContext.getUserInfo();
-		if (!entity.isOwner(ui.getUsername()) && !ui.isAdministrator()) {
-			throw new ForbiddenException("You are neither owner nor administrator.");
 		}
 		entity.setUpdatedAt(ZonedDateTime.now());
 		fileGroupRepository.delete(entity);

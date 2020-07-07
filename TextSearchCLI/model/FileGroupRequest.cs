@@ -7,13 +7,9 @@ namespace com.hideakin.textsearch.model
         [JsonProperty("name")]
         public string Name { get; set; }
 
-        [JsonProperty("ownedBy")]
-        public string[] OwnedBy { get; set; }
-
-        public FileGroupRequest(string name, string[] ownedBy)
+        public FileGroupRequest(string name)
         {
             Name = name;
-            OwnedBy = ownedBy;
         }
     }
 }
