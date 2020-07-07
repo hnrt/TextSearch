@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.hideakin.textsearch.index.data.SearchOptions;
-import com.hideakin.textsearch.index.model.PathPositions;
+import com.hideakin.textsearch.index.model.TextDistribution;
 import com.hideakin.textsearch.index.service.IndexService;
 
 @RestController
@@ -18,7 +18,7 @@ public class IndexController {
 	private IndexService service;
 	
 	@RequestMapping(value="/v1/index/{group:[^0-9].*}",method=RequestMethod.GET)
-	public PathPositions[] findTextByGroup(
+	public TextDistribution[] findTextByGroup(
 			@PathVariable String group,
 			@RequestParam(name = "text") String text,
 			@RequestParam(name = "option", defaultValue = "exact") SearchOptions option) {

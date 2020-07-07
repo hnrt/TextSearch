@@ -9,8 +9,6 @@ namespace com.hideakin.textsearch.command
     {
         private IndexService IndexSvc { get; } = new IndexService();
 
-        private FileService FileSvc { get; } = new FileService();
-
         public void Register(CommandLine commandLine, CommandQueue commandQueue)
         {
             commandLine
@@ -70,20 +68,20 @@ namespace com.hideakin.textsearch.command
             }
         }
 
-        private void FormatQueryResults(PathRowColumns[] results)
+        private void FormatQueryResults(HitRowColumns[] results)
         {
             foreach (var prc in results)
             {
-                Console.WriteLine("{0}", prc.Path);
-                var lines = FileSvc.DownloadFile(prc.Fid);
+                var contents = FileContents.Find(prc.Fid);
+                Console.WriteLine("{0}", contents.Path);
                 foreach (var entry in prc.Rows)
                 {
-                    Console.WriteLine("{0,6}: {1}", entry.Row + 1, lines[entry.Row]);
+                    Console.WriteLine("{0,6}: {1}", entry.Row + 1, contents.Lines[entry.Row]);
                 }
             }
         }
 
-        private void FormatQueryResultsInHtml(PathRowColumns[] results)
+        private void FormatQueryResultsInHtml(HitRowColumns[] results)
         {
             var sb = new StringBuilder();
             Console.WriteLine("<!doctype html>");
@@ -100,13 +98,13 @@ namespace com.hideakin.textsearch.command
             Console.WriteLine("<body>");
             foreach (var prc in results)
             {
+                var contents = FileContents.Find(prc.Fid);
                 Console.WriteLine("<p>");
-                Console.WriteLine("<font class=\"path\">{0}</font>", prc.Path);
+                Console.WriteLine("<font class=\"path\">{0}</font>", contents.Path);
                 Console.WriteLine("<table>");
-                var lines = FileSvc.DownloadFile(prc.Fid);
                 foreach (var entry in prc.Rows)
                 {
-                    var line = lines[entry.Row];
+                    var line = contents.Lines[entry.Row];
                     sb.Length = 0;
                     int u = 0;
                     int v = 0;

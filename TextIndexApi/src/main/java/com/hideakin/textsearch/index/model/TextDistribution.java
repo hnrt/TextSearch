@@ -31,6 +31,51 @@ public class TextDistribution {
 		return positions;
 	}
 	
+	public void addPositions(int[] src) {
+		positions = mergePositions(positions, src);
+	}
+
+	private static int[] mergePositions(int[] src1, int[] src2) {
+		if (src1 == null || src1.length == 0) {
+			return src2;
+		} else if (src2 == null || src2.length == 0) {
+			return src1;
+		}
+		int[] dst = new int[src1.length + src2.length];
+		int val1 = src1[0];
+		int val2 = src2[0];
+		int idx1 = 0;
+		int idx2 = 0;
+		while (true) {
+			if (val1 < val2) {
+				dst[idx1 + idx2] = val1;
+				if (++idx1 < src1.length) {
+					val1 = src1[idx1];
+				} else {
+					dst[idx1 + idx2] = val2;
+					if (++idx2 < src2.length) {
+						System.arraycopy(src2, idx2, dst, idx1 + idx2, src2.length - idx2);
+					}
+					break;
+				}
+			} else if (val1 > val2) {
+				dst[idx1 + idx2] = val2;
+				if (++idx2 < src2.length) {
+					val2 = src2[idx2];
+				} else {
+					dst[idx1 + idx2] = val1;
+					if (++idx1 < src1.length) {
+						System.arraycopy(src1, idx1, dst, idx1 + idx2, src1.length - idx1);
+					}
+					break;
+				}
+			} else {
+				throw new RuntimeException("TextDistribution.mergePositions: Duplicate positions.");
+			}
+		}
+		return dst;
+	}
+
 	public Packed pack() {
 		return new Packed(this.fid, this.positions);
 	}

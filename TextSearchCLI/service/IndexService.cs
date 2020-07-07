@@ -15,11 +15,11 @@ namespace com.hideakin.textsearch.service
         {
         }
 
-        public PathRowColumns[] FindText(string group, string text)
+        public HitRowColumns[] FindText(string group, string text)
         {
             using (var sr = new StringReader(text))
             {
-                List<PathRanges> rangesList = null;
+                List<HitRanges> rangesList = null;
                 var tokenizer = new Tokenizer();
                 tokenizer.Run(sr);
                 DebugPut("phrase", text, tokenizer.Texts);
@@ -32,14 +32,13 @@ namespace com.hideakin.textsearch.service
                     {
                         throw NewResponseException(client.Response);
                     }
-                    var ppArray = task.Result;
-                    DebugPut(tokenizer.Tokens[0].Text, ppArray);
-                    rangesList = PathRanges.ToList(ppArray);
+                    var array = task.Result;
+                    rangesList = HitRanges.ToList(array);
                 }
                 else if (tokenizer.Tokens.Count > 1)
                 {
                     var clients = new IndexApiClient[tokenizer.Tokens.Count];
-                    var tasks = new Task<PathPositions[]>[tokenizer.Tokens.Count];
+                    var tasks = new Task<TextDistribution[]>[tokenizer.Tokens.Count];
                     var client = new IndexApiClient();
                     clients[0] = client;
                     tasks[0] = client.FindText(group, tokenizer.Tokens[0].Text, SearchOptions.EndsWith);
@@ -57,21 +56,32 @@ namespace com.hideakin.textsearch.service
                     {
                         throw NewResponseException(clients[0].Response);
                     }
-                    var ppArray = tasks[0].Result;
-                    DebugPut(tokenizer.Tokens[0].Text, ppArray);
-                    rangesList = PathRanges.ToList(ppArray);
+                    var array = tasks[0].Result;
+                    rangesList = HitRanges.ToList(array);
                     for (int i = 1; i < tasks.Length; i++)
                     {
                         if (tasks[i].Result == null)
                         {
                             throw NewResponseException(clients[i].Response);
                         }
-                        ppArray = tasks[i].Result;
-                        DebugPut(tokenizer.Tokens[i].Text, ppArray);
-                        rangesList = PathRanges.Merge(rangesList, ppArray);
+                        array = tasks[i].Result;
+                        rangesList = HitRanges.Merge(rangesList, array);
                     }
                 }
-                return rangesList != null ? SearchResult.ToArrayOfPathRowColumns(tokenizer.Texts, rangesList) : new PathRowColumns[0];
+                if (rangesList == null)
+                {
+                    return new HitRowColumns[0];
+                }
+                foreach (var ranges in rangesList)
+                {
+                    if (FileContents.Find(ranges.Fid) == null)
+                    {
+                        var client = new IndexApiClient();
+                        var task = client.DownloadFile(ranges.Fid);
+                        task.Wait();
+                    }
+                }
+                return SearchResult.ToArrayOfPathRowColumns(tokenizer.Texts, rangesList);
             }
         }
     }

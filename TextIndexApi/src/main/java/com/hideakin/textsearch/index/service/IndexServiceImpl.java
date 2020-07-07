@@ -14,7 +14,6 @@ import com.hideakin.textsearch.index.entity.FileEntity;
 import com.hideakin.textsearch.index.entity.FileGroupEntity;
 import com.hideakin.textsearch.index.entity.TextEntity;
 import com.hideakin.textsearch.index.model.TextDistribution;
-import com.hideakin.textsearch.index.model.PathPositions;
 import com.hideakin.textsearch.index.repository.FileGroupRepository;
 import com.hideakin.textsearch.index.repository.FileRepository;
 import com.hideakin.textsearch.index.repository.TextRepository;
@@ -33,18 +32,18 @@ public class IndexServiceImpl implements IndexService {
 	private TextRepository textRepository;
 
 	@Override
-	public PathPositions[] findText(String group, String text, SearchOptions option) {
+	public TextDistribution[] findText(String group, String text, SearchOptions option) {
 		FileGroupEntity fileGroupEntity = fileGroupRepository.findByName(group);
 		if (fileGroupEntity == null) {
-			return new PathPositions[0];
+			return new TextDistribution[0];
 		}
 		int gid = fileGroupEntity.getGid();
 		if (option == SearchOptions.Exact) {
 			TextEntity textEntity = textRepository.findByText(text);
 			if (textEntity != null) {
-				Map<Integer,PathPositions> map = new HashMap<Integer,PathPositions>();
+				Map<Integer,TextDistribution> map = new HashMap<Integer,TextDistribution>();
 				populateHitMap(map, textEntity, gid);
-				return map.values().toArray(new PathPositions[map.size()]);
+				return map.values().toArray(new TextDistribution[map.size()]);
 			}
 		} else {
 			List<TextEntity> textEntities;
@@ -58,32 +57,32 @@ public class IndexServiceImpl implements IndexService {
 				textEntities = null;
 			}
 			if (textEntities != null) {
-				Map<Integer,PathPositions> map = new HashMap<Integer,PathPositions>();
+				Map<Integer,TextDistribution> map = new HashMap<Integer,TextDistribution>();
 				populateHitMap(map, textEntities, gid);
-				return map.values().toArray(new PathPositions[map.size()]);
+				return map.values().toArray(new TextDistribution[map.size()]);
 			}
 		}
-		return new PathPositions[0];
+		return new TextDistribution[0];
 	}
 
 
-	private void populateHitMap(Map<Integer,PathPositions> map, List<TextEntity> entities, int gid) {
+	private void populateHitMap(Map<Integer,TextDistribution> map, List<TextEntity> entities, int gid) {
 		for (TextEntity entity : entities) {
 			populateHitMap(map, entity, gid);
 		}
 	}
 
-	private void populateHitMap(Map<Integer,PathPositions> map, TextEntity textEntity, int gid) {
+	private void populateHitMap(Map<Integer,TextDistribution> map, TextEntity textEntity, int gid) {
 		TextDistribution.PackedSequence sequence = TextDistribution.sequence(textEntity.getDist());
 		for (TextDistribution dist = sequence.get(); dist != null; dist = sequence.get()) {
 			int fid = dist.getFid();
-			PathPositions pp = map.get(fid);
-			if (pp != null) {
-				pp.addPositions(dist.getPositions());
+			TextDistribution stored = map.get(fid);
+			if (stored != null) {
+				stored.addPositions(dist.getPositions());
 			} else {
 				FileEntity fileEntity = fileRepository.findByFid(fid);
 				if (fileEntity != null && fileEntity.getGid() == gid && !fileEntity.isStale()) {
-					map.put(fid, new PathPositions(fid, fileEntity.getPath(), dist.getPositions()));
+					map.put(fid, dist);
 				}
 			}
 		}

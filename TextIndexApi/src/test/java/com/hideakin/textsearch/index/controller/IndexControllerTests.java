@@ -15,7 +15,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.hideakin.textsearch.index.data.SearchOptions;
-import com.hideakin.textsearch.index.model.PathPositions;
+import com.hideakin.textsearch.index.model.TextDistribution;
 import com.hideakin.textsearch.index.service.IndexService;
 
 @SpringBootTest
@@ -38,15 +38,14 @@ public class IndexControllerTests {
 	@Test
 	public void findTextByGroup_successful() throws Exception {
 		when(indexService.findText("corge", "XYZZY", SearchOptions.Exact)).thenReturn(
-				new PathPositions[] {
-						new PathPositions(7, "waldo.h", new int[] { 55 })
+				new TextDistribution[] {
+						new TextDistribution(7, new int[] { 55 })
 				});
 		mockMvc.perform(MockMvcRequestBuilders.get("/v1/index/corge")
 				.param("text", "XYZZY")
 				.param("option", "Exact"))
 	    	.andExpect(status().isOk())
 	    	.andExpect(jsonPath("$[0].fid").value(7))
-	    	.andExpect(jsonPath("$[0].path").value("waldo.h"))
 	    	.andExpect(jsonPath("$[0].positions[0]").value(55));
 	}
 

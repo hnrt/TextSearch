@@ -29,6 +29,24 @@ namespace com.hideakin.textsearch.service
         {
         }
 
+        public void Run(string[] lines)
+        {
+            using (var ms = new MemoryStream())
+            using (var sw = new StreamWriter(ms))
+            {
+                foreach (var line in lines)
+                {
+                    sw.WriteLine(line);
+                }
+                sw.Flush();
+                ms.Position = 0;
+                using (var sr = new StreamReader(ms))
+                {
+                    Run(sr);
+                }
+            }
+        }
+
         public void Run(TextReader tr)
         {
             c = tr.Read();

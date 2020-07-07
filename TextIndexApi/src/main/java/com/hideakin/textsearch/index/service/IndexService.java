@@ -1,10 +1,10 @@
 package com.hideakin.textsearch.index.service;
 
 import com.hideakin.textsearch.index.data.SearchOptions;
-import com.hideakin.textsearch.index.model.PathPositions;
+import com.hideakin.textsearch.index.model.TextDistribution;
 
 public interface IndexService {
 
-	PathPositions[] findText(String group, String text, SearchOptions option);
+	TextDistribution[] findText(String group, String text, SearchOptions option);
 
 }

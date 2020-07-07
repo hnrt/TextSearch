@@ -37,7 +37,7 @@ namespace com.hideakin.textsearch.service
             return task.Result;
         }
 
-        public string[] DownloadFile(int fid)
+        public FileContents DownloadFile(int fid)
         {
             var client = new IndexApiClient();
             var task = client.DownloadFile(fid);

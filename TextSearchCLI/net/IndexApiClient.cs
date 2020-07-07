@@ -534,7 +534,7 @@ namespace com.hideakin.textsearch.net
             }
         }
 
-        public async Task<string[]> DownloadFile(int fid)
+        public async Task<FileContents> DownloadFile(int fid)
         {
             var uri = string.Format("{0}/v1/files/{1}/contents", Url, fid);
             var request = new HttpRequestMessage(HttpMethod.Get, uri);
@@ -559,7 +559,7 @@ namespace com.hideakin.textsearch.net
                             {
                                 lines.Add(line);
                             }
-                            return lines.ToArray();
+                            return FileContents.Store(fid, RemoveQuotePair(content.Headers.ContentDisposition.FileName), lines.ToArray());
                         }
                     }
                 }
@@ -602,7 +602,7 @@ namespace com.hideakin.textsearch.net
 
         #region INDEX
 
-        public async Task<PathPositions[]> FindText(string group, string text, SearchOptions option)
+        public async Task<TextDistribution[]> FindText(string group, string text, SearchOptions option)
         {
             var uri = string.Format("{0}/v1/index/{1}?text={2}&option={3}", Url, group, text, Enum.GetName(option.GetType(), option));
             var request = new HttpRequestMessage(HttpMethod.Get, uri);
@@ -611,7 +611,7 @@ namespace com.hideakin.textsearch.net
             ResponseBody = await Response.Content.ReadAsStringAsync();
             if (Response.StatusCode == HttpStatusCode.OK)
             {
-                return JsonConvert.DeserializeObject<PathPositions[]>(ResponseBody);
+                return JsonConvert.DeserializeObject<TextDistribution[]>(ResponseBody);
             }
             else
             {

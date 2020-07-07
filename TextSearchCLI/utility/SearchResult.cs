@@ -9,58 +9,55 @@ namespace com.hideakin.textsearch.utility
 {
     internal static class SearchResult
     {
-        public static PathRowColumns[] ToArrayOfPathRowColumns(List<string> qTexts, List<PathRanges> rangesList)
+        public static HitRowColumns[] ToArrayOfPathRowColumns(List<string> qTexts, List<HitRanges> rangesList)
         {
-            var prcList = new List<PathRowColumns>();
+            var prcList = new List<HitRowColumns>();
             foreach (var ranges in rangesList)
             {
-                List<RowColumns> rcList = ToLines(qTexts, ranges.Path, ranges.Ranges);
+                List<RowColumns> rcList = ToLines(qTexts, ranges.Fid, ranges.Ranges);
                 if (rcList.Count > 0)
                 {
-                    prcList.Add(new PathRowColumns(ranges.Fid, ranges.Path, rcList));
+                    prcList.Add(new HitRowColumns(ranges.Fid, rcList));
                 }
             }
             return prcList.ToArray();
         }
 
-        private static List<RowColumns> ToLines(List<string> qTexts, string path, List<(int Start, int End)> ranges)
+        private static List<RowColumns> ToLines(List<string> qTexts, int fid, List<(int Start, int End)> ranges)
         {
             var dct = new Dictionary<int, List<(int Start, int End)>>();
             try
             {
-                using (var sr = new StreamReader(path, true))
+                var tokenizer = new Tokenizer();
+                tokenizer.Run(FileContents.Find(fid).Lines);
+                foreach (var range in ranges)
                 {
-                    var tokenizer = new Tokenizer();
-                    tokenizer.Run(sr);
-                    foreach (var range in ranges)
+                    if (range.End < tokenizer.Tokens.Count)
                     {
-                        if (range.End < tokenizer.Tokens.Count)
+                        if (tokenizer.Tokens[range.Start].Row == tokenizer.Tokens[range.End].Row)
                         {
-                            if (tokenizer.Tokens[range.Start].Row == tokenizer.Tokens[range.End].Row)
+                            List<(int Start, int End)> colRanges;
+                            if (!dct.TryGetValue(tokenizer.Tokens[range.Start].Row, out colRanges))
                             {
-                                List<(int Start, int End)> colRanges;
-                                if (!dct.TryGetValue(tokenizer.Tokens[range.Start].Row, out colRanges))
+                                colRanges = new List<(int Start, int End)>();
+                                dct.Add(tokenizer.Tokens[range.Start].Row, colRanges);
+                            }
+                            if (qTexts.Count == 1)
+                            {
+                                int index = tokenizer.Tokens[range.Start].Text.IndexOf(qTexts[0]);
+                                while (index >= 0)
                                 {
-                                    colRanges = new List<(int Start, int End)>();
-                                    dct.Add(tokenizer.Tokens[range.Start].Row, colRanges);
-                                }
-                                if (qTexts.Count == 1)
-                                {
-                                    int index = tokenizer.Tokens[range.Start].Text.IndexOf(qTexts[0]);
-                                    while (index >= 0)
-                                    {
-                                        int start = tokenizer.Tokens[range.Start].Column + index;
-                                        int end = start + qTexts[0].Length;
-                                        colRanges.Add((start, end));
-                                        index = tokenizer.Tokens[range.Start].Text.IndexOf(qTexts[0], index + qTexts[0].Length);
-                                    }
-                                }
-                                else if (qTexts.Count > 1)
-                                {
-                                    int start = tokenizer.Tokens[range.Start].Column + tokenizer.Tokens[range.Start].Text.Length - qTexts.First().Length;
-                                    int end = tokenizer.Tokens[range.End].Column + qTexts.Last().Length;
+                                    int start = tokenizer.Tokens[range.Start].Column + index;
+                                    int end = start + qTexts[0].Length;
                                     colRanges.Add((start, end));
+                                    index = tokenizer.Tokens[range.Start].Text.IndexOf(qTexts[0], index + qTexts[0].Length);
                                 }
+                            }
+                            else if (qTexts.Count > 1)
+                            {
+                                int start = tokenizer.Tokens[range.Start].Column + tokenizer.Tokens[range.Start].Text.Length - qTexts.First().Length;
+                                int end = tokenizer.Tokens[range.End].Column + qTexts.Last().Length;
+                                colRanges.Add((start, end));
                             }
                         }
                     }

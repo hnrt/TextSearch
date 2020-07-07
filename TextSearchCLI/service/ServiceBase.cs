@@ -46,13 +46,13 @@ namespace com.hideakin.textsearch.service
             }
         }
 
-        protected void DebugPut(string text, PathPositions[] ppArray)
+        protected void DebugPut(string text, TextDistribution[] ppArray)
         {
             if (Program.DebugLevel > 0)
             {
                 foreach (var pp in ppArray)
                 {
-                    Console.WriteLine("#{0}", pp.Path);
+                    Console.WriteLine("#{0}", pp.Fid);
                     foreach (var position in pp.Positions)
                     {
                         Console.WriteLine("#{0,6} {1}", position, text);
