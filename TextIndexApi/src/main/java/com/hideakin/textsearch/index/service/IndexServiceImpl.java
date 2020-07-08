@@ -39,26 +39,26 @@ public class IndexServiceImpl implements IndexService {
 		}
 		int gid = fileGroupEntity.getGid();
 		if (option == SearchOptions.Exact) {
-			TextEntity textEntity = textRepository.findByText(text);
+			TextEntity textEntity = textRepository.findByTextAndGid(text, gid);
 			if (textEntity != null) {
 				Map<Integer,TextDistribution> map = new HashMap<Integer,TextDistribution>();
-				populateHitMap(map, textEntity, gid);
+				populateHitMap(map, textEntity);
 				return map.values().toArray(new TextDistribution[map.size()]);
 			}
 		} else {
 			List<TextEntity> textEntities;
 			if (option == SearchOptions.Contains) {
-				textEntities = textRepository.findAllByTextContaining(text);
+				textEntities = textRepository.findAllByTextContainingAndGid(text, gid);
 			} else if (option == SearchOptions.StartsWith) {
-				textEntities = textRepository.findAllByTextStartingWith(text);
+				textEntities = textRepository.findAllByTextStartingWithAndGid(text, gid);
 			} else if (option == SearchOptions.EndsWith) {
-				textEntities = textRepository.findAllByTextEndingWith(text);
+				textEntities = textRepository.findAllByTextEndingWithAndGid(text, gid);
 			} else {
 				textEntities = null;
 			}
 			if (textEntities != null) {
 				Map<Integer,TextDistribution> map = new HashMap<Integer,TextDistribution>();
-				populateHitMap(map, textEntities, gid);
+				populateHitMap(map, textEntities);
 				return map.values().toArray(new TextDistribution[map.size()]);
 			}
 		}
@@ -66,13 +66,13 @@ public class IndexServiceImpl implements IndexService {
 	}
 
 
-	private void populateHitMap(Map<Integer,TextDistribution> map, List<TextEntity> entities, int gid) {
+	private void populateHitMap(Map<Integer,TextDistribution> map, List<TextEntity> entities) {
 		for (TextEntity entity : entities) {
-			populateHitMap(map, entity, gid);
+			populateHitMap(map, entity);
 		}
 	}
 
-	private void populateHitMap(Map<Integer,TextDistribution> map, TextEntity textEntity, int gid) {
+	private void populateHitMap(Map<Integer,TextDistribution> map, TextEntity textEntity) {
 		TextDistribution.PackedSequence sequence = TextDistribution.sequence(textEntity.getDist());
 		for (TextDistribution dist = sequence.get(); dist != null; dist = sequence.get()) {
 			int fid = dist.getFid();
@@ -81,7 +81,7 @@ public class IndexServiceImpl implements IndexService {
 				stored.addPositions(dist.getPositions());
 			} else {
 				FileEntity fileEntity = fileRepository.findByFid(fid);
-				if (fileEntity != null && fileEntity.getGid() == gid && !fileEntity.isStale()) {
+				if (fileEntity != null && !fileEntity.isStale()) {
 					map.put(fid, dist);
 				}
 			}

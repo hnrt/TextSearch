@@ -8,7 +8,6 @@ import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.persistence.EntityManager;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -21,12 +20,10 @@ import com.hideakin.textsearch.index.model.FileInfo;
 import com.hideakin.textsearch.index.repository.FileContentRepository;
 import com.hideakin.textsearch.index.repository.FileGroupRepository;
 import com.hideakin.textsearch.index.repository.FileRepository;
+import com.hideakin.textsearch.index.repository.TextRepository;
 
 @SpringBootTest
 public class FileServiceTests {
-
-	@Mock
-	private EntityManager em;
 
 	@Mock
 	private FileRepository fileRepository;
@@ -36,6 +33,9 @@ public class FileServiceTests {
 
 	@Mock
 	private FileContentRepository fileContentRepository;
+
+	@Mock
+	private TextRepository textRepository;
 
 	@InjectMocks
 	private FileService fileService = new FileServiceImpl();
@@ -96,7 +96,7 @@ public class FileServiceTests {
 		doNothing().when(fileContentRepository).deleteByFid(802);
 		doNothing().when(fileContentRepository).deleteByFid(803);
 		doNothing().when(fileRepository).deleteByGid(111);
-		when(em.createQuery("SELECT text FROM texts")).thenReturn(new PseudoQuery(new ArrayList<String>()));
+		doNothing().when(textRepository).deleteByGid(111);
 		FileInfo[] fi = fileService.deleteFiles("xyzzy");
 		Assertions.assertEquals(801, fi[0].getFid());
 		Assertions.assertEquals(802, fi[1].getFid());
@@ -104,8 +104,8 @@ public class FileServiceTests {
 		verify(fileContentRepository, times(1)).deleteByFid(801);
 		verify(fileContentRepository, times(1)).deleteByFid(802);
 		verify(fileContentRepository, times(1)).deleteByFid(803);
-		verify(em, times(1)).createQuery("SELECT text FROM texts");
 		verify(fileRepository, times(1)).deleteByGid(111);
+		verify(textRepository, times(1)).deleteByGid(111);
 	}
 
 	private void add(List<FileEntity> entities, int fid, String path, int gid) {

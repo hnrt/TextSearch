@@ -9,9 +9,10 @@ import com.hideakin.textsearch.index.entity.TextEntity;
 @Repository
 public interface TextRepository extends JpaRepository<TextEntity,String> {
 
-	TextEntity findByText(String text);
-	List<TextEntity> findAllByTextStartingWith(String text);
-	List<TextEntity> findAllByTextEndingWith(String text);
-	List<TextEntity> findAllByTextContaining(String text);
+	TextEntity findByTextAndGid(String text, int gid);
+	List<TextEntity> findAllByTextStartingWithAndGid(String text, int gid);
+	List<TextEntity> findAllByTextEndingWithAndGid(String text, int gid);
+	List<TextEntity> findAllByTextContainingAndGid(String text, int gid);
+	void deleteByGid(int gid);
 
 }

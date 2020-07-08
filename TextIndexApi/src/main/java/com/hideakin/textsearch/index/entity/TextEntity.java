@@ -18,15 +18,19 @@ public class TextEntity {
 	@Column(name="txt")
 	private String text;
 	
+	@Column(name="gid")
+	private int gid;
+
 	@Column(name="dst")
 	private byte[] dist;
 
 	public TextEntity() {
-		this(null, null);
+		this(null, -1, null);
 	}
 
-	public TextEntity(String text, byte[] dist) {
+	public TextEntity(String text, int gid, byte[] dist) {
 		this.text = text;
+		this.gid = gid;
 		this.dist = dist;
 	}
 
@@ -36,6 +40,14 @@ public class TextEntity {
 
 	public void setText(String text) {
 		this.text = text;
+	}
+
+	public int getGid() {
+		return gid;
+	}
+
+	public void setGid(int gid) {
+		this.gid = gid;
 	}
 
 	public byte[] getDist() {

@@ -176,17 +176,14 @@ public class FileServiceImpl implements FileService {
 		if (count == 0) {
 			return new FileInfo[0];
 		}
-		Set<Integer> fids = new HashSet<>(count);
 		FileInfo[] values = new FileInfo[count];
 		for (int index = 0; index < count; index++) {
 			FileEntity entity = entities.get(index);
-			int fid = entity.getFid();
-			fids.add(fid);
 			values[index] = new FileInfo(entity, fileGroupEntity);
-			fileContentRepository.deleteByFid(fid);
+			fileContentRepository.deleteByFid(entity.getFid());
 		}
 		fileRepository.deleteByGid(gid);
-		removeDistribution(fids);
+		textRepository.deleteByGid(gid);
 		fileGroupEntity.setUpdatedAt(ZonedDateTime.now());
 		fileGroupRepository.save(fileGroupEntity);
 		return values;
@@ -210,7 +207,7 @@ public class FileServiceImpl implements FileService {
 			fileContentRepository.deleteByFid(fid);
 			fileRepository.deleteByFid(fid);
 		}
-		removeDistribution(fids);
+		removeDistribution(fids, gid);
 		fileGroupEntity.setUpdatedAt(ZonedDateTime.now());
 		fileGroupRepository.save(fileGroupEntity);
 		return true;
@@ -223,7 +220,7 @@ public class FileServiceImpl implements FileService {
 			FileGroupEntity fileGroupEntity = fileGroupRepository.findByGid(entity.getGid());
 			fileContentRepository.deleteByFid(fid);
 			fileRepository.deleteByFid(fid);
-			removeDistribution(fid);
+			removeDistribution(fid, entity.getGid());
 			fileGroupEntity.setUpdatedAt(ZonedDateTime.now());
 			fileGroupRepository.save(fileGroupEntity);
 			return new FileInfo(entity, fileGroupEntity);
@@ -266,20 +263,20 @@ public class FileServiceImpl implements FileService {
         fileContentRepository.save(fcEntity);
 		TextTokenizer tokenizer = new TextTokenizer();
 		tokenizer.run(data, TextEncoding.UTF_8);
-		applyTextMap(fid, tokenizer.populateTextMap());
+		applyTextMap(fid, gid, tokenizer.populateTextMap());
 		return entity;
 	}
 
-	private void removeDistribution(int fid) {
+	private void removeDistribution(int fid, int gid) {
 		Set<Integer> fids = new HashSet<>(1);
 		fids.add(fid);
-		removeDistribution(fids);
+		removeDistribution(fids, gid);
 	}
 
-	private void removeDistribution(Set<Integer> fids) {
-		List<String> texts = getAllTexts();
+	private void removeDistribution(Set<Integer> fids, int gid) {
+		List<String> texts = getAllTexts(gid);
 		for (String text : texts) {
-			TextEntity entity = textRepository.findByText(text);
+			TextEntity entity = textRepository.findByTextAndGid(text, gid);
 			entity.removeDist(fids);
 			if (entity.hasDist()) {
 				textRepository.save(entity);
@@ -290,16 +287,17 @@ public class FileServiceImpl implements FileService {
 	}
 
 	@SuppressWarnings("unchecked")
-	private List<String> getAllTexts() {
-		return (List<String>)em.createQuery("SELECT text FROM texts").getResultList();
+	private List<String> getAllTexts(int gid) {
+		return (List<String>)em.createQuery(String.format("SELECT text FROM texts WHERE gid=%d", gid)).getResultList();
 	}
 
-	private void applyTextMap(int fid, Map<String,List<Integer>> map) {
+	private void applyTextMap(int fid, int gid, Map<String,List<Integer>> map) {
 		for (Entry<String,List<Integer>> entry : map.entrySet()) {
-			TextEntity entity = textRepository.findByText(entry.getKey());
+			TextEntity entity = textRepository.findByTextAndGid(entry.getKey(), gid);
 			if (entity == null) {
 				entity = new TextEntity();
 				entity.setText(entry.getKey());
+				entity.setGid(gid);
 			}
 			entity.appendDist(fid, entry.getValue());
 			textRepository.save(entity);

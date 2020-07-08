@@ -36,8 +36,10 @@ CREATE TABLE IF NOT EXISTS file_contents (
 );
 
 CREATE TABLE IF NOT EXISTS texts (
-	txt varchar(256) PRIMARY KEY,
-	dst bytea
+	txt varchar(256),
+	gid int,
+	dst bytea,
+	PRIMARY KEY (txt,gid)
 );
 
 CREATE TABLE IF NOT EXISTS preferences (

@@ -23,6 +23,8 @@ namespace com.hideakin.textsearch.net
 
         public static string Url { get; set; } = @"http://localhost:8080";
 
+        private static object mutex { get; } = new object();
+
         public static ApiCredentials Credentials { get; } = new ApiCredentials();
 
         #endregion
@@ -31,6 +33,7 @@ namespace com.hideakin.textsearch.net
 
         static IndexApiClient()
         {
+            httpClient.Timeout = Timeout.InfiniteTimeSpan;
             var envUrl = Environment.GetEnvironmentVariable("TEXTINDEXAPI_URL");
             if (envUrl != null)
             {
@@ -64,9 +67,12 @@ namespace com.hideakin.textsearch.net
 
         public IndexApiClient()
         {
-            if (Credentials.EncryptedToken == null)
+            lock (mutex)
             {
-                Initialize();
+                if (Credentials.EncryptedToken == null || Credentials.ExpiresAt <= DateTime.Now.AddMinutes(3))
+                {
+                    Initialize();
+                }
             }
         }
 
@@ -114,22 +120,19 @@ namespace com.hideakin.textsearch.net
                     Credentials = new ApiCredentials[0]
                 };
             }
-            if (Credentials.EncryptedToken == null || Credentials.ExpiresAt <= DateTime.Now.AddMinutes(1))
+            if (Credentials.Username == null || Credentials.EncryptedPassword == null)
             {
-                if (Credentials.Username == null || Credentials.EncryptedPassword == null)
-                {
-                    throw new Exception("No valid API key is available. Credentials need to be specified.");
-                }
-                var task = Authenticate();
-                task.Wait();
-                if (task.Result is ErrorResponse)
-                {
-                    throw new Exception(((ErrorResponse)task.Result).ErrorDescription);
-                }
-                var ar = (AuthenticateResponse)task.Result;
-                Credentials.AccessToken = ar.AccessToken;
-                Credentials.ExpiresAt = DateTime.Now.AddSeconds(ar.ExpiresIn);
+                throw new Exception("No valid API key is available. Credentials need to be specified.");
             }
+            var task = Authenticate();
+            task.Wait();
+            if (task.Result is ErrorResponse)
+            {
+                throw new Exception(((ErrorResponse)task.Result).ErrorDescription);
+            }
+            var ar = (AuthenticateResponse)task.Result;
+            Credentials.AccessToken = ar.AccessToken;
+            Credentials.ExpiresAt = DateTime.Now.AddSeconds(ar.ExpiresIn);
             cc.SetCredentials(Credentials);
             cc.LastUser = Credentials.Username;
             cc.Save(path);

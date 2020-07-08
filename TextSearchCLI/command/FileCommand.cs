@@ -1,4 +1,5 @@
 ﻿using com.hideakin.textsearch.data;
+using com.hideakin.textsearch.model;
 using com.hideakin.textsearch.service;
 using System;
 using System.Collections.Generic;
@@ -14,6 +15,10 @@ namespace com.hideakin.textsearch.command
         private FileService FileSvc { get; } = new FileService();
 
         private PreferenceService PrefSvc { get; } = new PreferenceService();
+
+        private model.FileInfo[] FileInfoArray { get; set; }
+
+        private List<(string Path, Exception Exception)> IndexErrors { get; } = new List<(string Path, Exception Exception)>();
 
         public void Register(CommandLine commandLine, CommandQueue commandQueue)
         {
@@ -132,6 +137,8 @@ namespace com.hideakin.textsearch.command
         private void IndexFiles(string group, List<string> paths)
         {
             Console.WriteLine("Started indexing...");
+            IndexErrors.Clear();
+            FileInfoArray = FileSvc.GetFiles(group);
             var extensions = PrefSvc.GetExtensions();
             var skipDirs = PrefSvc.GetSkipDirs();
             foreach (string path in paths)
@@ -164,6 +171,30 @@ namespace com.hideakin.textsearch.command
                 }
             }
             Console.WriteLine("Done.");
+            int errorCount = IndexErrors.Count;
+            if (errorCount > 0)
+            {
+                Console.WriteLine("Errors: {0}", errorCount);
+                Console.WriteLine("Attempting to retry indexing...");
+                for (int index = 0; index < errorCount; index++)
+                {
+                    IndexFile(group, IndexErrors[index].Path);
+                }
+                Console.WriteLine("Done.");
+                int errorCount2 = IndexErrors.Count - errorCount;
+                if (errorCount2 > 0)
+                {
+                    Console.WriteLine("Errors: {0}", errorCount2);
+                    for (int index = errorCount; index < IndexErrors.Count; index++)
+                    {
+                        Console.WriteLine("{0}", IndexErrors[index].Path);
+                        for (var e = IndexErrors[index].Exception; e != null; e = e.InnerException)
+                        {
+                            Console.WriteLine("\t{0}", e.Message);
+                        }
+                    }
+                }
+            }
         }
 
         private void IndexDir(string group, string path, List<string> extensions, List<string> skipDirs)
@@ -196,10 +227,30 @@ namespace com.hideakin.textsearch.command
 
         private void IndexFile(string group, string path)
         {
-            path = Path.GetFullPath(path);
-            Console.WriteLine("{0}", path);
-            var fileInfo = FileSvc.UploadFile(group, path, out var result);
-            Console.WriteLine("    Uploaded. FID={0}{1}", fileInfo.Fid, result == UploadFileStatus.Created ? " (NEW)" : "");
+            try
+            {
+                path = Path.GetFullPath(path);
+                Console.WriteLine("{0}", path);
+                var fileInfo = FileInfoArray.Where(x => x.Path == path).Select(x => x).FirstOrDefault();
+                if (fileInfo != null)
+                {
+                    Console.WriteLine("    Already exists. FID={0}", fileInfo.Fid);
+                }
+                else
+                {
+                    fileInfo = FileSvc.UploadFile(group, path, out var result);
+                    Console.WriteLine("    Uploaded. FID={0}{1}", fileInfo.Fid, result == UploadFileStatus.Created ? " (NEW)" : "");
+                }
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine("ERROR: {0}", e.Message);
+                for (e = e.InnerException; e != null; e = e.InnerException)
+                {
+                    Console.WriteLine("\t{0}", e.Message);
+                }
+                IndexErrors.Add((path, e));
+            }
         }
     }
 }
