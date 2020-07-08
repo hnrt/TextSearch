@@ -1,11 +1,10 @@
 ﻿using com.hideakin.textsearch.model;
-using com.hideakin.textsearch.utility;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
-namespace com.hideakin.textsearch.service
+namespace com.hideakin.textsearch.utility
 {
     internal class TextTokenizer
     {

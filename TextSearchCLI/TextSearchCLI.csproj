@@ -109,7 +109,7 @@
     <Compile Include="service\IndexService.cs" />
     <Compile Include="service\PreferenceService.cs" />
     <Compile Include="service\ServiceBase.cs" />
-    <Compile Include="service\TextTokenizer.cs" />
+    <Compile Include="utility\TextTokenizer.cs" />
     <Compile Include="service\UserService.cs" />
     <Compile Include="utility\HitRangesListExtension.cs" />
     <Compile Include="utility\StringListExtension.cs" />
