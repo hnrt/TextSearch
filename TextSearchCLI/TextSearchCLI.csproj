@@ -111,7 +111,7 @@
     <Compile Include="service\ServiceBase.cs" />
     <Compile Include="service\TextTokenizer.cs" />
     <Compile Include="service\UserService.cs" />
-    <Compile Include="utility\SearchResult.cs" />
+    <Compile Include="utility\HitRangesListExtension.cs" />
     <Compile Include="utility\StringListExtension.cs" />
     <Compile Include="utility\UnicodeClassifier.cs" />
   </ItemGroup>

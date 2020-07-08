@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 
 namespace com.hideakin.textsearch.model
 {
@@ -30,51 +31,23 @@ namespace com.hideakin.textsearch.model
             }
         }
 
-        public static List<HitRanges> ToList(TextDistribution[] array)
+        public HitRanges Merge(TextDistribution td)
         {
-            var list = new List<HitRanges>(array.Length);
-            foreach (var td in array)
+            int index = 0;
+            while (index < Ranges.Count)
             {
-                list.Add(new HitRanges(td));
-            }
-            return list;
-        }
-
-        public static List<HitRanges> Merge(List<HitRanges> srcList, TextDistribution[] array)
-        {
-            var dstList = new List<HitRanges>();
-            foreach (var entry in srcList)
-            {
-                for (int index = 0; index < array.Length; index++)
+                var entry = Ranges[index];
+                if (td.Positions.Contains(entry.End + 1))
                 {
-                    if (array[index].Fid == entry.Fid)
-                    {
-                        var result = Merge(entry, array[index]);
-                        if (result != null)
-                        {
-                            dstList.Add(result);
-                        }
-                    }
+                    Ranges[index] = (entry.Start, entry.End + 1);
+                    index++;
+                }
+                else
+                {
+                    Ranges.RemoveAt(index);
                 }
             }
-            return dstList;
-        }
-
-        private static HitRanges Merge(HitRanges entry, TextDistribution td)
-        {
-            var result = new HitRanges(entry.Fid);
-            foreach (var range in entry.Ranges)
-            {
-                for (int index = 0; index < td.Positions.Length; index++)
-                {
-                    if (td.Positions[index] == range.End + 1)
-                    {
-                        result.Ranges.Add((range.Start, td.Positions[index]));
-                        break;
-                    }
-                }
-            }
-            return result.Ranges.Count > 0 ? result : null;
+            return this;
         }
     }
 }
