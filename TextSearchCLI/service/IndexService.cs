@@ -20,7 +20,7 @@ namespace com.hideakin.textsearch.service
             using (var sr = new StringReader(text))
             {
                 List<HitRanges> rangesList = null;
-                var tokenizer = new Tokenizer();
+                var tokenizer = new TextTokenizer();
                 tokenizer.Run(sr);
                 DebugPut("phrase", text, tokenizer.Texts);
                 if (tokenizer.Tokens.Count == 1)
@@ -72,16 +72,26 @@ namespace com.hideakin.textsearch.service
                 {
                     return new HitRowColumns[0];
                 }
+                int[] fidArray = new int[rangesList.Count];
+                int fidCount = 0;
                 foreach (var ranges in rangesList)
                 {
                     if (FileContents.Find(ranges.Fid) == null)
                     {
-                        var client = new IndexApiClient();
-                        var task = client.DownloadFile(ranges.Fid);
-                        task.Wait();
+                        fidArray[fidCount++] = ranges.Fid;
                     }
                 }
-                return SearchResult.ToArrayOfPathRowColumns(tokenizer.Texts, rangesList);
+                if (fidCount > 0)
+                {
+                    var downloadTasks = new Task[fidCount];
+                    for (int index = 0; index < fidCount; index++)
+                    {
+                        var client = new IndexApiClient();
+                        downloadTasks[index] = client.DownloadFile(fidArray[index]);
+                    }
+                    Task.WaitAll(downloadTasks);
+                }
+                return SearchResult.ToArrayOfHitRowColumns(tokenizer.Texts, rangesList);
             }
         }
     }

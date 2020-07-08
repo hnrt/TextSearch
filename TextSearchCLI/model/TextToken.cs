@@ -3,7 +3,7 @@
     /// <summary>
     /// A token is defined as the longest possible character sequence that do not contain any embedded delimiters.
     /// </summary>
-    internal class Token
+    internal class TextToken
     {
         public string Text { get; }
 
@@ -11,7 +11,7 @@
 
         public int Column { get; }
 
-        public Token(string text, int row, int column)
+        public TextToken(string text, int row, int column)
         {
             Text = text;
             Row = row;

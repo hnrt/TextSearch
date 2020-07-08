@@ -16,7 +16,7 @@ import com.hideakin.textsearch.index.model.TextToken;
 
 public class TextTokenizer {
 
-	public static final int MAX_LEN = 256;
+	public static final int MAX_LEN = 255;
 	
 	public static final String NEWLINE = "\n";
 	
@@ -104,10 +104,10 @@ public class TextTokenizer {
 						read();
 					}
 					endAsIs();
-				} else if (Character.isLetterOrDigit(c)) {
+				} else if (Character.isLetterOrDigit(c) || c == '_') {
 					start();
 					read();
-					while (buf.length() < MAX_LEN && Character.isLetterOrDigit(c)) {
+					while (buf.length() < MAX_LEN && (Character.isLetterOrDigit(c) || c == '_')) {
 						append();
 						read();
 					}

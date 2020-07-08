@@ -1,6 +1,4 @@
-﻿using com.hideakin.textsearch.model;
-using System;
-using System.Collections.Generic;
+﻿using System;
 using System.Net.Http;
 using com.hideakin.textsearch.net;
 
@@ -26,7 +24,7 @@ namespace com.hideakin.textsearch.service
                 string.IsNullOrEmpty(response.ReasonPhrase) ? HttpReasonPhrase.Get(response.StatusCode) : response.ReasonPhrase));
         }
 
-        protected void DebugPut(string header, string input, List<string> texts)
+        protected void DebugPut(string header, string input, string[] texts)
         {
             if (Program.DebugLevel > 0)
             {
@@ -42,21 +40,6 @@ namespace com.hideakin.textsearch.service
                 foreach (var t in texts)
                 {
                     Console.WriteLine("#{0,6} {1}", index++, t);
-                }
-            }
-        }
-
-        protected void DebugPut(string text, TextDistribution[] ppArray)
-        {
-            if (Program.DebugLevel > 0)
-            {
-                foreach (var pp in ppArray)
-                {
-                    Console.WriteLine("#{0}", pp.Fid);
-                    foreach (var position in pp.Positions)
-                    {
-                        Console.WriteLine("#{0,6} {1}", position, text);
-                    }
                 }
             }
         }

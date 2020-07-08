@@ -9,7 +9,7 @@ namespace com.hideakin.textsearch.utility
 {
     internal static class SearchResult
     {
-        public static HitRowColumns[] ToArrayOfPathRowColumns(List<string> qTexts, List<HitRanges> rangesList)
+        public static HitRowColumns[] ToArrayOfHitRowColumns(string[] qTexts, List<HitRanges> rangesList)
         {
             var prcList = new List<HitRowColumns>();
             foreach (var ranges in rangesList)
@@ -23,12 +23,12 @@ namespace com.hideakin.textsearch.utility
             return prcList.ToArray();
         }
 
-        private static List<RowColumns> ToLines(List<string> qTexts, int fid, List<(int Start, int End)> ranges)
+        private static List<RowColumns> ToLines(string[] qTexts, int fid, List<(int Start, int End)> ranges)
         {
             var dct = new Dictionary<int, List<(int Start, int End)>>();
             try
             {
-                var tokenizer = new Tokenizer();
+                var tokenizer = new TextTokenizer();
                 tokenizer.Run(FileContents.Find(fid).Lines);
                 foreach (var range in ranges)
                 {
@@ -42,7 +42,7 @@ namespace com.hideakin.textsearch.utility
                                 colRanges = new List<(int Start, int End)>();
                                 dct.Add(tokenizer.Tokens[range.Start].Row, colRanges);
                             }
-                            if (qTexts.Count == 1)
+                            if (qTexts.Length == 1)
                             {
                                 int index = tokenizer.Tokens[range.Start].Text.IndexOf(qTexts[0]);
                                 while (index >= 0)
@@ -53,7 +53,7 @@ namespace com.hideakin.textsearch.utility
                                     index = tokenizer.Tokens[range.Start].Text.IndexOf(qTexts[0], index + qTexts[0].Length);
                                 }
                             }
-                            else if (qTexts.Count > 1)
+                            else // if (qTexts.Length > 1)
                             {
                                 int start = tokenizer.Tokens[range.Start].Column + tokenizer.Tokens[range.Start].Text.Length - qTexts.First().Length;
                                 int end = tokenizer.Tokens[range.End].Column + qTexts.Last().Length;

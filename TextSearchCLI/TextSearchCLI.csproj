@@ -92,7 +92,7 @@
     <Compile Include="model\HitRanges.cs" />
     <Compile Include="model\HitRowColumns.cs" />
     <Compile Include="model\RowColumns.cs" />
-    <Compile Include="model\Token.cs" />
+    <Compile Include="model\TextToken.cs" />
     <Compile Include="model\UpdateIndexRequest.cs" />
     <Compile Include="model\UpdateIndexResponse.cs" />
     <Compile Include="model\UpdatePreferenceRequest.cs" />
@@ -109,7 +109,7 @@
     <Compile Include="service\IndexService.cs" />
     <Compile Include="service\PreferenceService.cs" />
     <Compile Include="service\ServiceBase.cs" />
-    <Compile Include="service\Tokenizer.cs" />
+    <Compile Include="service\TextTokenizer.cs" />
     <Compile Include="service\UserService.cs" />
     <Compile Include="utility\SearchResult.cs" />
     <Compile Include="utility\StringListExtension.cs" />
