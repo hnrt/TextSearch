@@ -5,18 +5,21 @@ import java.util.Set;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
+import javax.persistence.IdClass;
 import javax.persistence.Table;
 
 import com.hideakin.textsearch.index.model.TextDistribution;
 
 @Entity(name = "texts")
 @Table(name = "texts")
+@IdClass(TextId.class)
 public class TextEntity {
 
 	@Id
 	@Column(name="txt")
 	private String text;
 	
+	@Id
 	@Column(name="gid")
 	private int gid;
 

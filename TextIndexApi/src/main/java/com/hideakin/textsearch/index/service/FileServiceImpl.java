@@ -19,6 +19,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.hideakin.textsearch.index.entity.FileContentEntity;
 import com.hideakin.textsearch.index.entity.FileEntity;
 import com.hideakin.textsearch.index.entity.FileGroupEntity;
+import com.hideakin.textsearch.index.entity.PreferenceEntity;
 import com.hideakin.textsearch.index.entity.TextEntity;
 import com.hideakin.textsearch.index.model.ObjectDisposition;
 import com.hideakin.textsearch.index.model.TextDistribution;
@@ -27,6 +28,7 @@ import com.hideakin.textsearch.index.model.FileStats;
 import com.hideakin.textsearch.index.repository.FileContentRepository;
 import com.hideakin.textsearch.index.repository.FileGroupRepository;
 import com.hideakin.textsearch.index.repository.FileRepository;
+import com.hideakin.textsearch.index.repository.PreferenceRepository;
 import com.hideakin.textsearch.index.repository.TextRepository;
 import com.hideakin.textsearch.index.utility.GZipHelper;
 
@@ -50,8 +52,9 @@ public class FileServiceImpl implements FileService {
 	
 	@Autowired
 	private TextRepository textRepository;
-
-	private int nextFid = -1;
+	
+	@Autowired
+	private PreferenceRepository preferenceRepository;
 
 	@Override
 	public FileInfo[] getFiles(String group) {
@@ -113,7 +116,7 @@ public class FileServiceImpl implements FileService {
 	
 	@Override
 	public FileInfo addFile(String group, String path, int length, byte[] data, Map<String, List<Integer>> textMap, ObjectDisposition disp) {
-		FileGroupEntity fileGroupEntity = fileGroupRepository.findByName(group);
+		FileGroupEntity fileGroupEntity = fileGroupRepository.findByNameForUpdate(group);
 		if (fileGroupEntity == null) {
 			disp.setValue(ObjectDisposition.GROUP_NOT_FOUND);
 			return null;
@@ -142,13 +145,13 @@ public class FileServiceImpl implements FileService {
 		if (entity == null) {
 			return null;
 		}
-		entity.setStale(true);
-		fileRepository.save(entity);
-		FileGroupEntity fileGroupEntity = fileGroupRepository.findByGid(entity.getGid());
+		FileGroupEntity fileGroupEntity = fileGroupRepository.findByGidForUpdate(entity.getGid());
 		if (fileGroupEntity == null) {
 			logger.error("Existing File entity {} has an invalid GID {}.", fid, entity.getGid());
 			return null;
 		}
+		entity.setStale(true);
+		fileRepository.save(entity);
 		entity = saveFile(fileGroupEntity, path, length, data, textMap);
 		return new FileInfo(entity, fileGroupEntity);
 	}
@@ -229,24 +232,30 @@ public class FileServiceImpl implements FileService {
 	}
 
 	private FileEntity saveFile(FileGroupEntity fgEntity, String path, int length, byte[] data, Map<String, List<Integer>> textMap) {
-		synchronized(this) {
-			int gid = fgEntity.getGid();
-			FileEntity entity = fileRepository.save(new FileEntity(getNextFid(), path, length, gid));
-			int fid = entity.getFid();
-	        fileContentRepository.save(new FileContentEntity(fid, data));
-			applyTextMap(fid, gid, textMap);
-			fgEntity.setUpdatedAt(ZonedDateTime.now());
-			fileGroupRepository.save(fgEntity);
-			return entity;
-		}
+		int gid = fgEntity.getGid();
+		FileEntity entity = fileRepository.save(new FileEntity(getNextFid(), path, length, gid));
+		int fid = entity.getFid();
+		fileContentRepository.save(new FileContentEntity(fid, data));
+		applyTextMap(fid, gid, textMap);
+		fgEntity.setUpdatedAt(ZonedDateTime.now());
+		fileGroupRepository.save(fgEntity);
+		return entity;
 	}
 
 	private int getNextFid() {
-		if (nextFid < 0) {
+		int nextId;
+		final String name = "FID.next";
+		PreferenceEntity entity = preferenceRepository.findByName(name);
+		if (entity != null) {
+			nextId = entity.getIntValue();
+		} else {
+			entity = new PreferenceEntity(name);
 			Integer maxId = (Integer)em.createQuery("SELECT MAX(fid) FROM files").getSingleResult();
-			nextFid = (maxId != null ? maxId : 0) + 1;
+			nextId = (maxId != null ? maxId : 0) + 1;
 		}
-		return nextFid++;
+		entity.setValue(nextId + 1);
+		preferenceRepository.save(entity);
+		return nextId;
 	}
 
 	private void removeDistribution(int fid, int gid) {
