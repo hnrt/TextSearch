@@ -45,7 +45,7 @@ public class TextTokenizer {
 		col = 0;
 	}
 
-	public Map<String,List<Integer>> populateTextMap() {
+	public Map<String, List<Integer>> populateTextMap() {
 		Map<String, List<Integer>> map = new HashMap<String,List<Integer>>();
 		for (int index = 0; index < tokens.size(); index++) {
 			String text = tokens.get(index).getText();
@@ -56,7 +56,7 @@ public class TextTokenizer {
 			}
 			positions.add(index);
 		}
-		return map;		
+		return map;
 	}
 	
 	public String[] getTexts() {

@@ -19,20 +19,16 @@ import org.springframework.transaction.annotation.Transactional;
 import com.hideakin.textsearch.index.entity.FileContentEntity;
 import com.hideakin.textsearch.index.entity.FileEntity;
 import com.hideakin.textsearch.index.entity.FileGroupEntity;
-import com.hideakin.textsearch.index.entity.PreferenceEntity;
 import com.hideakin.textsearch.index.entity.TextEntity;
 import com.hideakin.textsearch.index.model.ObjectDisposition;
+import com.hideakin.textsearch.index.model.TextDistribution;
 import com.hideakin.textsearch.index.model.FileInfo;
 import com.hideakin.textsearch.index.model.FileStats;
 import com.hideakin.textsearch.index.repository.FileContentRepository;
 import com.hideakin.textsearch.index.repository.FileGroupRepository;
 import com.hideakin.textsearch.index.repository.FileRepository;
-import com.hideakin.textsearch.index.repository.PreferenceRepository;
 import com.hideakin.textsearch.index.repository.TextRepository;
-import com.hideakin.textsearch.index.utility.ContentType;
 import com.hideakin.textsearch.index.utility.GZipHelper;
-import com.hideakin.textsearch.index.utility.TextEncoding;
-import com.hideakin.textsearch.index.utility.TextTokenizer;
 
 @Service
 @Transactional
@@ -53,10 +49,9 @@ public class FileServiceImpl implements FileService {
 	private FileContentRepository fileContentRepository;
 	
 	@Autowired
-	private PreferenceRepository preferenceRepository;
-
-	@Autowired
 	private TextRepository textRepository;
+
+	private int nextFid = -1;
 
 	@Override
 	public FileInfo[] getFiles(String group) {
@@ -117,15 +112,14 @@ public class FileServiceImpl implements FileService {
 	}
 	
 	@Override
-	public FileInfo addFile(String group, String path, byte[] data, String contentType, ObjectDisposition disp) {
+	public FileInfo addFile(String group, String path, int length, byte[] data, Map<String, List<Integer>> textMap, ObjectDisposition disp) {
 		FileGroupEntity fileGroupEntity = fileGroupRepository.findByName(group);
 		if (fileGroupEntity == null) {
 			disp.setValue(ObjectDisposition.GROUP_NOT_FOUND);
 			return null;
 		}
-		int gid = fileGroupEntity.getGid();
 		int changes = 0;
-		List<FileEntity> entities = fileRepository.findAllByGidAndPath(gid, path);
+		List<FileEntity> entities = fileRepository.findAllByGidAndPath(fileGroupEntity.getGid(), path);
 		for (FileEntity e : entities) {
 			if (!e.isStale()) {
 				e.setStale(true);
@@ -138,29 +132,24 @@ public class FileServiceImpl implements FileService {
 		} else {
 			disp.setValue(ObjectDisposition.UPDATED);
 		}
-		FileEntity entity = saveFile(gid, path, data, contentType);
-		fileGroupEntity.setUpdatedAt(ZonedDateTime.now());
-		fileGroupRepository.save(fileGroupEntity);
+		FileEntity entity = saveFile(fileGroupEntity, path, length, data, textMap);
 		return new FileInfo(entity, fileGroupEntity);
 	}
 
 	@Override
-	public FileInfo updateFile(int fid, String path, byte[] data, String contentType) {
+	public FileInfo updateFile(int fid, String path, int length, byte[] data, Map<String, List<Integer>> textMap) {
 		FileEntity entity = fileRepository.findByFid(fid);
 		if (entity == null) {
 			return null;
 		}
 		entity.setStale(true);
 		fileRepository.save(entity);
-		int gid = entity.getGid();
-		FileGroupEntity fileGroupEntity = fileGroupRepository.findByGid(gid);
+		FileGroupEntity fileGroupEntity = fileGroupRepository.findByGid(entity.getGid());
 		if (fileGroupEntity == null) {
-			logger.error("Existing File entity {} has an invalid GID {}.", fid, gid);
+			logger.error("Existing File entity {} has an invalid GID {}.", fid, entity.getGid());
 			return null;
 		}
-		entity = saveFile(gid, path, data, contentType);
-		fileGroupEntity.setUpdatedAt(ZonedDateTime.now());
-		fileGroupRepository.save(fileGroupEntity);
+		entity = saveFile(fileGroupEntity, path, length, data, textMap);
 		return new FileInfo(entity, fileGroupEntity);
 	}
 	
@@ -239,32 +228,25 @@ public class FileServiceImpl implements FileService {
 		return fileContentEntity != null ? GZipHelper.decompress(fileContentEntity.getData(), fileEntity.getSize()) : null;
 	}
 
-	private int getNextFid() {
-		int nextId;
-		final String name = "FID.next";
-		PreferenceEntity entity = preferenceRepository.findByName(name);
-		if (entity != null) {
-			nextId = entity.getIntValue();
-		} else {
-			entity = new PreferenceEntity(name);
-			Integer maxId = (Integer)em.createQuery("SELECT MAX(fid) FROM files").getSingleResult();
-			nextId = (maxId != null ? maxId : 0) + 1;
+	private FileEntity saveFile(FileGroupEntity fgEntity, String path, int length, byte[] data, Map<String, List<Integer>> textMap) {
+		synchronized(this) {
+			int gid = fgEntity.getGid();
+			FileEntity entity = fileRepository.save(new FileEntity(getNextFid(), path, length, gid));
+			int fid = entity.getFid();
+	        fileContentRepository.save(new FileContentEntity(fid, data));
+			applyTextMap(fid, gid, textMap);
+			fgEntity.setUpdatedAt(ZonedDateTime.now());
+			fileGroupRepository.save(fgEntity);
+			return entity;
 		}
-		entity.setValue(nextId + 1);
-		preferenceRepository.save(entity);
-		return nextId;
 	}
 
-	private FileEntity saveFile(int gid, String path, byte[] data, String contentType) {
-		data = TextEncoding.convertToUTF8(data, ContentType.parse(contentType).getCharset(TextEncoding.UTF_8));
-		FileEntity entity = fileRepository.save(new FileEntity(getNextFid(), path, data.length, gid));
-		int fid = entity.getFid();
-		FileContentEntity fcEntity = new FileContentEntity(fid, GZipHelper.compress(data));
-        fileContentRepository.save(fcEntity);
-		TextTokenizer tokenizer = new TextTokenizer();
-		tokenizer.run(data, TextEncoding.UTF_8);
-		applyTextMap(fid, gid, tokenizer.populateTextMap());
-		return entity;
+	private int getNextFid() {
+		if (nextFid < 0) {
+			Integer maxId = (Integer)em.createQuery("SELECT MAX(fid) FROM files").getSingleResult();
+			nextFid = (maxId != null ? maxId : 0) + 1;
+		}
+		return nextFid++;
 	}
 
 	private void removeDistribution(int fid, int gid) {
@@ -291,15 +273,15 @@ public class FileServiceImpl implements FileService {
 		return (List<String>)em.createQuery(String.format("SELECT text FROM texts WHERE gid=%d", gid)).getResultList();
 	}
 
-	private void applyTextMap(int fid, int gid, Map<String,List<Integer>> map) {
-		for (Entry<String,List<Integer>> entry : map.entrySet()) {
+	private void applyTextMap(int fid, int gid, Map<String,List<Integer>> textMap) {
+		for (Entry<String,List<Integer>> entry : textMap.entrySet()) {
 			TextEntity entity = textRepository.findByTextAndGid(entry.getKey(), gid);
 			if (entity == null) {
 				entity = new TextEntity();
 				entity.setText(entry.getKey());
 				entity.setGid(gid);
 			}
-			entity.appendDist(fid, entry.getValue());
+			entity.appendDist(TextDistribution.pack(fid, entry.getValue()));
 			textRepository.save(entity);
 		}
 	}

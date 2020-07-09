@@ -174,7 +174,7 @@ public class UserServiceImpl implements UserService {
 		entity.setAccessToken(accessToken);
 	}
 
-	private int getNextUid() {
+	private synchronized int getNextUid() {
 		int nextId;
 		final String name = "UID.next";
 		PreferenceEntity entity = preferenceRepository.findByName(name);

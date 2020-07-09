@@ -1,6 +1,8 @@
 package com.hideakin.textsearch.index.controller;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
@@ -21,6 +23,10 @@ import com.hideakin.textsearch.index.model.ObjectDisposition;
 import com.hideakin.textsearch.index.model.FileInfo;
 import com.hideakin.textsearch.index.model.FileStats;
 import com.hideakin.textsearch.index.service.FileService;
+import com.hideakin.textsearch.index.utility.ContentType;
+import com.hideakin.textsearch.index.utility.GZipHelper;
+import com.hideakin.textsearch.index.utility.TextEncoding;
+import com.hideakin.textsearch.index.utility.TextTokenizer;
 
 @RestController
 public class FileController {
@@ -82,8 +88,13 @@ public class FileController {
 			@PathVariable String group,
 			@RequestParam("file") MultipartFile file) {
 		try {
+			byte[] textUTF8 = TextEncoding.convertToUTF8(file.getBytes(), ContentType.parse(file.getContentType()).getCharset(TextEncoding.UTF_8));
+			byte[] compressed = GZipHelper.compress(textUTF8);
+			TextTokenizer tokenizer = new TextTokenizer();
+			tokenizer.run(textUTF8, TextEncoding.UTF_8);
+			Map<String,List<Integer>> textMap = tokenizer.populateTextMap();
 			ObjectDisposition disp = new ObjectDisposition();
-			FileInfo added = service.addFile(group, file.getOriginalFilename(), file.getBytes(), file.getContentType(), disp);
+			FileInfo added = service.addFile(group, file.getOriginalFilename(), textUTF8.length, compressed, textMap, disp);
 			if (added != null) {
 				return new ResponseEntity<>(added, disp.isCreated() ? HttpStatus.CREATED : HttpStatus.OK);
 			} else {
@@ -100,7 +111,12 @@ public class FileController {
 			@PathVariable int fid,
 			@RequestParam("file") MultipartFile file) {
 		try {
-			FileInfo added = service.updateFile(fid, file.getOriginalFilename(), file.getBytes(), file.getContentType());
+			byte[] textUTF8 = TextEncoding.convertToUTF8(file.getBytes(), ContentType.parse(file.getContentType()).getCharset(TextEncoding.UTF_8));
+			byte[] compressed = GZipHelper.compress(textUTF8);
+			TextTokenizer tokenizer = new TextTokenizer();
+			tokenizer.run(textUTF8, TextEncoding.UTF_8);
+			Map<String,List<Integer>> textMap = tokenizer.populateTextMap();
+			FileInfo added = service.updateFile(fid, file.getOriginalFilename(), textUTF8.length, compressed, textMap);
 			if (added != null) {
 				return new ResponseEntity<>(added, HttpStatus.OK);
 			} else {

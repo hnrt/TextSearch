@@ -1,6 +1,5 @@
 package com.hideakin.textsearch.index.entity;
 
-import java.util.List;
 import java.util.Set;
 
 import javax.persistence.Column;
@@ -62,8 +61,8 @@ public class TextEntity {
 		return dist != null && dist.length > 0;
 	}
 	
-	public void appendDist(int fid, List<Integer> positions) {
-		dist = TextDistribution.sequence(dist).append(TextDistribution.pack(fid, positions)).array();
+	public void appendDist(TextDistribution.Packed packed) {
+		dist = TextDistribution.sequence(dist).append(packed).array();
 	}
 
 	public void removeDist(Set<Integer> fids) {

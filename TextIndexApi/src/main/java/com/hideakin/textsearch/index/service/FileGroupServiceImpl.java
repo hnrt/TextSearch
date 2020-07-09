@@ -101,7 +101,7 @@ public class FileGroupServiceImpl implements FileGroupService {
 		return new FileGroupInfo(entity);
 	}
 	
-	private int getNextGid() {
+	private synchronized int getNextGid() {
 		int nextId;
 		final String name = "GID.next";
 		PreferenceEntity entity = preferenceRepository.findByName(name);

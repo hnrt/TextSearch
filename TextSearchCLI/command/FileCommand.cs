@@ -16,9 +16,9 @@ namespace com.hideakin.textsearch.command
 
         private PreferenceService PrefSvc { get; } = new PreferenceService();
 
-        private model.FileInfo[] FileInfoArray { get; set; }
+        private model.FileInfo[] AlreadyUploaded { get; set; }
 
-        private List<(string Path, Exception Exception)> IndexErrors { get; } = new List<(string Path, Exception Exception)>();
+        public int ConcurrencyLevel { get; set; } = 8;
 
         public void Register(CommandLine commandLine, CommandQueue commandQueue)
         {
@@ -69,6 +69,15 @@ namespace com.hideakin.textsearch.command
                     {
                         throw new Exception("Group name is not specified.");
                     }
+                    var forceIndexing = false;
+                    if ((string)e.Current == "-force" || (string)e.Current == "-f")
+                    {
+                        forceIndexing = true;
+                        if (!e.MoveNext())
+                        {
+                            throw new Exception("Group name is not specified.");
+                        }
+                    }
                     var group = (string)e.Current;
                     if (!e.MoveNext())
                     {
@@ -83,7 +92,7 @@ namespace com.hideakin.textsearch.command
                     commandLine.NoMoreArg = true;
                     commandQueue.Add(() =>
                     {
-                        IndexFiles(group, paths);
+                        IndexFiles(group, paths, forceIndexing);
                     });
                 })
                 .AddHandler("-delete-files", (e) =>
@@ -129,16 +138,15 @@ namespace com.hideakin.textsearch.command
                 .AddUsageHeader("Usage <file>:")
                 .AddUsage("{0} -print-files [GROUPNAME]", Program.Name)
                 .AddUsage("{0} -print-file-stats [GROUPNAME]", Program.Name)
-                .AddUsage("{0} -index-files GROUPNAME PATH...", Program.Name)
+                .AddUsage("{0} -index-files [-force] GROUPNAME PATH...", Program.Name)
                 .AddUsage("{0} -delete-files [GROUPNAME]", Program.Name)
                 .AddUsage("{0} -delete-stale-files [GROUPNAME]", Program.Name);
         }
 
-        private void IndexFiles(string group, List<string> paths)
+        private void IndexFiles(string group, List<string> paths, bool forceIndexing)
         {
             Console.WriteLine("Started indexing...");
-            IndexErrors.Clear();
-            FileInfoArray = FileSvc.GetFiles(group);
+            AlreadyUploaded = forceIndexing ? new model.FileInfo[0] : FileSvc.GetFiles(group);
             var extensions = PrefSvc.GetExtensions();
             var skipDirs = PrefSvc.GetSkipDirs();
             foreach (string path in paths)
@@ -170,31 +178,11 @@ namespace com.hideakin.textsearch.command
                     Console.WriteLine("Unable to find {0}...", path);
                 }
             }
-            Console.WriteLine("Done.");
-            int errorCount = IndexErrors.Count;
-            if (errorCount > 0)
+            while (FileSvc.Uploading > 0)
             {
-                Console.WriteLine("Errors: {0}", errorCount);
-                Console.WriteLine("Attempting to retry indexing...");
-                for (int index = 0; index < errorCount; index++)
-                {
-                    IndexFile(group, IndexErrors[index].Path);
-                }
-                Console.WriteLine("Done.");
-                int errorCount2 = IndexErrors.Count - errorCount;
-                if (errorCount2 > 0)
-                {
-                    Console.WriteLine("Errors: {0}", errorCount2);
-                    for (int index = errorCount; index < IndexErrors.Count; index++)
-                    {
-                        Console.WriteLine("{0}", IndexErrors[index].Path);
-                        for (var e = IndexErrors[index].Exception; e != null; e = e.InnerException)
-                        {
-                            Console.WriteLine("\t{0}", e.Message);
-                        }
-                    }
-                }
+                WaitForIndexFileCompletion();
             }
+            Console.WriteLine("Done.");
         }
 
         private void IndexDir(string group, string path, List<string> extensions, List<string> skipDirs)
@@ -227,20 +215,30 @@ namespace com.hideakin.textsearch.command
 
         private void IndexFile(string group, string path)
         {
+            path = Path.GetFullPath(path);
+            var fileInfo = AlreadyUploaded.Where(x => x.Path == path).Select(x => x).FirstOrDefault();
+            if (fileInfo != null)
+            {
+                Console.WriteLine("{0}", path);
+                Console.WriteLine("    Already exists. FID={0}", fileInfo.Fid);
+            }
+            else
+            {
+                if (FileSvc.Uploading >= ConcurrencyLevel)
+                {
+                    WaitForIndexFileCompletion();
+                }
+                FileSvc.AsyncUploadFile(group, path);
+            }
+        }
+
+        private void WaitForIndexFileCompletion()
+        {
             try
             {
-                path = Path.GetFullPath(path);
-                Console.WriteLine("{0}", path);
-                var fileInfo = FileInfoArray.Where(x => x.Path == path).Select(x => x).FirstOrDefault();
-                if (fileInfo != null)
-                {
-                    Console.WriteLine("    Already exists. FID={0}", fileInfo.Fid);
-                }
-                else
-                {
-                    fileInfo = FileSvc.UploadFile(group, path, out var result);
-                    Console.WriteLine("    Uploaded. FID={0}{1}", fileInfo.Fid, result == UploadFileStatus.Created ? " (NEW)" : "");
-                }
+                var fileInfo = FileSvc.WaitForUploadFileCompletion(out var result);
+                Console.WriteLine("{0}", fileInfo.Path);
+                Console.WriteLine("    Uploaded. FID={0}{1}", fileInfo.Fid, result == UploadFileStatus.Created ? " (NEW)" : "");
             }
             catch (Exception e)
             {
@@ -249,7 +247,6 @@ namespace com.hideakin.textsearch.command
                 {
                     Console.WriteLine("\t{0}", e.Message);
                 }
-                IndexErrors.Add((path, e));
             }
         }
     }
