@@ -38,7 +38,14 @@ namespace com.hideakin.textsearch.service
             task.Wait();
             if (task.Result == null)
             {
-                throw NewResponseException(client.Response);
+                if (client.Response.StatusCode == HttpStatusCode.NotFound)
+                {
+                    throw new Exception("Path was not found.");
+                }
+                else
+                {
+                    throw NewResponseException(client.Response);
+                }
             }
             return task.Result;
         }

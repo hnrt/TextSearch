@@ -1,4 +1,6 @@
-﻿namespace com.hideakin.textsearch.command
+﻿using com.hideakin.textsearch.utility;
+
+namespace com.hideakin.textsearch.command
 {
     internal class DebugCommand : ICommand
     {
@@ -7,7 +9,7 @@
             commandLine
                 .AddHandler("-debug", (e) =>
                 {
-                    Program.DebugLevel++;
+                    Debug.Level++;
                 })
                 .AddOption("-debug")
 #if DEBUG

@@ -63,8 +63,8 @@ public class FileServiceImpl implements FileService {
 			return null;
 		}
 		List<FileEntity> entities = fileRepository.findAllByGidAndStaleFalse(fileGroupEntity.getGid());
-		int count;
-		if (entities == null || (count = entities.size()) == 0) {
+		int count = entities.size();
+		if (count == 0) {
 			return new FileInfo[0];
 		}
 		FileInfo[] values = new FileInfo[count];
@@ -159,16 +159,12 @@ public class FileServiceImpl implements FileService {
 			disp.setValue(ObjectDisposition.GROUP_NOT_FOUND);
 			return null;
 		}
-		int changes = 0;
-		List<FileEntity> entities = fileRepository.findAllByGidAndPath(fileGroupEntity.getGid(), path);
+		List<FileEntity> entities = fileRepository.findAllByGidAndPathAndStaleFalse(fileGroupEntity.getGid(), path);
 		for (FileEntity e : entities) {
-			if (!e.isStale()) {
-				e.setStale(true);
-				fileRepository.save(e);
-				changes++;
-			}
+			e.setStale(true);
+			fileRepository.save(e);
 		}
-		if (changes == 0) {
+		if (entities.size() == 0) {
 			disp.setValue(ObjectDisposition.CREATED);
 		} else {
 			disp.setValue(ObjectDisposition.UPDATED);

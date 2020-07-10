@@ -98,6 +98,7 @@
     <Compile Include="service\UserService.cs" />
     <Compile Include="utility\Debug.cs" />
     <Compile Include="utility\HitRangesListExtension.cs" />
+    <Compile Include="utility\StringExtension.cs" />
     <Compile Include="utility\StringListExtension.cs" />
     <Compile Include="utility\TextTokenizer.cs" />
     <Compile Include="utility\UnicodeClassifier.cs" />

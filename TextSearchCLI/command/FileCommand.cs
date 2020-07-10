@@ -1,6 +1,7 @@
 ﻿using com.hideakin.textsearch.data;
 using com.hideakin.textsearch.model;
 using com.hideakin.textsearch.service;
+using com.hideakin.textsearch.utility;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -241,7 +242,7 @@ namespace com.hideakin.textsearch.command
 
         private void IndexFile(string group, string path)
         {
-            path = Path.GetFullPath(path);
+            path = Path.GetFullPath(path).NormalizePath();
             var fileInfo = AlreadyUploaded.Where(x => x.Path == path).Select(x => x).FirstOrDefault();
             if (fileInfo != null)
             {

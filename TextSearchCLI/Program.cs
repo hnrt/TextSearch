@@ -7,8 +7,6 @@ namespace com.hideakin.textsearch
     {
         public static string Name { get; } = System.Reflection.Assembly.GetExecutingAssembly().GetName().Name;
 
-        public static int DebugLevel { get; set; } = 0;
-
         private ICommand[] Commands { get; } =
         {
             new HelpCommand(),

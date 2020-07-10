@@ -3,6 +3,7 @@ using com.hideakin.textsearch.service;
 using com.hideakin.textsearch.utility;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace com.hideakin.textsearch.command
 {
@@ -20,7 +21,7 @@ namespace com.hideakin.textsearch.command
                         var values = FileGrpSvc.GetFileGroups();
                         if (values != null)
                         {
-                            foreach (FileGroupInfo entry in values)
+                            foreach (FileGroupInfo entry in values.OrderBy(x => x.Gid))
                             {
                                 Console.WriteLine("{0}", entry);
                             }

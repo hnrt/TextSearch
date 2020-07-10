@@ -1,12 +1,16 @@
 package com.hideakin.textsearch.index.service;
 
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+
+import javax.persistence.EntityManager;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -14,16 +18,26 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import com.hideakin.textsearch.index.entity.FileContentEntity;
 import com.hideakin.textsearch.index.entity.FileEntity;
 import com.hideakin.textsearch.index.entity.FileGroupEntity;
+import com.hideakin.textsearch.index.entity.PreferenceEntity;
+import com.hideakin.textsearch.index.entity.TextEntity;
 import com.hideakin.textsearch.index.model.FileInfo;
+import com.hideakin.textsearch.index.model.FileStats;
+import com.hideakin.textsearch.index.model.ObjectDisposition;
 import com.hideakin.textsearch.index.repository.FileContentRepository;
 import com.hideakin.textsearch.index.repository.FileGroupRepository;
 import com.hideakin.textsearch.index.repository.FileRepository;
+import com.hideakin.textsearch.index.repository.PreferenceRepository;
 import com.hideakin.textsearch.index.repository.TextRepository;
+import com.hideakin.textsearch.index.utility.GZipHelper;
 
 @SpringBootTest
 public class FileServiceTests {
+
+	@Mock
+	private EntityManager em;
 
 	@Mock
 	private FileRepository fileRepository;
@@ -37,22 +51,29 @@ public class FileServiceTests {
 	@Mock
 	private TextRepository textRepository;
 
+	@Mock
+	private PreferenceRepository preferenceRepository;
+
 	@InjectMocks
 	private FileService fileService = new FileServiceImpl();
 
+	@SuppressWarnings("serial")
 	@Test
 	public void getFiles_successful() {
 		when(fileGroupRepository.findByName("quux")).thenReturn(new FileGroupEntity(333, "quux"));
-		List<FileEntity> entities = new ArrayList<FileEntity>();
-		add(entities, 801, "/home/src/quux/foo.java", 333);
-		add(entities, 802, "/home/src/quux/bar.java", 333);
-		add(entities, 803, "/home/src/quux/baz.java", 333);
-		when(fileRepository.findAllByGidAndStaleFalse(333)).thenReturn(entities);
+		when(fileRepository.findAllByGidAndStaleFalse(333)).thenReturn(new ArrayList<FileEntity>() {{
+			add(new FileEntity(801, "foo.java", 101, 333));
+			add(new FileEntity(802, "bar.java", 202, 333));
+			add(new FileEntity(803, "baz.java", 303, 333));
+		}});
 		FileInfo[] fi = fileService.getFiles("quux");
 		Assertions.assertEquals(3, fi.length);
-		Assertions.assertEquals(entities.get(0).getPath(), fi[0].getPath());
-		Assertions.assertEquals(entities.get(1).getPath(), fi[1].getPath());
-		Assertions.assertEquals(entities.get(2).getPath(), fi[2].getPath());
+		Assertions.assertEquals(801, fi[0].getFid());
+		Assertions.assertEquals("foo.java", fi[0].getPath());
+		Assertions.assertEquals(802, fi[1].getFid());
+		Assertions.assertEquals("bar.java", fi[1].getPath());
+		Assertions.assertEquals(803, fi[2].getFid());
+		Assertions.assertEquals("baz.java", fi[2].getPath());
 	}
 
 	@Test
@@ -65,9 +86,103 @@ public class FileServiceTests {
 	@Test
 	public void getFiles_null() {
 		when(fileGroupRepository.findByName("quux")).thenReturn(new FileGroupEntity(333, "quux"));
-		when(fileRepository.findAllByGid(333)).thenReturn(null);
+		when(fileRepository.findAllByGidAndStaleFalse(333)).thenReturn(new ArrayList<FileEntity>());
 		FileInfo[] fi = fileService.getFiles("quux");
 		Assertions.assertEquals(0, fi.length);
+	}
+
+	@SuppressWarnings("serial")
+	@Test
+	public void getStats_successful() {
+		when(fileGroupRepository.findByName("fred")).thenReturn(new FileGroupEntity(444, "fred"));
+		when(fileRepository.findAllByGid(444)).thenReturn(new ArrayList<FileEntity>() {{
+			add(new FileEntity(1, "foo.c", 1024, 444));
+			add(new FileEntity(2, "bar.c", 2048, 444));
+			add(new FileEntity(3, "baz.c", 4096, 444));
+		}});
+		when(fileContentRepository.findByFid(1)).thenReturn(new FileContentEntity(1, new byte[100]));
+		when(fileContentRepository.findByFid(2)).thenReturn(new FileContentEntity(2, new byte[200]));
+		when(fileContentRepository.findByFid(3)).thenReturn(new FileContentEntity(3, new byte[300]));
+		FileStats stats = fileService.getStats("fred");
+		Assertions.assertEquals(444, stats.getGid());
+		Assertions.assertEquals("fred", stats.getGroup());
+		Assertions.assertEquals(3, stats.getFiles());
+		Assertions.assertEquals(7168, stats.getTotalBytes());
+		Assertions.assertEquals(600, stats.getTotalStoredBytes());
+		Assertions.assertEquals(0, stats.getStaleFiles());
+		Assertions.assertEquals(0, stats.getTotalStaleBytes());
+		Assertions.assertEquals(0, stats.getTotalStoredStaleBytes());
+	}
+
+	@Test
+	public void getStats_notFound() {
+		when(fileGroupRepository.findByName("fred")).thenReturn(null);
+		FileStats stats = fileService.getStats("fred");
+		Assertions.assertEquals(null, stats);
+	}
+
+	@Test
+	public void getStats_empty() {
+		when(fileGroupRepository.findByName("fred")).thenReturn(new FileGroupEntity(444, "fred"));
+		when(fileRepository.findAllByGid(444)).thenReturn(new ArrayList<FileEntity>());
+		FileStats stats = fileService.getStats("fred");
+		Assertions.assertEquals(444, stats.getGid());
+		Assertions.assertEquals("fred", stats.getGroup());
+		Assertions.assertEquals(0, stats.getFiles());
+		Assertions.assertEquals(0, stats.getTotalBytes());
+		Assertions.assertEquals(0, stats.getTotalStoredBytes());
+		Assertions.assertEquals(0, stats.getStaleFiles());
+		Assertions.assertEquals(0, stats.getTotalStaleBytes());
+		Assertions.assertEquals(0, stats.getTotalStoredStaleBytes());
+	}
+
+	@Test
+	public void getFile_successful() {
+		when(fileRepository.findByFid(11)).thenReturn(new FileEntity(11, "foo.java", 256, 1));
+		when(fileGroupRepository.findByGid(1)).thenReturn(new FileGroupEntity(1, "xyzzy"));
+		FileInfo info = fileService.getFile(11);
+		Assertions.assertEquals(11, info.getFid());
+		Assertions.assertEquals("foo.java", info.getPath());
+		Assertions.assertEquals(256, info.getSize());
+		Assertions.assertEquals(1, info.getGid());
+		Assertions.assertEquals("xyzzy", info.getGroup());
+	}
+
+	@Test
+	public void getFile_notFound() {
+		when(fileRepository.findByFid(11)).thenReturn(null);
+		FileInfo info = fileService.getFile(11);
+		Assertions.assertEquals(null, info);
+	}
+
+	@SuppressWarnings("serial")
+	@Test
+	public void getFile2_successful() {
+		when(fileGroupRepository.findByName("xyzzy")).thenReturn(new FileGroupEntity(1, "xyzzy"));
+		when(fileRepository.findAllByGidAndPathAndStaleFalse(1, "foo.java")).thenReturn(new ArrayList<FileEntity>() {{
+			add(new FileEntity(11, "foo.java", 256, 1));
+		}});
+		FileInfo info = fileService.getFile("xyzzy", "foo.java");
+		Assertions.assertEquals(11, info.getFid());
+		Assertions.assertEquals("foo.java", info.getPath());
+		Assertions.assertEquals(256, info.getSize());
+		Assertions.assertEquals(1, info.getGid());
+		Assertions.assertEquals("xyzzy", info.getGroup());
+	}
+
+	@Test
+	public void getFile2_groupNotFound() {
+		when(fileGroupRepository.findByName("xyzzy")).thenReturn(null);
+		FileInfo info = fileService.getFile("xyzzy", "foo.java");
+		Assertions.assertEquals(null, info);
+	}
+
+	@Test
+	public void getFile2_pathNotFound() {
+		when(fileGroupRepository.findByName("xyzzy")).thenReturn(new FileGroupEntity(1, "xyzzy"));
+		when(fileRepository.findAllByGidAndPathAndStaleFalse(1, "foo.java")).thenReturn(new ArrayList<FileEntity>());
+		FileInfo info = fileService.getFile("xyzzy", "foo.java");
+		Assertions.assertEquals(null, info);
 	}
 
 	@Test
@@ -85,13 +200,179 @@ public class FileServiceTests {
 	}
 
 	@Test
+	public void getContents_successful() {
+		when(fileRepository.findByFid(789)).thenReturn(new FileEntity(789, "/home/plugh/waldo.cs", 3, 19));
+		when(fileContentRepository.findByFid(789)).thenReturn(new FileContentEntity(789, GZipHelper.compress(new byte[] { 109, 113, 127 })));
+		byte[] data = fileService.getContents(789);
+		Assertions.assertEquals(3, data.length);
+		Assertions.assertEquals(109, data[0]);
+		Assertions.assertEquals(113, data[1]);
+		Assertions.assertEquals(127, data[2]);
+	}
+
+	@Test
+	public void getContents_notFound() {
+		when(fileRepository.findByFid(789)).thenReturn(null);
+		byte[] data = fileService.getContents(789);
+		Assertions.assertEquals(null, data);
+	}
+
+	@SuppressWarnings("serial")
+	@Test
+	public void addFile_successful1() {
+		when(fileGroupRepository.findByNameForUpdate("xyzzy")).thenReturn(new FileGroupEntity(6, "xyzzy"));
+		when(fileRepository.findAllByGidAndPathAndStaleFalse(6, "quux.cs")).thenReturn(new ArrayList<FileEntity>());
+		when(preferenceRepository.findByName("FID.next")).thenReturn(new PreferenceEntity("FID.next", "23"));
+		when(fileRepository.save(argThat(x -> x != null && x.getFid() == 23))).thenReturn(new FileEntity(23, "quux.cs", 3, 6));
+		when(textRepository.findByTextAndGid("DOG", 6)).thenReturn(null);
+		when(textRepository.findByTextAndGid("CAT", 6)).thenReturn(null);
+		ObjectDisposition disp = new ObjectDisposition();
+		FileInfo info = fileService.addFile("xyzzy", "quux.cs", 3,
+				GZipHelper.compress(new byte[] { 101, 103, 107 }),
+				new HashMap<String,List<Integer>>() {{
+					put("DOG", new ArrayList<Integer>() {{
+						add(11);
+						add(19);
+					}});
+					put("CAT", new ArrayList<Integer>() {{
+						add(17);
+					}});
+				}},
+				disp);
+		Assertions.assertEquals(23, info.getFid());
+		Assertions.assertEquals("quux.cs", info.getPath());
+		Assertions.assertEquals(3, info.getSize());
+		Assertions.assertEquals(6, info.getGid());
+		Assertions.assertEquals("xyzzy", info.getGroup());
+		Assertions.assertEquals(ObjectDisposition.CREATED, disp.getValue());
+		verify(preferenceRepository, times(1)).save(argThat(x -> x.getName().equals("FID.next") && x.getValue().equals("24")));
+		verify(fileRepository, times(1)).save(argThat(x -> x.getFid() == 23));
+		verify(fileContentRepository, times(1)).save(argThat(x -> x.getFid() == 23));
+		verify(textRepository, times(1)).save(argThat(x -> x.getText().equals("DOG")));
+		verify(textRepository, times(1)).save(argThat(x -> x.getText().equals("CAT")));
+		verify(fileGroupRepository, times(1)).save(argThat(x -> x.getGid() == 6));
+	}
+
+	@SuppressWarnings("serial")
+	@Test
+	public void addFile_successful2() {
+		when(fileGroupRepository.findByNameForUpdate("xyzzy")).thenReturn(new FileGroupEntity(6, "xyzzy"));
+		FileEntity entity = new FileEntity(1, "quux.cs", 3, 6);
+		when(fileRepository.findAllByGidAndPathAndStaleFalse(6, "quux.cs")).thenReturn(new ArrayList<FileEntity>() {{ add(entity); }});
+		when(fileRepository.save(argThat(x -> x != null && x.getFid() == 1))).thenReturn(entity);
+		when(preferenceRepository.findByName("FID.next")).thenReturn(new PreferenceEntity("FID.next", "24"));
+		when(fileRepository.save(argThat(x -> x != null && x.getFid() == 24))).thenReturn(new FileEntity(24, "quux.cs", 3, 6));
+		when(textRepository.findByTextAndGid("DOG", 6)).thenReturn(null);
+		when(textRepository.findByTextAndGid("CAT", 6)).thenReturn(null);
+		ObjectDisposition disp = new ObjectDisposition();
+		FileInfo info = fileService.addFile("xyzzy", "quux.cs", 3,
+				GZipHelper.compress(new byte[] { 101, 103, 107 }),
+				new HashMap<String,List<Integer>>() {{
+					put("DOG", new ArrayList<Integer>() {{
+						add(11);
+						add(19);
+					}});
+					put("CAT", new ArrayList<Integer>() {{
+						add(17);
+					}});
+				}},
+				disp);
+		Assertions.assertEquals(24, info.getFid());
+		Assertions.assertEquals("quux.cs", info.getPath());
+		Assertions.assertEquals(3, info.getSize());
+		Assertions.assertEquals(6, info.getGid());
+		Assertions.assertEquals("xyzzy", info.getGroup());
+		Assertions.assertEquals(ObjectDisposition.UPDATED, disp.getValue());
+		verify(preferenceRepository, times(1)).save(argThat(x -> x.getName().equals("FID.next") && x.getValue().equals("25")));
+		verify(fileRepository, times(1)).save(argThat(x -> x.getFid() == 1));
+		verify(fileRepository, times(1)).save(argThat(x -> x.getFid() == 24));
+		verify(fileContentRepository, times(1)).save(argThat(x -> x.getFid() == 24));
+		verify(textRepository, times(1)).save(argThat(x -> x.getText().equals("DOG")));
+		verify(textRepository, times(1)).save(argThat(x -> x.getText().equals("CAT")));
+		verify(fileGroupRepository, times(1)).save(argThat(x -> x.getGid() == 6));
+	}
+
+	@SuppressWarnings("serial")
+	@Test
+	public void addFile_notFound() {
+		when(fileGroupRepository.findByNameForUpdate("xyzzy")).thenReturn(null);
+		ObjectDisposition disp = new ObjectDisposition();
+		FileInfo info = fileService.addFile("xyzzy", "quux.cs", 3,
+				GZipHelper.compress(new byte[] { 101, 103, 107 }),
+				new HashMap<String,List<Integer>>() {{
+					put("DOG", new ArrayList<Integer>() {{
+						add(11);
+						add(19);
+					}});
+					put("CAT", new ArrayList<Integer>() {{
+						add(17);
+					}});
+				}},
+				disp);
+		Assertions.assertEquals(null, info);
+		Assertions.assertEquals(ObjectDisposition.GROUP_NOT_FOUND, disp.getValue());
+	}
+
+	@SuppressWarnings("serial")
+	@Test
+	public void updateFile_successful() {
+		when(fileRepository.findByFid(24)).thenReturn(new FileEntity(24, "quux.cs", 3, 6));
+		when(fileGroupRepository.findByGidForUpdate(6)).thenReturn(new FileGroupEntity(6, "xyzzy"));
+		when(preferenceRepository.findByName("FID.next")).thenReturn(new PreferenceEntity("FID.next", "25"));
+		when(fileRepository.save(argThat(x -> x != null && x.getFid() == 25))).thenReturn(new FileEntity(25, "quux.cs", 3, 6));
+		when(textRepository.findByTextAndGid("DOG", 6)).thenReturn(null);
+		when(textRepository.findByTextAndGid("CAT", 6)).thenReturn(null);
+		FileInfo info = fileService.updateFile(24, "quux.cs", 3,
+				GZipHelper.compress(new byte[] { 101, 103, 107 }),
+				new HashMap<String,List<Integer>>() {{
+					put("DOG", new ArrayList<Integer>() {{
+						add(11);
+						add(19);
+					}});
+					put("CAT", new ArrayList<Integer>() {{
+						add(17);
+					}});
+				}});
+		Assertions.assertEquals(25, info.getFid());
+		Assertions.assertEquals("quux.cs", info.getPath());
+		Assertions.assertEquals(3, info.getSize());
+		Assertions.assertEquals(6, info.getGid());
+		Assertions.assertEquals("xyzzy", info.getGroup());
+		verify(fileRepository, times(1)).save(argThat(x -> x.getFid() == 24));
+		verify(fileRepository, times(1)).save(argThat(x -> x.getFid() == 25));
+		verify(fileContentRepository, times(1)).save(argThat(x -> x.getFid() == 25));
+		verify(textRepository, times(1)).save(argThat(x -> x.getText().equals("DOG")));
+		verify(textRepository, times(1)).save(argThat(x -> x.getText().equals("CAT")));
+		verify(fileGroupRepository, times(1)).save(argThat(x -> x.getGid() == 6));
+	}
+
+	@SuppressWarnings("serial")
+	@Test
+	public void updateFile_notFound() {
+		when(fileRepository.findByFid(14)).thenReturn(null);
+		FileInfo info = fileService.updateFile(14, "quux.cs", 3,
+				GZipHelper.compress(new byte[] { 101, 103, 107 }),
+				new HashMap<String,List<Integer>>() {{
+					put("DOG", new ArrayList<Integer>() {{
+						add(11);
+						add(19);
+					}});
+					put("CAT", new ArrayList<Integer>() {{
+						add(17);
+					}});
+				}});
+		Assertions.assertEquals(null, info);
+	}
+
+	@SuppressWarnings("serial")
+	@Test
 	public void deleteFiles_successful() {
-		when(fileGroupRepository.findByName("xyzzy")).thenReturn(new FileGroupEntity(111, "xyzzy"));
-		List<FileEntity> entities = new ArrayList<FileEntity>();
-		add(entities, 801, "/home/src/quux/foo.java", 111);
-		add(entities, 802, "/home/src/quux/bar.java", 111);
-		add(entities, 803, "/home/src/quux/baz.java", 111);
-		when(fileRepository.findAllByGid(111)).thenReturn(entities);
+		when(fileGroupRepository.findByNameForUpdate("xyzzy")).thenReturn(new FileGroupEntity(111, "xyzzy"));
+		when(fileRepository.findAllByGid(111)).thenReturn(new ArrayList<FileEntity>() {{
+			add(new FileEntity(801, "/home/src/quux/foo.java", 100, 111));
+			add(new FileEntity(802, "/home/src/quux/bar.java", 200, 111));
+			add(new FileEntity(803, "/home/src/quux/baz.java", 300, 111));
+		}});
 		doNothing().when(fileContentRepository).deleteByFid(801);
 		doNothing().when(fileContentRepository).deleteByFid(802);
 		doNothing().when(fileContentRepository).deleteByFid(803);
@@ -106,10 +387,53 @@ public class FileServiceTests {
 		verify(fileContentRepository, times(1)).deleteByFid(803);
 		verify(fileRepository, times(1)).deleteByGid(111);
 		verify(textRepository, times(1)).deleteByGid(111);
+		verify(fileGroupRepository, times(1)).save(argThat(x -> x.getGid() == 111));
 	}
 
-	private void add(List<FileEntity> entities, int fid, String path, int gid) {
-		entities.add(new FileEntity(fid, path, 1000, gid));
+	@Test
+	public void deleteFiles_notFound() {
+		when(fileGroupRepository.findByNameForUpdate("xyzzy")).thenReturn(null);
+		FileInfo[] fi = fileService.deleteFiles("xyzzy");
+		Assertions.assertEquals(null, fi);
+	}
+
+	@SuppressWarnings("serial")
+	@Test
+	public void deleteStaleFiles_successful() {
+		when(fileGroupRepository.findByNameForUpdate("xyzzy")).thenReturn(new FileGroupEntity(111, "xyzzy"));
+		when(fileRepository.findAllByGidAndStaleTrue(111)).thenReturn(new ArrayList<FileEntity>() {{
+			add(new FileEntity(81, "/home/src/quux/foo.java", 100, 111));
+			add(new FileEntity(82, "/home/src/quux/bar.java", 200, 111));
+			add(new FileEntity(83, "/home/src/quux/baz.java", 300, 111));
+		}});
+		doNothing().when(fileContentRepository).deleteByFid(81);
+		doNothing().when(fileContentRepository).deleteByFid(82);
+		doNothing().when(fileContentRepository).deleteByFid(83);
+		doNothing().when(fileRepository).deleteByFid(81);
+		doNothing().when(fileRepository).deleteByFid(82);
+		doNothing().when(fileRepository).deleteByFid(83);
+		when(em.createQuery("SELECT text FROM texts WHERE gid=111")).thenReturn(
+			new PseudoQuery(new ArrayList<String>() {{
+				add("CAT");
+				add("DOG");
+			}}));
+		when(textRepository.findByTextAndGid("CAT", 111)).thenReturn(new TextEntity("CAT", 111, new byte[] { 81, 1, 1 }));
+		when(textRepository.findByTextAndGid("DOG", 111)).thenReturn(new TextEntity("DOG", 111, new byte[] { 82, 1, 1, 84, 1, 1 }));
+		doNothing().when(textRepository).delete(argThat(x -> x.getText().equals("CAT")));
+		doNothing().when(textRepository).delete(argThat(x -> x.getText().equals("DOG")));
+		boolean result = fileService.deleteStaleFiles("xyzzy");
+		Assertions.assertEquals(true, result);
+		verify(fileContentRepository, times(1)).deleteByFid(81);
+		verify(fileContentRepository, times(1)).deleteByFid(82);
+		verify(fileContentRepository, times(1)).deleteByFid(83);
+		verify(fileRepository, times(1)).deleteByFid(81);
+		verify(fileRepository, times(1)).deleteByFid(82);
+		verify(fileRepository, times(1)).deleteByFid(83);
+		verify(textRepository, times(0)).save(argThat(x -> x.getText().equals("CAT")));
+		verify(textRepository, times(1)).delete(argThat(x -> x.getText().equals("CAT")));
+		verify(textRepository, times(1)).save(argThat(x -> x.getText().equals("DOG")));
+		verify(textRepository, times(0)).delete(argThat(x -> x.getText().equals("DOG")));
+		verify(fileGroupRepository, times(1)).save(argThat(x -> x.getGid() == 111));
 	}
 
 }
