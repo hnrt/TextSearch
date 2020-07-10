@@ -37,9 +37,9 @@ public class FileController {
 	@RequestMapping(value="/v1/files/{group:[^0-9].*}",method=RequestMethod.GET)
 	public ResponseEntity<?> getFiles(
 			@PathVariable String group) {
-		FileInfo[] fiArray = service.getFiles(group);
-		if (fiArray != null) {
-			return new ResponseEntity<>(fiArray, HttpStatus.OK);
+		FileInfo[] infoArray = service.getFiles(group);
+		if (infoArray != null) {
+			return new ResponseEntity<>(infoArray, HttpStatus.OK);
 		} else {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
@@ -48,9 +48,21 @@ public class FileController {
 	@RequestMapping(value="/v1/files/{group:[^0-9].*}/stats",method=RequestMethod.GET)
 	public ResponseEntity<?> getFileStats(
 			@PathVariable String group) {
-		FileStats stats = service.getFileStats(group);
+		FileStats stats = service.getStats(group);
 		if (stats != null) {
 			return new ResponseEntity<>(stats, HttpStatus.OK);
+		} else {
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
+	}
+
+	@RequestMapping(value="/v1/files/{group:[^0-9].*}/file",method=RequestMethod.GET)
+	public ResponseEntity<?> getFileByPath(
+			@PathVariable String group,
+			@RequestParam("path") String path) {
+		FileInfo info = service.getFile(group, path);
+		if (info != null) {
+			return new ResponseEntity<>(info, HttpStatus.OK);
 		} else {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
@@ -59,9 +71,9 @@ public class FileController {
 	@RequestMapping(value="/v1/files/{fid:[0-9]+}",method=RequestMethod.GET)
 	public ResponseEntity<?> getFile(
 			@PathVariable int fid) {
-		FileInfo fi = service.getFile(fid);
-		if (fi != null) {
-			return new ResponseEntity<>(fi, HttpStatus.OK);
+		FileInfo info = service.getFile(fid);
+		if (info != null) {
+			return new ResponseEntity<>(info, HttpStatus.OK);
 		} else {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
@@ -71,7 +83,7 @@ public class FileController {
 	public ResponseEntity<?> getFileContents(
 			@PathVariable int fid) {
 		String path = service.getPath(fid);
-		byte[] contents = service.getFileContents(fid);
+		byte[] contents = service.getContents(fid);
 		if (path != null && contents != null) {
 			HttpHeaders headers = new HttpHeaders();
 			headers.setContentType(MediaType.MULTIPART_FORM_DATA);

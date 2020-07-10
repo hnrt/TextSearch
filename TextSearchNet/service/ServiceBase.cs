@@ -1,13 +1,42 @@
 ﻿using System;
 using System.Net.Http;
 using com.hideakin.textsearch.net;
+using com.hideakin.textsearch.utility;
 
 namespace com.hideakin.textsearch.service
 {
-    internal class ServiceBase
+    public class ServiceBase
     {
         protected ServiceBase()
         {
+        }
+
+        public string Url
+        {
+            get
+            {
+                return IndexApiClient.Url;
+            }
+            set
+            {
+                IndexApiClient.Url = value;
+            }
+        }
+
+        public string Username
+        {
+            set
+            {
+                IndexApiClient.Credentials.Username = value;
+            }
+        }
+
+        public string Password
+        {
+            set
+            {
+                IndexApiClient.Credentials.Password = value;
+            }
         }
 
         public void Authenticate()
@@ -26,7 +55,7 @@ namespace com.hideakin.textsearch.service
 
         protected void DebugPut(string header, string input, string[] texts)
         {
-            if (Program.DebugLevel > 0)
+            if (Debug.Level > 0)
             {
                 if (header != null)
                 {

@@ -6,7 +6,7 @@ using Newtonsoft.Json;
 
 namespace com.hideakin.textsearch.model
 {
-    internal class ApiCredentials
+    public class ApiCredentials
     {
         private static readonly byte[] KEY;
         private static readonly byte[] IV;

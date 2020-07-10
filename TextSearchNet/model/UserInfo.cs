@@ -1,11 +1,10 @@
 ﻿using System;
 using System.Text;
 using Newtonsoft.Json;
-using com.hideakin.textsearch.utility;
 
 namespace com.hideakin.textsearch.model
 {
-    internal class UserInfo
+    public class UserInfo
     {
 		private static readonly string DTFMT = "yyyy-MM-ddTHH:mm:ss.fff";
 

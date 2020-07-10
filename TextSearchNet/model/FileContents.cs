@@ -2,9 +2,9 @@
 
 namespace com.hideakin.textsearch.model
 {
-    internal class FileContents
+    public class FileContents
     {
-        private static object mutex { get; } = new object();
+        private static readonly object mutex = new object();
 
         private static Dictionary<int, FileContents> Cache { get; } = new Dictionary<int, FileContents>();
 

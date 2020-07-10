@@ -23,7 +23,7 @@ namespace com.hideakin.textsearch.net
 
         public static string Url { get; set; } = @"http://localhost:8080";
 
-        private static object mutex { get; } = new object();
+        private static readonly object mutex = new object();
 
         public static ApiCredentials Credentials { get; } = new ApiCredentials();
 
@@ -59,7 +59,7 @@ namespace com.hideakin.textsearch.net
 
         public string ResponseBody { get; private set; }
 
-        private CancellationTokenSource cts = new CancellationTokenSource();
+        private readonly CancellationTokenSource cts = new CancellationTokenSource();
 
         #endregion
 
@@ -126,9 +126,9 @@ namespace com.hideakin.textsearch.net
             }
             var task = Authenticate();
             task.Wait();
-            if (task.Result is ErrorResponse)
+            if (task.Result is ErrorResponse e)
             {
-                throw new Exception(((ErrorResponse)task.Result).ErrorDescription);
+                throw new Exception(e.ErrorDescription);
             }
             var ar = (AuthenticateResponse)task.Result;
             Credentials.AccessToken = ar.AccessToken;
@@ -483,6 +483,23 @@ namespace com.hideakin.textsearch.net
             if (Response.StatusCode == HttpStatusCode.OK)
             {
                 return JsonConvert.DeserializeObject<model.FileInfo[]>(ResponseBody);
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        public async Task<model.FileInfo> GetFile(string group, string path)
+        {
+            var uri = string.Format("{0}/v1/files/{1}/file?path={2}", Url, group, path);
+            var request = new HttpRequestMessage(HttpMethod.Get, uri);
+            request.Headers.Add(AUTHORIZATION, BearerToken);
+            Response = await httpClient.SendAsync(request, cts.Token);
+            ResponseBody = await Response.Content.ReadAsStringAsync();
+            if (Response.StatusCode == HttpStatusCode.OK)
+            {
+                return JsonConvert.DeserializeObject<model.FileInfo>(ResponseBody);
             }
             else
             {

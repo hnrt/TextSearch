@@ -36,10 +36,10 @@ namespace com.hideakin.textsearch.model
             int index = 0;
             while (index < Ranges.Count)
             {
-                var entry = Ranges[index];
-                if (td.Positions.Contains(entry.End + 1))
+                var (start, end) = Ranges[index];
+                if (td.Positions.Contains(end + 1))
                 {
-                    Ranges[index] = (entry.Start, entry.End + 1);
+                    Ranges[index] = (start, end + 1);
                     index++;
                 }
                 else

@@ -1,12 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 
 namespace com.hideakin.textsearch.utility
 {
-    internal static class StringListExtension
+    public static class StringListExtension
     {
         public static List<string> MergeItems(this List<string> list, string items)
         {

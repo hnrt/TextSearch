@@ -3,7 +3,7 @@ using Newtonsoft.Json;
 
 namespace com.hideakin.textsearch.model
 {
-    internal class FileGroupInfo
+    public class FileGroupInfo
     {
         private static readonly string DTFMT = "yyyy-MM-ddTHH:mm:ss.fff";
 

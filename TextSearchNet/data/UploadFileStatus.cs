@@ -1,6 +1,6 @@
 ﻿namespace com.hideakin.textsearch.data
 {
-    internal enum UploadFileStatus
+    public enum UploadFileStatus
     {
         Failure,
         Created,

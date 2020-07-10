@@ -31,12 +31,12 @@ namespace com.hideakin.textsearch.command
                     var pos = s.IndexOf('/');
                     if (pos >= 0)
                     {
-                        IndexApiClient.Credentials.Username = s.Substring(0, pos);
-                        IndexApiClient.Credentials.Password = s.Substring(pos + 1);
+                        UserSvc.Username = s.Substring(0, pos);
+                        UserSvc.Password = s.Substring(pos + 1);
                     }
                     else
                     {
-                        IndexApiClient.Credentials.Username = s;
+                        UserSvc.Username = s;
                     }
                     commandQueue.Add(() =>
                     {

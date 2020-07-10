@@ -75,7 +75,7 @@ public class FileServiceImpl implements FileService {
 	}
 
 	@Override
-	public FileStats getFileStats(String group) {
+	public FileStats getStats(String group) {
 		FileGroupEntity fileGroupEntity = fileGroupRepository.findByName(group);
 		if (fileGroupEntity == null) {
 			return null;
@@ -107,11 +107,49 @@ public class FileServiceImpl implements FileService {
 			return null;
 		}
 	}
+	
+	@Override
+	public FileInfo getFile(String group, String path) {
+		FileGroupEntity fileGroupEntity = fileGroupRepository.findByName(group);
+		if (fileGroupEntity == null) {
+			return null;
+		}
+		List<FileEntity> entities = fileRepository.findAllByGidAndPathAndStaleFalse(fileGroupEntity.getGid(), path);
+		if (entities.size() == 0) {
+			return null;
+		}
+		FileEntity entity = null;
+		for (FileEntity next : entities) {
+			if (entity == null) {
+				entity = next;
+			} else if (next.getUpdatedAt().compareTo(entity.getUpdatedAt()) > 0) {
+				// unexpected case
+				entity.setStale(true);
+				fileRepository.save(entity);
+				entity = next;
+			} else {
+				// unexpected case, too
+				next.setStale(true);
+				fileRepository.save(next);
+			}
+		}
+		return entity != null ? new FileInfo(entity, fileGroupEntity) : null;
+	}
 
 	@Override
 	public String getPath(int fid) {
 		FileEntity entity = fileRepository.findByFid(fid);
 		return entity != null ? entity.getPath() : null;
+	}
+
+	@Override
+	public byte[] getContents(int fid) {
+		FileEntity fileEntity = fileRepository.findByFid(fid);
+		if (fileEntity == null) {
+			return null;
+		}
+		FileContentEntity fileContentEntity = fileContentRepository.findByFid(fid);
+		return fileContentEntity != null ? GZipHelper.decompress(fileContentEntity.getData(), fileEntity.getSize()) : null;
 	}
 	
 	@Override
@@ -158,7 +196,7 @@ public class FileServiceImpl implements FileService {
 	
 	@Override
 	public FileInfo[] deleteFiles(String group) {
-		FileGroupEntity fileGroupEntity = fileGroupRepository.findByName(group);
+		FileGroupEntity fileGroupEntity = fileGroupRepository.findByNameForUpdate(group);
 		if (fileGroupEntity == null) {
 			return null;
 		}
@@ -183,7 +221,7 @@ public class FileServiceImpl implements FileService {
 
 	@Override
 	public boolean deleteStaleFiles(String group) {
-		FileGroupEntity fileGroupEntity = fileGroupRepository.findByName(group);
+		FileGroupEntity fileGroupEntity = fileGroupRepository.findByNameForUpdate(group);
 		if (fileGroupEntity == null) {
 			return false;
 		}
@@ -209,7 +247,7 @@ public class FileServiceImpl implements FileService {
 	public FileInfo deleteFile(int fid) {
 		FileEntity entity = fileRepository.findByFid(fid);
 		if (entity != null) {
-			FileGroupEntity fileGroupEntity = fileGroupRepository.findByGid(entity.getGid());
+			FileGroupEntity fileGroupEntity = fileGroupRepository.findByGidForUpdate(entity.getGid());
 			fileContentRepository.deleteByFid(fid);
 			fileRepository.deleteByFid(fid);
 			removeDistribution(fid, entity.getGid());
@@ -219,16 +257,6 @@ public class FileServiceImpl implements FileService {
 		} else {
 			return null;
 		}
-	}
-
-	@Override
-	public byte[] getFileContents(int fid) {
-		FileEntity fileEntity = fileRepository.findByFid(fid);
-		if (fileEntity == null) {
-			return null;
-		}
-		FileContentEntity fileContentEntity = fileContentRepository.findByFid(fid);
-		return fileContentEntity != null ? GZipHelper.decompress(fileContentEntity.getData(), fileEntity.getSize()) : null;
 	}
 
 	private FileEntity saveFile(FileGroupEntity fgEntity, String path, int length, byte[] data, Map<String, List<Integer>> textMap) {

@@ -63,6 +63,32 @@ namespace com.hideakin.textsearch.command
                         Console.WriteLine("{0}", stats);
                     });
                 })
+                .AddHandler("-print-file", (e) =>
+                {
+                    if (!e.MoveNext())
+                    {
+                        throw new Exception("Group name is not specified.");
+                    }
+                    var group = (string)e.Current;
+                    if (!e.MoveNext())
+                    {
+                        throw new Exception("Path is not specified.");
+                    }
+                    var path = (string)e.Current;
+                    commandQueue.Add(() =>
+                    {
+                        var info = FileSvc.GetFile(group, path);
+                        var contents = FileContents.Find(info.Fid);
+                        if (contents == null)
+                        {
+                            contents = FileSvc.DownloadFile(info.Fid);
+                        }
+                        foreach (var line in contents.Lines)
+                        {
+                            Console.WriteLine(line);
+                        }
+                    });
+                })
                 .AddHandler("-index-files", (e) =>
                 {
                     if (!e.MoveNext())
@@ -83,8 +109,7 @@ namespace com.hideakin.textsearch.command
                     {
                         throw new Exception("Path is not specified.");
                     }
-                    List<string> paths = new List<string>();
-                    paths.Add((string)e.Current);
+                    List<string> paths = new List<string>() { (string)e.Current };
                     while (e.MoveNext())
                     {
                         paths.Add((string)e.Current);
@@ -138,6 +163,7 @@ namespace com.hideakin.textsearch.command
                 .AddUsageHeader("Usage <file>:")
                 .AddUsage("{0} -print-files [GROUPNAME]", Program.Name)
                 .AddUsage("{0} -print-file-stats [GROUPNAME]", Program.Name)
+                .AddUsage("{0} -print-file GROUPNAME PATH", Program.Name)
                 .AddUsage("{0} -index-files [-force] GROUPNAME PATH...", Program.Name)
                 .AddUsage("{0} -delete-files [GROUPNAME]", Program.Name)
                 .AddUsage("{0} -delete-stale-files [GROUPNAME]", Program.Name);

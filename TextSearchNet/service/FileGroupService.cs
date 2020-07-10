@@ -4,17 +4,17 @@ using System;
 
 namespace com.hideakin.textsearch.service
 {
-    internal class UserService : ServiceBase
+    public class FileGroupService : ServiceBase
     {
-        public UserService()
+        public FileGroupService()
             : base()
         {
         }
 
-        public UserInfo[] GetUsers()
+        public FileGroupInfo[] GetFileGroups()
         {
             var client = new IndexApiClient();
-            var task = client.GetUsers();
+            var task = client.GetFileGroups();
             task.Wait();
             if (task.Result == null)
             {
@@ -23,34 +23,10 @@ namespace com.hideakin.textsearch.service
             return task.Result;
         }
 
-        public UserInfo GetUser(int uid)
+        public FileGroupInfo CreateFileGroup(string group)
         {
             var client = new IndexApiClient();
-            var task = client.GetUser(uid);
-            task.Wait();
-            if (task.Result == null)
-            {
-                throw NewResponseException(client.Response);
-            }
-            return task.Result;
-        }
-
-        public UserInfo GetUser(string username)
-        {
-            var client = new IndexApiClient();
-            var task = client.GetUser(username);
-            task.Wait();
-            if (task.Result == null)
-            {
-                throw NewResponseException(client.Response);
-            }
-            return task.Result;
-        }
-
-        public UserInfo CreateUser(string username, string password, string[] roles)
-        {
-            var client = new IndexApiClient();
-            var task = client.CreateUser(username, password, roles);
+            var task = client.CreateFileGroup(group);
             task.Wait();
             if (task.Result == null)
             {
@@ -60,13 +36,13 @@ namespace com.hideakin.textsearch.service
             {
                 throw new Exception((task.Result as ErrorResponse).ErrorDescription);
             }
-            return task.Result as UserInfo;
+            return task.Result as FileGroupInfo;
         }
 
-        public UserInfo UpdateUser(int uid, string username, string password, string[] roles)
+        public FileGroupInfo UpdateFileGroup(int gid, string group)
         {
             var client = new IndexApiClient();
-            var task = client.UpdateUser(uid, username, password, roles);
+            var task = client.UpdateFileGroup(gid, group);
             task.Wait();
             if (task.Result == null)
             {
@@ -76,13 +52,13 @@ namespace com.hideakin.textsearch.service
             {
                 throw new Exception((task.Result as ErrorResponse).ErrorDescription);
             }
-            return task.Result as UserInfo;
+            return task.Result as FileGroupInfo;
         }
 
-        public UserInfo DeleteUser(int uid)
+        public FileGroupInfo DeleteFileGroup(int gid)
         {
             var client = new IndexApiClient();
-            var task = client.DeleteUser(uid);
+            var task = client.DeleteFileGroup(gid);
             task.Wait();
             if (task.Result == null)
             {
@@ -92,7 +68,7 @@ namespace com.hideakin.textsearch.service
             {
                 throw new Exception((task.Result as ErrorResponse).ErrorDescription);
             }
-            return task.Result as UserInfo;
+            return task.Result as FileGroupInfo;
         }
     }
 }

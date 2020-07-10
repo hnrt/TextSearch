@@ -10,7 +10,7 @@ using System.Threading.Tasks;
 
 namespace com.hideakin.textsearch.service
 {
-    internal class IndexService : ServiceBase
+    public class IndexService : ServiceBase
     {
         public IndexService()
             : base()
@@ -103,33 +103,33 @@ namespace com.hideakin.textsearch.service
                 var contents = await client.DownloadFile(fid);
                 var tokenizer = new TextTokenizer();
                 tokenizer.Run(contents.Lines);
-                foreach (var range in ranges)
+                foreach (var (start, end) in ranges)
                 {
-                    if (range.End < tokenizer.Tokens.Count)
+                    if (end < tokenizer.Tokens.Count)
                     {
-                        if (tokenizer.Tokens[range.Start].Row == tokenizer.Tokens[range.End].Row)
+                        if (tokenizer.Tokens[start].Row == tokenizer.Tokens[end].Row)
                         {
-                            if (!dct.TryGetValue(tokenizer.Tokens[range.Start].Row, out var colRanges))
+                            if (!dct.TryGetValue(tokenizer.Tokens[start].Row, out var colRanges))
                             {
                                 colRanges = new List<(int Start, int End)>();
-                                dct.Add(tokenizer.Tokens[range.Start].Row, colRanges);
+                                dct.Add(tokenizer.Tokens[start].Row, colRanges);
                             }
                             if (qTexts.Length == 1)
                             {
-                                int index = tokenizer.Tokens[range.Start].Text.IndexOf(qTexts[0]);
+                                int index = tokenizer.Tokens[start].Text.IndexOf(qTexts[0]);
                                 while (index >= 0)
                                 {
-                                    int start = tokenizer.Tokens[range.Start].Column + index;
-                                    int end = start + qTexts[0].Length;
-                                    colRanges.Add((start, end));
-                                    index = tokenizer.Tokens[range.Start].Text.IndexOf(qTexts[0], index + qTexts[0].Length);
+                                    int start2 = tokenizer.Tokens[start].Column + index;
+                                    int end2 = start2 + qTexts[0].Length;
+                                    colRanges.Add((start2, end2));
+                                    index = tokenizer.Tokens[start].Text.IndexOf(qTexts[0], index + qTexts[0].Length);
                                 }
                             }
                             else // if (qTexts.Length > 1)
                             {
-                                int start = tokenizer.Tokens[range.Start].Column + tokenizer.Tokens[range.Start].Text.Length - qTexts.First().Length;
-                                int end = tokenizer.Tokens[range.End].Column + qTexts.Last().Length;
-                                colRanges.Add((start, end));
+                                int start2 = tokenizer.Tokens[start].Column + tokenizer.Tokens[start].Text.Length - qTexts.First().Length;
+                                int end2 = tokenizer.Tokens[end].Column + qTexts.Last().Length;
+                                colRanges.Add((start2, end2));
                             }
                         }
                     }

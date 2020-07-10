@@ -4,17 +4,16 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{123C1B0A-E0CB-49B2-92BF-54A9698B0F82}</ProjectGuid>
-    <OutputType>Exe</OutputType>
+    <ProjectGuid>{AF8D8A0F-2B33-4CCE-B709-CCBE4384C985}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>com.hideakin.textsearch</RootNamespace>
-    <AssemblyName>TextSearchCLI</AssemblyName>
+    <AssemblyName>TextSearchNet</AssemblyName>
     <TargetFrameworkVersion>v4.7.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
-    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <Deterministic>true</Deterministic>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
@@ -24,35 +23,12 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
-    <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugType>pdbonly</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>bin\Release\</OutputPath>
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|x64'">
-    <DebugSymbols>true</DebugSymbols>
-    <OutputPath>bin\x64\Debug\</OutputPath>
-    <DefineConstants>DEBUG;TRACE</DefineConstants>
-    <DebugType>full</DebugType>
-    <PlatformTarget>x64</PlatformTarget>
-    <LangVersion>7.3</LangVersion>
-    <ErrorReport>prompt</ErrorReport>
-    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
-    <Prefer32Bit>true</Prefer32Bit>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Release|x64'">
-    <OutputPath>bin\x64\Release\</OutputPath>
-    <DefineConstants>TRACE</DefineConstants>
-    <Optimize>true</Optimize>
-    <DebugType>pdbonly</DebugType>
-    <PlatformTarget>x64</PlatformTarget>
-    <LangVersion>7.3</LangVersion>
-    <ErrorReport>prompt</ErrorReport>
-    <CodeAnalysisRuleSet>MinimumRecommendedRules.ruleset</CodeAnalysisRuleSet>
-    <Prefer32Bit>true</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Newtonsoft.Json, Version=12.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
@@ -87,30 +63,49 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="command\AuthenticateCommand.cs" />
-    <Compile Include="command\CommandLine.cs" />
-    <Compile Include="command\CommandQueue.cs" />
-    <Compile Include="command\ConfigurationCommand.cs" />
-    <Compile Include="command\DebugCommand.cs" />
-    <Compile Include="command\FileCommand.cs" />
-    <Compile Include="command\FileGroupCommand.cs" />
-    <Compile Include="command\HelpCommand.cs" />
-    <Compile Include="command\ICommand.cs" />
-    <Compile Include="command\SearchCommand.cs" />
-    <Compile Include="command\UserCommand.cs" />
-    <Compile Include="Program.cs" />
+    <Compile Include="data\SearchOptions.cs" />
+    <Compile Include="data\UploadFileStatus.cs" />
+    <Compile Include="model\ApiCreadentialsCollection.cs" />
+    <Compile Include="model\ApiCredentials.cs" />
+    <Compile Include="model\AuthenticateResponse.cs" />
+    <Compile Include="model\DeleteIndexResponse.cs" />
+    <Compile Include="model\ErrorResponse.cs" />
+    <Compile Include="model\FileContents.cs" />
+    <Compile Include="model\FileGroupInfo.cs" />
+    <Compile Include="model\FileGroupRequest.cs" />
+    <Compile Include="model\FileInfo.cs" />
+    <Compile Include="model\FileStats.cs" />
+    <Compile Include="model\HitRanges.cs" />
+    <Compile Include="model\HitRowColumns.cs" />
+    <Compile Include="model\RowColumns.cs" />
+    <Compile Include="model\TextDistribution.cs" />
+    <Compile Include="model\TextToken.cs" />
+    <Compile Include="model\UpdateIndexRequest.cs" />
+    <Compile Include="model\UpdateIndexResponse.cs" />
+    <Compile Include="model\UpdatePreferenceRequest.cs" />
+    <Compile Include="model\UserInfo.cs" />
+    <Compile Include="model\UserRequest.cs" />
+    <Compile Include="model\ValueResponse.cs" />
+    <Compile Include="model\ValuesResponse.cs" />
+    <Compile Include="net\HttpReasonPhrase.cs" />
+    <Compile Include="net\IndexApiClient.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="service\FileGroupService.cs" />
+    <Compile Include="service\FileService.cs" />
+    <Compile Include="service\IndexService.cs" />
+    <Compile Include="service\PreferenceService.cs" />
+    <Compile Include="service\ServiceBase.cs" />
+    <Compile Include="service\UserService.cs" />
+    <Compile Include="utility\Debug.cs" />
+    <Compile Include="utility\HitRangesListExtension.cs" />
+    <Compile Include="utility\StringListExtension.cs" />
+    <Compile Include="utility\TextTokenizer.cs" />
+    <Compile Include="utility\UnicodeClassifier.cs" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="App.config" />
+    <None Include="app.config" />
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup />
-  <ItemGroup>
-    <ProjectReference Include="..\TextSearchNet\TextSearchNet.csproj">
-      <Project>{af8d8a0f-2b33-4cce-b709-ccbe4384c985}</Project>
-      <Name>TextSearchNet</Name>
-    </ProjectReference>
-  </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

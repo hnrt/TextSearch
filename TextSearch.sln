@@ -4,6 +4,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 VisualStudioVersion = 16.0.30114.105
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TextSearchCLI", "TextSearchCLI\TextSearchCLI.csproj", "{123C1B0A-E0CB-49B2-92BF-54A9698B0F82}"
+	ProjectSection(ProjectDependencies) = postProject
+		{AF8D8A0F-2B33-4CCE-B709-CCBE4384C985} = {AF8D8A0F-2B33-4CCE-B709-CCBE4384C985}
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TextSearchNet", "TextSearchNet\TextSearchNet.csproj", "{AF8D8A0F-2B33-4CCE-B709-CCBE4384C985}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -21,6 +26,14 @@ Global
 		{123C1B0A-E0CB-49B2-92BF-54A9698B0F82}.Release|Any CPU.Build.0 = Release|Any CPU
 		{123C1B0A-E0CB-49B2-92BF-54A9698B0F82}.Release|x64.ActiveCfg = Release|x64
 		{123C1B0A-E0CB-49B2-92BF-54A9698B0F82}.Release|x64.Build.0 = Release|x64
+		{AF8D8A0F-2B33-4CCE-B709-CCBE4384C985}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{AF8D8A0F-2B33-4CCE-B709-CCBE4384C985}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{AF8D8A0F-2B33-4CCE-B709-CCBE4384C985}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{AF8D8A0F-2B33-4CCE-B709-CCBE4384C985}.Debug|x64.Build.0 = Debug|Any CPU
+		{AF8D8A0F-2B33-4CCE-B709-CCBE4384C985}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{AF8D8A0F-2B33-4CCE-B709-CCBE4384C985}.Release|Any CPU.Build.0 = Release|Any CPU
+		{AF8D8A0F-2B33-4CCE-B709-CCBE4384C985}.Release|x64.ActiveCfg = Release|Any CPU
+		{AF8D8A0F-2B33-4CCE-B709-CCBE4384C985}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

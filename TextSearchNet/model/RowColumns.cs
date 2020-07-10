@@ -2,7 +2,7 @@
 
 namespace com.hideakin.textsearch.model
 {
-    internal class RowColumns
+    public class RowColumns
     {
         public int Row { get; }
 

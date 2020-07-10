@@ -2,12 +2,11 @@
 using System.Collections.Generic;
 using System;
 using System.Net;
-using System.Text;
 using com.hideakin.textsearch.utility;
 
 namespace com.hideakin.textsearch.service
 {
-    internal class PreferenceService : ServiceBase
+    public class PreferenceService : ServiceBase
     {
         private const int MAX_LEN = 8192;
 

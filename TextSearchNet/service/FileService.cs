@@ -8,7 +8,7 @@ using com.hideakin.textsearch.net;
 
 namespace com.hideakin.textsearch.service
 {
-    internal class FileService : ServiceBase
+    public class FileService : ServiceBase
     {
         private List<(string Path, IndexApiClient Client, Task<FileInfo> UploadFileTask)> UploadFileTasks { get; } = new List<(string Path, IndexApiClient Client, Task<FileInfo> UploadFileTask)>();
 
@@ -23,6 +23,18 @@ namespace com.hideakin.textsearch.service
         {
             var client = new IndexApiClient();
             var task = client.GetFiles(group);
+            task.Wait();
+            if (task.Result == null)
+            {
+                throw NewResponseException(client.Response);
+            }
+            return task.Result;
+        }
+
+        public FileInfo GetFile(string group, string path)
+        {
+            var client = new IndexApiClient();
+            var task = client.GetFile(group, path);
             task.Wait();
             if (task.Result == null)
             {
@@ -85,14 +97,14 @@ namespace com.hideakin.textsearch.service
                 tasks[index] = UploadFileTasks[index].UploadFileTask;
             }
             index = Task.WaitAny(tasks);
-            var completed = UploadFileTasks[index];
+            var (path, client, ufTask) = UploadFileTasks[index];
             UploadFileTasks.RemoveAt(index);
-            if (completed.UploadFileTask.Result == null)
+            if (ufTask.Result == null)
             {
-                throw new Exception("Failed to upload file " + completed.Path);
+                throw new Exception("Failed to upload file " + path);
             }
-            result = completed.Client.Response.StatusCode == HttpStatusCode.Created ? UploadFileStatus.Created : UploadFileStatus.Updated;
-            return completed.UploadFileTask.Result;
+            result = client.Response.StatusCode == HttpStatusCode.Created ? UploadFileStatus.Created : UploadFileStatus.Updated;
+            return ufTask.Result;
         }
 
         public FileInfo[] DeleteFiles(string group)

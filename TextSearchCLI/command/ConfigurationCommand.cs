@@ -23,7 +23,7 @@ namespace com.hideakin.textsearch.command
                     {
                         throw new Exception("URL does not look valid.");
                     }
-                    IndexApiClient.Url = a;
+                    PrefSvc.Url = a;
                 })
                 .AddHandler("-username", (e) =>
                 {
@@ -31,7 +31,7 @@ namespace com.hideakin.textsearch.command
                     {
                         throw new Exception("Username is not specified.");
                     }
-                    IndexApiClient.Credentials.Username = (string)e.Current;
+                    PrefSvc.Username = (string)e.Current;
                 })
                 .AddHandler("-password", (e) =>
                 {
@@ -39,7 +39,7 @@ namespace com.hideakin.textsearch.command
                     {
                         throw new Exception("Password is not specified.");
                     }
-                    IndexApiClient.Credentials.Password = (string)e.Current;
+                    PrefSvc.Password = (string)e.Current;
                 })
                 .AddHandler("-print-extensions", (e) =>
                 {
