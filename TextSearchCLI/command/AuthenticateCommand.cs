@@ -1,4 +1,5 @@
-﻿using com.hideakin.textsearch.net;
+﻿using com.hideakin.textsearch.model;
+using com.hideakin.textsearch.net;
 using com.hideakin.textsearch.service;
 using System;
 using System.Collections.Generic;
@@ -29,19 +30,23 @@ namespace com.hideakin.textsearch.command
                     }
                     var s = (string)e.Current;
                     var pos = s.IndexOf('/');
-                    if (pos >= 0)
+                    if (pos < 0)
                     {
-                        UserSvc.Username = s.Substring(0, pos);
-                        UserSvc.Password = s.Substring(pos + 1);
+                        throw new Exception("Username/Password are not specified.");
                     }
-                    else
-                    {
-                        UserSvc.Username = s;
-                    }
+                    var username = s.Substring(0, pos);
+                    var password = s.Substring(pos + 1);
                     commandQueue.Add(() =>
                     {
-                        UserSvc.Authenticate();
-                        Console.WriteLine("OK.");
+                        var result = UserSvc.Authenticate(username, password);
+                        if (result is AuthenticateResponse a)
+                        {
+                            Console.WriteLine("OK. {0}", a.AccessToken);
+                        }
+                        else if (result is ErrorResponse x)
+                        {
+                            Console.WriteLine("ERROR: {0}", x.ErrorDescription);
+                        }
                     });
                 })
                 .AddTranslation("-a", AUTHENTICATE)

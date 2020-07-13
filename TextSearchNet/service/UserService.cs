@@ -13,7 +13,7 @@ namespace com.hideakin.textsearch.service
 
         public UserInfo[] GetUsers()
         {
-            var client = new IndexApiClient();
+            var client = IndexApiClient.Create();
             var task = client.GetUsers();
             task.Wait();
             if (task.Result == null)
@@ -25,7 +25,7 @@ namespace com.hideakin.textsearch.service
 
         public UserInfo GetUser(int uid)
         {
-            var client = new IndexApiClient();
+            var client = IndexApiClient.Create();
             var task = client.GetUser(uid);
             task.Wait();
             if (task.Result == null)
@@ -37,7 +37,7 @@ namespace com.hideakin.textsearch.service
 
         public UserInfo GetUser(string username)
         {
-            var client = new IndexApiClient();
+            var client = IndexApiClient.Create();
             var task = client.GetUser(username);
             task.Wait();
             if (task.Result == null)
@@ -49,7 +49,7 @@ namespace com.hideakin.textsearch.service
 
         public UserInfo CreateUser(string username, string password, string[] roles)
         {
-            var client = new IndexApiClient();
+            var client = IndexApiClient.Create();
             var task = client.CreateUser(username, password, roles);
             task.Wait();
             if (task.Result == null)
@@ -65,7 +65,7 @@ namespace com.hideakin.textsearch.service
 
         public UserInfo UpdateUser(int uid, string username, string password, string[] roles)
         {
-            var client = new IndexApiClient();
+            var client = IndexApiClient.Create();
             var task = client.UpdateUser(uid, username, password, roles);
             task.Wait();
             if (task.Result == null)
@@ -81,7 +81,7 @@ namespace com.hideakin.textsearch.service
 
         public UserInfo DeleteUser(int uid)
         {
-            var client = new IndexApiClient();
+            var client = IndexApiClient.Create();
             var task = client.DeleteUser(uid);
             task.Wait();
             if (task.Result == null)

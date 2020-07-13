@@ -24,7 +24,7 @@ namespace com.hideakin.textsearch.model
             }
             else
             {
-                return null;
+                return new ApiCreadentialsCollection();
             }
         }
 
@@ -40,11 +40,14 @@ namespace com.hideakin.textsearch.model
 
         public ApiCredentials GetCredentials(string username)
         {
-            foreach (var c in Credentials)
+            if (username != null && Credentials != null)
             {
-                if (c.Username == username)
+                foreach (var c in Credentials)
                 {
-                    return c;
+                    if (c.Username == username)
+                    {
+                        return c;
+                    }
                 }
             }
             return null;
@@ -52,17 +55,24 @@ namespace com.hideakin.textsearch.model
 
         public void SetCredentials(ApiCredentials cred)
         {
-            for (int index = 0; index < Credentials.Length; index++)
+            if (Credentials != null)
             {
-                if (Credentials[index].Username == cred.Username)
+                for (int index = 0; index < Credentials.Length; index++)
                 {
-                    Credentials[index].EncryptedPassword = cred.EncryptedPassword;
-                    Credentials[index].EncryptedToken = cred.EncryptedToken;
-                    Credentials[index].ExpiresAt = cred.ExpiresAt;
-                    return;
+                    if (Credentials[index].Username == cred.Username)
+                    {
+                        Credentials[index].EncryptedPassword = cred.EncryptedPassword;
+                        Credentials[index].EncryptedToken = cred.EncryptedToken;
+                        Credentials[index].ExpiresAt = cred.ExpiresAt;
+                        return;
+                    }
                 }
+                Array.Resize(ref Credentials, Credentials.Length + 1);
             }
-            Array.Resize(ref Credentials, Credentials.Length + 1);
+            else
+            {
+                Credentials = new ApiCredentials[1];
+            }
             Credentials[Credentials.Length - 1] = new ApiCredentials(cred);
         }
     }

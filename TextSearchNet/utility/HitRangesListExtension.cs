@@ -21,7 +21,7 @@ namespace com.hideakin.textsearch.utility
             int index = 0;
             while(index < list.Count)
             {
-                var found = array.Where(x => x.Fid == list[index].Fid).First();
+                var found = array.Where(x => x.Fid == list[index].Fid).FirstOrDefault();
                 if (found != null)
                 {
                     list[index].Merge(found);

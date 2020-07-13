@@ -1,6 +1,6 @@
 ﻿namespace com.hideakin.textsearch.data
 {
-    internal enum SearchOptions
+    public enum SearchOptions
     {
         Exact,
         Contains,

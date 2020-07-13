@@ -28,29 +28,40 @@ namespace com.hideakin.textsearch.service
                 DebugPut("phrase", text, qTexts);
                 if (tokenizer.Tokens.Count == 1)
                 {
-                    var client = new IndexApiClient();
+                    var client = IndexApiClient.Create();
                     var task = client.FindText(group, tokenizer.Tokens[0].Text, SearchOptions.Contains);
                     task.Wait();
                     if (task.Result == null)
                     {
                         throw NewResponseException(client.Response);
                     }
-                    rangesList = HitRangesListExtension.ToList(task.Result);
+                    else if (task.Result is TextDistribution[] hits)
+                    {
+                        rangesList = HitRangesListExtension.ToList(hits);
+                    }
+                    else if (task.Result is ErrorResponse e)
+                    {
+                        throw new Exception(e.ErrorDescription);
+                    }
+                    else
+                    {
+                        throw NewResponseException(client.Response);
+                    }
                 }
                 else if (tokenizer.Tokens.Count > 1)
                 {
                     var clients = new IndexApiClient[tokenizer.Tokens.Count];
-                    var tasks = new Task<TextDistribution[]>[tokenizer.Tokens.Count];
-                    var client = new IndexApiClient();
+                    var tasks = new Task<object>[tokenizer.Tokens.Count];
+                    var client = IndexApiClient.Create();
                     clients[0] = client;
                     tasks[0] = client.FindText(group, tokenizer.Tokens[0].Text, SearchOptions.EndsWith);
                     for (int i = 1; i < tasks.Length - 1; i++)
                     {
-                        client = new IndexApiClient();
+                        client = IndexApiClient.Create();
                         clients[i] = client;
                         tasks[i] = client.FindText(group, tokenizer.Tokens[i].Text, SearchOptions.Exact);
                     }
-                    client = new IndexApiClient();
+                    client = IndexApiClient.Create();
                     clients[tasks.Length - 1] = client;
                     tasks[tasks.Length - 1] = client.FindText(group, tokenizer.Tokens[tasks.Length - 1].Text, SearchOptions.StartsWith);
                     Task.WaitAll(tasks);
@@ -58,14 +69,36 @@ namespace com.hideakin.textsearch.service
                     {
                         throw NewResponseException(clients[0].Response);
                     }
-                    rangesList = HitRangesListExtension.ToList(tasks[0].Result);
+                    else if (tasks[0].Result is TextDistribution[] hits)
+                    {
+                        rangesList = HitRangesListExtension.ToList(hits);
+                    }
+                    else if (tasks[0].Result is ErrorResponse e)
+                    {
+                        throw new Exception(e.ErrorDescription);
+                    }
+                    else
+                    {
+                        throw NewResponseException(clients[0].Response);
+                    }
                     for (int i = 1; i < tasks.Length; i++)
                     {
                         if (tasks[i].Result == null)
                         {
                             throw NewResponseException(clients[i].Response);
                         }
-                        rangesList.Merge(tasks[i].Result);
+                        else if (tasks[i].Result is TextDistribution[] hits)
+                        {
+                            rangesList.Merge(hits);
+                        }
+                        else if (tasks[i].Result is ErrorResponse e)
+                        {
+                            throw new Exception(e.ErrorDescription);
+                        }
+                        else
+                        {
+                            throw NewResponseException(clients[i].Response);
+                        }
                     }
                 }
                 if (rangesList.Count > 0)
@@ -80,7 +113,7 @@ namespace com.hideakin.textsearch.service
                     Task.WaitAll(tasks);
                     foreach (var task in tasks)
                     {
-                        if (task.Result.Rows.Count > 0)
+                        if (task.Result != null && task.Result.Rows.Count > 0)
                         {
                             list.Add(task.Result);
                         }
@@ -99,8 +132,12 @@ namespace com.hideakin.textsearch.service
             var dct = new Dictionary<int, List<(int Start, int End)>>();
             try
             {
-                var client = new IndexApiClient();
+                var client = IndexApiClient.Create();
                 var contents = await client.DownloadFile(fid);
+                if (contents == null)
+                {
+                    return null;
+                }
                 var tokenizer = new TextTokenizer();
                 tokenizer.Run(contents.Lines);
                 foreach (var (start, end) in ranges)

@@ -89,6 +89,7 @@
     <Compile Include="model\ValuesResponse.cs" />
     <Compile Include="net\HttpReasonPhrase.cs" />
     <Compile Include="net\IndexApiClient.cs" />
+    <Compile Include="net\IndexApiClientSpinLock.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="service\FileGroupService.cs" />
     <Compile Include="service\FileService.cs" />

@@ -10,6 +10,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TextSearchCLI", "TextSearch
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TextSearchNet", "TextSearchNet\TextSearchNet.csproj", "{AF8D8A0F-2B33-4CCE-B709-CCBE4384C985}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TextSearchWPF", "TextSearchWPF\TextSearchWPF.csproj", "{9DA668FC-7845-4389-A57C-74BB1500D087}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -34,6 +36,14 @@ Global
 		{AF8D8A0F-2B33-4CCE-B709-CCBE4384C985}.Release|Any CPU.Build.0 = Release|Any CPU
 		{AF8D8A0F-2B33-4CCE-B709-CCBE4384C985}.Release|x64.ActiveCfg = Release|Any CPU
 		{AF8D8A0F-2B33-4CCE-B709-CCBE4384C985}.Release|x64.Build.0 = Release|Any CPU
+		{9DA668FC-7845-4389-A57C-74BB1500D087}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9DA668FC-7845-4389-A57C-74BB1500D087}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9DA668FC-7845-4389-A57C-74BB1500D087}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{9DA668FC-7845-4389-A57C-74BB1500D087}.Debug|x64.Build.0 = Debug|Any CPU
+		{9DA668FC-7845-4389-A57C-74BB1500D087}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9DA668FC-7845-4389-A57C-74BB1500D087}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9DA668FC-7845-4389-A57C-74BB1500D087}.Release|x64.ActiveCfg = Release|Any CPU
+		{9DA668FC-7845-4389-A57C-74BB1500D087}.Release|x64.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

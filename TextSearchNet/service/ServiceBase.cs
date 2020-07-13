@@ -23,27 +23,12 @@ namespace com.hideakin.textsearch.service
             }
         }
 
-        public string Username
+        public object Authenticate(string username, string password)
         {
-            set
-            {
-                IndexApiClient.Credentials.Username = value;
-            }
-        }
-
-        public string Password
-        {
-            set
-            {
-                IndexApiClient.Credentials.Password = value;
-            }
-        }
-
-        public void Authenticate()
-        {
-            var client = new IndexApiClient();
-            var task = client.Check();
+            var client = IndexApiClient.Create();
+            var task = client.Authenticate(username, password);
             task.Wait();
+            return task.Result;
         }
 
         protected Exception NewResponseException(HttpResponseMessage response)

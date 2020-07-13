@@ -13,7 +13,7 @@ namespace com.hideakin.textsearch.service
 
         public FileGroupInfo[] GetFileGroups()
         {
-            var client = new IndexApiClient();
+            var client = IndexApiClient.Create();
             var task = client.GetFileGroups();
             task.Wait();
             if (task.Result == null)
@@ -25,7 +25,7 @@ namespace com.hideakin.textsearch.service
 
         public FileGroupInfo CreateFileGroup(string group)
         {
-            var client = new IndexApiClient();
+            var client = IndexApiClient.Create();
             var task = client.CreateFileGroup(group);
             task.Wait();
             if (task.Result == null)
@@ -41,7 +41,7 @@ namespace com.hideakin.textsearch.service
 
         public FileGroupInfo UpdateFileGroup(int gid, string group)
         {
-            var client = new IndexApiClient();
+            var client = IndexApiClient.Create();
             var task = client.UpdateFileGroup(gid, group);
             task.Wait();
             if (task.Result == null)
@@ -57,7 +57,7 @@ namespace com.hideakin.textsearch.service
 
         public FileGroupInfo DeleteFileGroup(int gid)
         {
-            var client = new IndexApiClient();
+            var client = IndexApiClient.Create();
             var task = client.DeleteFileGroup(gid);
             task.Wait();
             if (task.Result == null)

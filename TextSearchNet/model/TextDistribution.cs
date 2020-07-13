@@ -2,7 +2,7 @@
 
 namespace com.hideakin.textsearch.model
 {
-    internal class TextDistribution
+    public class TextDistribution
     {
         [JsonProperty("fid")]
         public int Fid { get; set; }

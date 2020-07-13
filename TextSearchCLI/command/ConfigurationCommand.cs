@@ -25,22 +25,6 @@ namespace com.hideakin.textsearch.command
                     }
                     PrefSvc.Url = a;
                 })
-                .AddHandler("-username", (e) =>
-                {
-                    if (!e.MoveNext())
-                    {
-                        throw new Exception("Username is not specified.");
-                    }
-                    PrefSvc.Username = (string)e.Current;
-                })
-                .AddHandler("-password", (e) =>
-                {
-                    if (!e.MoveNext())
-                    {
-                        throw new Exception("Password is not specified.");
-                    }
-                    PrefSvc.Password = (string)e.Current;
-                })
                 .AddHandler("-print-extensions", (e) =>
                 {
                     commandQueue.Add(() =>

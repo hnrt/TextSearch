@@ -2,7 +2,7 @@
 
 namespace com.hideakin.textsearch.model
 {
-    internal class AuthenticateResponse
+    public class AuthenticateResponse
     {
         [JsonProperty("access_token")]
         public string AccessToken { get; set; }

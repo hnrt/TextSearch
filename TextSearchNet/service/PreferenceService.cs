@@ -21,7 +21,7 @@ namespace com.hideakin.textsearch.service
 
         public string GetPreference(string name)
         {
-            var client = new IndexApiClient();
+            var client = IndexApiClient.Create();
             var task = client.GetPreference(name);
             task.Wait();
             if (client.Response.StatusCode != HttpStatusCode.OK && client.Response.StatusCode != HttpStatusCode.NotFound)
@@ -33,7 +33,7 @@ namespace com.hideakin.textsearch.service
 
         public string SetPreference(string name, string value)
         {
-            var client = new IndexApiClient();
+            var client = IndexApiClient.Create();
             var task = client.SetPreference(name, value);
             task.Wait();
             if (task.Result != null)
@@ -45,7 +45,7 @@ namespace com.hideakin.textsearch.service
 
         public void DeletePreference(string name)
         {
-            var client = new IndexApiClient();
+            var client = IndexApiClient.Create();
             var task = client.DeletePreference(name);
             task.Wait();
             if (!task.Result)

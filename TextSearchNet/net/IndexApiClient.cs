@@ -13,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace com.hideakin.textsearch.net
 {
-    internal class IndexApiClient
+    public class IndexApiClient
     {
         #region CLASS FIELDS
 
@@ -23,7 +23,7 @@ namespace com.hideakin.textsearch.net
 
         public static string Url { get; set; } = @"http://localhost:8080";
 
-        private static readonly object mutex = new object();
+        private static ApiCreadentialsCollection CredCollection { get; } = ApiCreadentialsCollection.Load(GetFilePath());
 
         public static ApiCredentials Credentials { get; } = new ApiCredentials();
 
@@ -49,6 +49,35 @@ namespace com.hideakin.textsearch.net
             {
                 Credentials.Password = envPassword;
             }
+            if (Credentials.Username != null)
+            {
+                var c = CredCollection.GetCredentials(Credentials.Username);
+                if (c != null)
+                {
+                    if (Credentials.EncryptedPassword != null)
+                    {
+                        Credentials.EncryptedPassword = c.EncryptedPassword;
+                    }
+                    Credentials.EncryptedToken = c.EncryptedToken;
+                    Credentials.ExpiresAt = c.ExpiresAt;
+                }
+            }
+            else
+            {
+                var c = CredCollection.GetCredentials();
+                if (c != null)
+                {
+                    Credentials.Username = c.Username;
+                    Credentials.EncryptedPassword = c.EncryptedPassword;
+                    Credentials.EncryptedToken = c.EncryptedToken;
+                    Credentials.ExpiresAt = c.ExpiresAt;
+                }
+            }
+        }
+
+        public static IndexApiClient Create()
+        {
+            return new IndexApiClient();
         }
 
         #endregion
@@ -61,89 +90,55 @@ namespace com.hideakin.textsearch.net
 
         private readonly CancellationTokenSource cts = new CancellationTokenSource();
 
+        public Exception LastException { get; private set; }
+
         #endregion
 
         #region CONSTRUCTOR
 
-        public IndexApiClient()
+        private IndexApiClient()
         {
-            lock (mutex)
-            {
-                if (Credentials.EncryptedToken == null || Credentials.ExpiresAt <= DateTime.Now.AddMinutes(3))
-                {
-                    Initialize();
-                }
-            }
         }
 
         #endregion
 
         #region SETUP
 
-        private void Initialize()
+        private async Task Initialize()
         {
-            ApiCreadentialsCollection cc;
-            var path = GetFilePath();
-            if (File.Exists(path))
+            using (new IndexApiClientSpinLock())
             {
-                cc = ApiCreadentialsCollection.Load(path);
-                if (Credentials.EncryptedPassword == null)
+                if (TokenNeedsToBeUpdated)
                 {
-                    if (Credentials.Username != null)
+                    if (Credentials.Username == null || Credentials.EncryptedPassword == null)
                     {
-                        var c = cc.GetCredentials(Credentials.Username);
-                        if (c != null)
-                        {
-                            Credentials.EncryptedPassword = c.EncryptedPassword;
-                            Credentials.EncryptedToken = c.EncryptedToken;
-                            Credentials.ExpiresAt = c.ExpiresAt;
-                        }
+                        throw new Exception("No valid API key is available. Credentials need to be specified.");
+                    }
+                    var result = await Authenticate(Credentials.Username, Credentials.Password);
+                    if (result is AuthenticateResponse ar)
+                    {
+                        return;
+                    }
+                    else if (result is ErrorResponse e)
+                    {
+                        throw new Exception(e.ErrorDescription);
                     }
                     else
                     {
-                        var c = cc.GetCredentials();
-                        if (c != null)
-                        {
-                            Credentials.Username = c.Username;
-                            Credentials.EncryptedPassword = c.EncryptedPassword;
-                            Credentials.EncryptedToken = c.EncryptedToken;
-                            Credentials.ExpiresAt = c.ExpiresAt;
-                        }
+                        throw new Exception("Unexpected value returned: " + result.GetType().ToString());
                     }
                 }
             }
-            else
-            {
-                cc = new ApiCreadentialsCollection()
-                {
-                    LastUser = null,
-                    Credentials = new ApiCredentials[0]
-                };
-            }
-            if (Credentials.Username == null || Credentials.EncryptedPassword == null)
-            {
-                throw new Exception("No valid API key is available. Credentials need to be specified.");
-            }
-            var task = Authenticate();
-            task.Wait();
-            if (task.Result is ErrorResponse e)
-            {
-                throw new Exception(e.ErrorDescription);
-            }
-            var ar = (AuthenticateResponse)task.Result;
-            Credentials.AccessToken = ar.AccessToken;
-            Credentials.ExpiresAt = DateTime.Now.AddSeconds(ar.ExpiresIn);
-            cc.SetCredentials(Credentials);
-            cc.LastUser = Credentials.Username;
-            cc.Save(path);
         }
 
-        private string GetFilePath()
+        private bool TokenNeedsToBeUpdated => Credentials.EncryptedToken == null || Credentials.ExpiresAt <= DateTime.Now.AddMinutes(3);
+
+        private static string GetFilePath()
         {
             return Path.Combine(GetDirPath(), string.Format("credentials.json"));
         }
 
-        private string GetDirPath()
+        private static string GetDirPath()
         {
             var dir1 = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "HNRT");
             if (!Directory.Exists(dir1))
@@ -162,30 +157,47 @@ namespace com.hideakin.textsearch.net
 
         #region AUTHENTICATION
 
-        private async Task<object> Authenticate()
+        public async Task<object> Authenticate(string username, string password)
         {
-            var uri = string.Format("{0}/v1/authentication", Url);
-            var request = new HttpRequestMessage(HttpMethod.Get, uri);
-            request.Headers.Add(AUTHORIZATION, BasicToken);
-            Response = await httpClient.SendAsync(request, cts.Token);
-            ResponseBody = await Response.Content.ReadAsStringAsync();
-            if (Response.StatusCode == HttpStatusCode.OK)
+            try
             {
-                return JsonConvert.DeserializeObject<AuthenticateResponse>(ResponseBody);
+                var uri = string.Format("{0}/v1/authentication", Url);
+                var request = new HttpRequestMessage(HttpMethod.Get, uri);
+                request.Headers.Add(AUTHORIZATION, GetBasicToken(username, password));
+                Response = await httpClient.SendAsync(request, cts.Token);
+                ResponseBody = await Response.Content.ReadAsStringAsync();
+                if (Response.StatusCode == HttpStatusCode.OK)
+                {
+                    var ar = JsonConvert.DeserializeObject<AuthenticateResponse>(ResponseBody);
+                    Credentials.Username = username;
+                    Credentials.Password = password;
+                    Credentials.AccessToken = ar.AccessToken;
+                    Credentials.ExpiresAt = DateTime.Now.AddSeconds(ar.ExpiresIn);
+                    CredCollection.SetCredentials(Credentials);
+                    CredCollection.LastUser = Credentials.Username;
+                    CredCollection.Save(GetFilePath());
+                    return ar;
+                }
+                else
+                {
+                    return JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody);
+                }
             }
-            else
+            catch (Exception e)
             {
-                return JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody);
+                LastException = e;
+                return new ErrorResponse()
+                {
+                    Error = "api_request_failure",
+                    ErrorDescription = e.Message
+                };
             }
         }
 
-        private string BasicToken
+        private string GetBasicToken(string username, string password)
         {
-            get
-            {
-                var s = string.Format("{0}:{1}", Credentials.Username, Credentials.Password);
-                return "Basic " + Convert.ToBase64String(Encoding.UTF8.GetBytes(s));
-            }
+            var s = string.Format("{0}:{1}", username, password);
+            return "Basic " + Convert.ToBase64String(Encoding.UTF8.GetBytes(s));
         }
 
         private string BearerToken
@@ -202,11 +214,22 @@ namespace com.hideakin.textsearch.net
 
         public async Task<bool> Check()
         {
-            var uri = string.Format("{0}/v1/maintenance", Url);
-            var request = new HttpRequestMessage(HttpMethod.Get, uri);
-            Response = await httpClient.SendAsync(request, cts.Token);
-            ResponseBody = await Response.Content.ReadAsStringAsync();
-            return Response.StatusCode == HttpStatusCode.OK && ResponseBody == "false";
+            try
+            {
+                var uri = string.Format("{0}/v1/maintenance", Url);
+                var request = new HttpRequestMessage(HttpMethod.Get, uri);
+                Response = await httpClient.SendAsync(request, cts.Token);
+                ResponseBody = await Response.Content.ReadAsStringAsync();
+                if (Response.StatusCode == HttpStatusCode.OK)
+                {
+                    return ResponseBody == "false";
+                }
+            }
+            catch (Exception e)
+            {
+                LastException = e;
+            }
+            return false;
         }
 
         #endregion
@@ -215,120 +238,150 @@ namespace com.hideakin.textsearch.net
 
         public async Task<UserInfo[]> GetUsers()
         {
-            var uri = string.Format("{0}/v1/users", Url);
-            var request = new HttpRequestMessage(HttpMethod.Get, uri);
-            request.Headers.Add(AUTHORIZATION, BearerToken);
-            Response = await httpClient.SendAsync(request, cts.Token);
-            ResponseBody = await Response.Content.ReadAsStringAsync();
-            if (Response.StatusCode == HttpStatusCode.OK)
+            try
             {
-                return JsonConvert.DeserializeObject<UserInfo[]>(ResponseBody);
+                await Initialize();
+                var uri = string.Format("{0}/v1/users", Url);
+                var request = new HttpRequestMessage(HttpMethod.Get, uri);
+                request.Headers.Add(AUTHORIZATION, BearerToken);
+                Response = await httpClient.SendAsync(request, cts.Token);
+                ResponseBody = await Response.Content.ReadAsStringAsync();
+                if (Response.StatusCode == HttpStatusCode.OK)
+                {
+                    return JsonConvert.DeserializeObject<UserInfo[]>(ResponseBody);
+                }
             }
-            else
+            catch (Exception e)
             {
-                return null;
+                LastException = e;
             }
+            return null;
         }
 
         public async Task<UserInfo> GetUser(int uid)
         {
-            var uri = string.Format("{0}/v1/users/{1}", Url, uid);
-            var request = new HttpRequestMessage(HttpMethod.Get, uri);
-            request.Headers.Add(AUTHORIZATION, BearerToken);
-            Response = await httpClient.SendAsync(request, cts.Token);
-            ResponseBody = await Response.Content.ReadAsStringAsync();
-            if (Response.StatusCode == HttpStatusCode.OK)
+            try
             {
-                return JsonConvert.DeserializeObject<UserInfo>(ResponseBody);
+                await Initialize();
+                var uri = string.Format("{0}/v1/users/{1}", Url, uid);
+                var request = new HttpRequestMessage(HttpMethod.Get, uri);
+                request.Headers.Add(AUTHORIZATION, BearerToken);
+                Response = await httpClient.SendAsync(request, cts.Token);
+                ResponseBody = await Response.Content.ReadAsStringAsync();
+                if (Response.StatusCode == HttpStatusCode.OK)
+                {
+                    return JsonConvert.DeserializeObject<UserInfo>(ResponseBody);
+                }
             }
-            else
+            catch (Exception e)
             {
-                return null;
+                LastException = e;
             }
+            return null;
         }
 
         public async Task<UserInfo> GetUser(string username)
         {
-            var uri = string.Format("{0}/v1/users?username={1}", Url, username);
-            var request = new HttpRequestMessage(HttpMethod.Get, uri);
-            request.Headers.Add(AUTHORIZATION, BearerToken);
-            Response = await httpClient.SendAsync(request, cts.Token);
-            ResponseBody = await Response.Content.ReadAsStringAsync();
-            if (Response.StatusCode == HttpStatusCode.OK)
+            try
             {
-                return JsonConvert.DeserializeObject<UserInfo>(ResponseBody);
+                await Initialize();
+                var uri = string.Format("{0}/v1/users?username={1}", Url, username);
+                var request = new HttpRequestMessage(HttpMethod.Get, uri);
+                request.Headers.Add(AUTHORIZATION, BearerToken);
+                Response = await httpClient.SendAsync(request, cts.Token);
+                ResponseBody = await Response.Content.ReadAsStringAsync();
+                if (Response.StatusCode == HttpStatusCode.OK)
+                {
+                    return JsonConvert.DeserializeObject<UserInfo>(ResponseBody);
+                }
             }
-            else
+            catch (Exception e)
             {
-                return null;
+                LastException = e;
             }
+            return null;
         }
 
         public async Task<object> CreateUser(string username, string password, string[] roles)
         {
-            var uri = string.Format("{0}/v1/users", Url);
-            var request = new HttpRequestMessage(HttpMethod.Post, uri);
-            request.Headers.Add(AUTHORIZATION, BearerToken);
-            var input = new UserRequest(username, password, roles);
-            request.Content = new StringContent(JsonConvert.SerializeObject(input), Encoding.UTF8, "application/json");
-            Response = await httpClient.SendAsync(request, cts.Token);
-            ResponseBody = await Response.Content.ReadAsStringAsync();
-            if (Response.StatusCode == HttpStatusCode.Created)
+            try
             {
-                return JsonConvert.DeserializeObject<UserInfo>(ResponseBody);
+                await Initialize();
+                var uri = string.Format("{0}/v1/users", Url);
+                var request = new HttpRequestMessage(HttpMethod.Post, uri);
+                request.Headers.Add(AUTHORIZATION, BearerToken);
+                var input = new UserRequest(username, password, roles);
+                request.Content = new StringContent(JsonConvert.SerializeObject(input), Encoding.UTF8, "application/json");
+                Response = await httpClient.SendAsync(request, cts.Token);
+                ResponseBody = await Response.Content.ReadAsStringAsync();
+                if (Response.StatusCode == HttpStatusCode.Created)
+                {
+                    return JsonConvert.DeserializeObject<UserInfo>(ResponseBody);
+                }
+                else if (Response.StatusCode == HttpStatusCode.BadRequest || Response.StatusCode == HttpStatusCode.Forbidden)
+                {
+                    return JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody);
+                }
             }
-            else if (Response.StatusCode == HttpStatusCode.BadRequest || Response.StatusCode == HttpStatusCode.Forbidden)
+            catch (Exception e)
             {
-                return JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody);
+                LastException = e;
             }
-            else
-            {
-                return null;
-            }
+            return null;
         }
 
         public async Task<object> UpdateUser(int uid, string username, string password, string[] roles)
         {
-            var uri = string.Format("{0}/v1/users/{1}", Url, uid);
-            var request = new HttpRequestMessage(HttpMethod.Put, uri);
-            request.Headers.Add(AUTHORIZATION, BearerToken);
-            var input = new UserRequest(username, password, roles);
-            request.Content = new StringContent(JsonConvert.SerializeObject(input), Encoding.UTF8, "application/json");
-            Response = await httpClient.SendAsync(request, cts.Token);
-            ResponseBody = await Response.Content.ReadAsStringAsync();
-            if (Response.StatusCode == HttpStatusCode.OK)
+            try
             {
-                return JsonConvert.DeserializeObject<UserInfo>(ResponseBody);
+                await Initialize();
+                var uri = string.Format("{0}/v1/users/{1}", Url, uid);
+                var request = new HttpRequestMessage(HttpMethod.Put, uri);
+                request.Headers.Add(AUTHORIZATION, BearerToken);
+                var input = new UserRequest(username, password, roles);
+                request.Content = new StringContent(JsonConvert.SerializeObject(input), Encoding.UTF8, "application/json");
+                Response = await httpClient.SendAsync(request, cts.Token);
+                ResponseBody = await Response.Content.ReadAsStringAsync();
+                if (Response.StatusCode == HttpStatusCode.OK)
+                {
+                    return JsonConvert.DeserializeObject<UserInfo>(ResponseBody);
+                }
+                else if (Response.StatusCode == HttpStatusCode.BadRequest || Response.StatusCode == HttpStatusCode.Forbidden)
+                {
+                    return JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody);
+                }
             }
-            else if (Response.StatusCode == HttpStatusCode.BadRequest || Response.StatusCode == HttpStatusCode.Forbidden)
+            catch (Exception e)
             {
-                return JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody);
+                LastException = e;
             }
-            else
-            {
-                return null;
-            }
+            return null;
         }
 
         public async Task<object> DeleteUser(int uid)
         {
-            var uri = string.Format("{0}/v1/users/{1}", Url, uid);
-            var request = new HttpRequestMessage(HttpMethod.Delete, uri);
-            request.Headers.Add(AUTHORIZATION, BearerToken);
-            Response = await httpClient.SendAsync(request, cts.Token);
-            ResponseBody = await Response.Content.ReadAsStringAsync();
-            if (Response.StatusCode == HttpStatusCode.OK)
+            try
             {
-                return JsonConvert.DeserializeObject<UserInfo>(ResponseBody);
+                await Initialize();
+                var uri = string.Format("{0}/v1/users/{1}", Url, uid);
+                var request = new HttpRequestMessage(HttpMethod.Delete, uri);
+                request.Headers.Add(AUTHORIZATION, BearerToken);
+                Response = await httpClient.SendAsync(request, cts.Token);
+                ResponseBody = await Response.Content.ReadAsStringAsync();
+                if (Response.StatusCode == HttpStatusCode.OK)
+                {
+                    return JsonConvert.DeserializeObject<UserInfo>(ResponseBody);
+                }
+                else if (Response.StatusCode == HttpStatusCode.BadRequest || Response.StatusCode == HttpStatusCode.Forbidden)
+                {
+                    return JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody);
+                }
             }
-            else if (Response.StatusCode == HttpStatusCode.BadRequest || Response.StatusCode == HttpStatusCode.Forbidden)
+            catch (Exception e)
             {
-                return JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody);
+                LastException = e;
             }
-            else
-            {
-                return null;
-            }
+            return null;
         }
 
         #endregion
@@ -337,86 +390,106 @@ namespace com.hideakin.textsearch.net
 
         public async Task<FileGroupInfo[]> GetFileGroups()
         {
-            var uri = string.Format("{0}/v1/groups", Url);
-            var request = new HttpRequestMessage(HttpMethod.Get, uri);
-            request.Headers.Add(AUTHORIZATION, BearerToken);
-            Response = await httpClient.SendAsync(request, cts.Token);
-            ResponseBody = await Response.Content.ReadAsStringAsync();
-            if (Response.StatusCode == HttpStatusCode.OK)
+            try
             {
-                return JsonConvert.DeserializeObject<FileGroupInfo[]>(ResponseBody);
+                await Initialize();
+                var uri = string.Format("{0}/v1/groups", Url);
+                var request = new HttpRequestMessage(HttpMethod.Get, uri);
+                request.Headers.Add(AUTHORIZATION, BearerToken);
+                Response = await httpClient.SendAsync(request, cts.Token);
+                ResponseBody = await Response.Content.ReadAsStringAsync();
+                if (Response.StatusCode == HttpStatusCode.OK)
+                {
+                    return JsonConvert.DeserializeObject<FileGroupInfo[]>(ResponseBody);
+                }
             }
-            else
+            catch (Exception e)
             {
-                return null;
+                LastException = e;
             }
+            return null;
         }
 
         public async Task<object> CreateFileGroup(string group)
         {
-            var uri = string.Format("{0}/v1/groups", Url);
-            var request = new HttpRequestMessage(HttpMethod.Post, uri);
-            request.Headers.Add(AUTHORIZATION, BearerToken);
-            var input = new FileGroupRequest(group);
-            request.Content = new StringContent(JsonConvert.SerializeObject(input), Encoding.UTF8, "application/json");
-            Response = await httpClient.SendAsync(request, cts.Token);
-            ResponseBody = await Response.Content.ReadAsStringAsync();
-            if (Response.StatusCode == HttpStatusCode.Created)
+            try
             {
-                return JsonConvert.DeserializeObject<FileGroupInfo>(ResponseBody);
+                await Initialize();
+                var uri = string.Format("{0}/v1/groups", Url);
+                var request = new HttpRequestMessage(HttpMethod.Post, uri);
+                request.Headers.Add(AUTHORIZATION, BearerToken);
+                var input = new FileGroupRequest(group);
+                request.Content = new StringContent(JsonConvert.SerializeObject(input), Encoding.UTF8, "application/json");
+                Response = await httpClient.SendAsync(request, cts.Token);
+                ResponseBody = await Response.Content.ReadAsStringAsync();
+                if (Response.StatusCode == HttpStatusCode.Created)
+                {
+                    return JsonConvert.DeserializeObject<FileGroupInfo>(ResponseBody);
+                }
+                else if (Response.StatusCode == HttpStatusCode.BadRequest || Response.StatusCode == HttpStatusCode.Forbidden)
+                {
+                    return JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody);
+                }
             }
-            else if (Response.StatusCode == HttpStatusCode.BadRequest || Response.StatusCode == HttpStatusCode.Forbidden)
+            catch (Exception e)
             {
-                return JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody);
+                LastException = e;
             }
-            else
-            {
-                return null;
-            }
+            return null;
         }
 
         public async Task<object> UpdateFileGroup(int gid, string group)
         {
-            var uri = string.Format("{0}/v1/groups/{1}", Url, gid);
-            var request = new HttpRequestMessage(HttpMethod.Put, uri);
-            request.Headers.Add(AUTHORIZATION, BearerToken);
-            var input = new FileGroupRequest(group);
-            request.Content = new StringContent(JsonConvert.SerializeObject(input), Encoding.UTF8, "application/json");
-            Response = await httpClient.SendAsync(request, cts.Token);
-            ResponseBody = await Response.Content.ReadAsStringAsync();
-            if (Response.StatusCode == HttpStatusCode.OK)
+            try
             {
-                return JsonConvert.DeserializeObject<FileGroupInfo>(ResponseBody);
+                await Initialize();
+                var uri = string.Format("{0}/v1/groups/{1}", Url, gid);
+                var request = new HttpRequestMessage(HttpMethod.Put, uri);
+                request.Headers.Add(AUTHORIZATION, BearerToken);
+                var input = new FileGroupRequest(group);
+                request.Content = new StringContent(JsonConvert.SerializeObject(input), Encoding.UTF8, "application/json");
+                Response = await httpClient.SendAsync(request, cts.Token);
+                ResponseBody = await Response.Content.ReadAsStringAsync();
+                if (Response.StatusCode == HttpStatusCode.OK)
+                {
+                    return JsonConvert.DeserializeObject<FileGroupInfo>(ResponseBody);
+                }
+                else if (Response.StatusCode == HttpStatusCode.BadRequest || Response.StatusCode == HttpStatusCode.Forbidden)
+                {
+                    return JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody);
+                }
             }
-            else if (Response.StatusCode == HttpStatusCode.BadRequest || Response.StatusCode == HttpStatusCode.Forbidden)
+            catch (Exception e)
             {
-                return JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody);
+                LastException = e;
             }
-            else
-            {
-                return null;
-            }
+            return null;
         }
 
         public async Task<object> DeleteFileGroup(int gid)
         {
-            var uri = string.Format("{0}/v1/groups/{1}", Url, gid);
-            var request = new HttpRequestMessage(HttpMethod.Delete, uri);
-            request.Headers.Add(AUTHORIZATION, BearerToken);
-            Response = await httpClient.SendAsync(request, cts.Token);
-            ResponseBody = await Response.Content.ReadAsStringAsync();
-            if (Response.StatusCode == HttpStatusCode.OK)
+            try
             {
-                return JsonConvert.DeserializeObject<FileGroupInfo>(ResponseBody);
+                await Initialize();
+                var uri = string.Format("{0}/v1/groups/{1}", Url, gid);
+                var request = new HttpRequestMessage(HttpMethod.Delete, uri);
+                request.Headers.Add(AUTHORIZATION, BearerToken);
+                Response = await httpClient.SendAsync(request, cts.Token);
+                ResponseBody = await Response.Content.ReadAsStringAsync();
+                if (Response.StatusCode == HttpStatusCode.OK)
+                {
+                    return JsonConvert.DeserializeObject<FileGroupInfo>(ResponseBody);
+                }
+                else if (Response.StatusCode == HttpStatusCode.Forbidden)
+                {
+                    return JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody);
+                }
             }
-            else if (Response.StatusCode == HttpStatusCode.Forbidden)
+            catch (Exception e)
             {
-                return JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody);
+                LastException = e;
             }
-            else
-            {
-                return null;
-            }
+            return null;
         }
 
         #endregion
@@ -425,48 +498,75 @@ namespace com.hideakin.textsearch.net
 
         public async Task<string> GetPreference(string name)
         {
-            var uri = string.Format("{0}/v1/preferences/{1}", Url, name);
-            var request = new HttpRequestMessage(HttpMethod.Get, uri);
-            request.Headers.Add(AUTHORIZATION, BearerToken);
-            Response = await httpClient.SendAsync(request, cts.Token);
-            ResponseBody = await Response.Content.ReadAsStringAsync();
-            if (Response.StatusCode == HttpStatusCode.OK)
+            try
             {
-                return JsonConvert.DeserializeObject<ValueResponse>(ResponseBody).Value;
+                await Initialize();
+                var uri = string.Format("{0}/v1/preferences/{1}", Url, name);
+                var request = new HttpRequestMessage(HttpMethod.Get, uri);
+                request.Headers.Add(AUTHORIZATION, BearerToken);
+                Response = await httpClient.SendAsync(request, cts.Token);
+                ResponseBody = await Response.Content.ReadAsStringAsync();
+                if (Response.StatusCode == HttpStatusCode.OK)
+                {
+                    return JsonConvert.DeserializeObject<ValueResponse>(ResponseBody).Value;
+                }
             }
-            else
+            catch (Exception e)
             {
-                return null;
+                LastException = e;
             }
+            return null;
         }
 
         public async Task<ErrorResponse> SetPreference(string name, string value)
         {
-            var uri = string.Format("{0}/v1/preferences", Url);
-            var request = new HttpRequestMessage(HttpMethod.Post, uri);
-            request.Headers.Add(AUTHORIZATION, BearerToken);
-            var input = new UpdatePreferenceRequest(name, value);
-            request.Content = new StringContent(JsonConvert.SerializeObject(input), Encoding.UTF8, "application/json");
-            Response = await httpClient.SendAsync(request, cts.Token);
-            ResponseBody = await Response.Content.ReadAsStringAsync();
-            if (Response.StatusCode == HttpStatusCode.Created || Response.StatusCode == HttpStatusCode.OK)
+            try
             {
-                return null;
+                await Initialize();
+                var uri = string.Format("{0}/v1/preferences", Url);
+                var request = new HttpRequestMessage(HttpMethod.Post, uri);
+                request.Headers.Add(AUTHORIZATION, BearerToken);
+                var input = new UpdatePreferenceRequest(name, value);
+                request.Content = new StringContent(JsonConvert.SerializeObject(input), Encoding.UTF8, "application/json");
+                Response = await httpClient.SendAsync(request, cts.Token);
+                ResponseBody = await Response.Content.ReadAsStringAsync();
+                if (Response.StatusCode == HttpStatusCode.Created || Response.StatusCode == HttpStatusCode.OK)
+                {
+                    return null;
+                }
+                else
+                {
+                    return JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody);
+                }
             }
-            else
+            catch (Exception e)
             {
-                return JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody);
+                LastException = e;
             }
+            return new ErrorResponse()
+            {
+                Error = "unexpected_error",
+                ErrorDescription = "Failed to access Index API."
+            };
         }
 
         public async Task<bool> DeletePreference(string name)
         {
-            var uri = string.Format("{0}/v1/preferences/{1}", Url, name);
-            var request = new HttpRequestMessage(HttpMethod.Delete, uri);
-            request.Headers.Add(AUTHORIZATION, BearerToken);
-            Response = await httpClient.SendAsync(request, cts.Token);
-            ResponseBody = await Response.Content.ReadAsStringAsync();
-            return Response.StatusCode == HttpStatusCode.OK;
+            try
+            {
+                await Initialize();
+                var uri = string.Format("{0}/v1/preferences/{1}", Url, name);
+                var request = new HttpRequestMessage(HttpMethod.Delete, uri);
+                request.Headers.Add(AUTHORIZATION, BearerToken);
+                Response = await httpClient.SendAsync(request, cts.Token);
+                ResponseBody = await Response.Content.ReadAsStringAsync();
+                return Response.StatusCode == HttpStatusCode.OK;
+            }
+            catch (Exception e)
+            {
+                LastException = e;
+            }
+            return false;
         }
 
         #endregion
@@ -475,168 +575,215 @@ namespace com.hideakin.textsearch.net
 
         public async Task<model.FileInfo[]> GetFiles(string group)
         {
-            var uri = string.Format("{0}/v1/files/{1}", Url, group);
-            var request = new HttpRequestMessage(HttpMethod.Get, uri);
-            request.Headers.Add(AUTHORIZATION, BearerToken);
-            Response = await httpClient.SendAsync(request, cts.Token);
-            ResponseBody = await Response.Content.ReadAsStringAsync();
-            if (Response.StatusCode == HttpStatusCode.OK)
+            try
             {
-                return JsonConvert.DeserializeObject<model.FileInfo[]>(ResponseBody);
+                await Initialize();
+                var uri = string.Format("{0}/v1/files/{1}", Url, group);
+                var request = new HttpRequestMessage(HttpMethod.Get, uri);
+                request.Headers.Add(AUTHORIZATION, BearerToken);
+                Response = await httpClient.SendAsync(request, cts.Token);
+                ResponseBody = await Response.Content.ReadAsStringAsync();
+                if (Response.StatusCode == HttpStatusCode.OK)
+                {
+                    return JsonConvert.DeserializeObject<model.FileInfo[]>(ResponseBody);
+                }
             }
-            else
+            catch (Exception e)
             {
-                return null;
+                LastException = e;
             }
+            return null;
         }
 
         public async Task<model.FileInfo> GetFile(string group, string path)
         {
-            var uri = string.Format("{0}/v1/files/{1}/file?path={2}", Url, group, path);
-            var request = new HttpRequestMessage(HttpMethod.Get, uri);
-            request.Headers.Add(AUTHORIZATION, BearerToken);
-            Response = await httpClient.SendAsync(request, cts.Token);
-            ResponseBody = await Response.Content.ReadAsStringAsync();
-            if (Response.StatusCode == HttpStatusCode.OK)
+            try
             {
-                return JsonConvert.DeserializeObject<model.FileInfo>(ResponseBody);
+                await Initialize();
+                var uri = string.Format("{0}/v1/files/{1}/file?path={2}", Url, group, path);
+                var request = new HttpRequestMessage(HttpMethod.Get, uri);
+                request.Headers.Add(AUTHORIZATION, BearerToken);
+                Response = await httpClient.SendAsync(request, cts.Token);
+                ResponseBody = await Response.Content.ReadAsStringAsync();
+                if (Response.StatusCode == HttpStatusCode.OK)
+                {
+                    return JsonConvert.DeserializeObject<model.FileInfo>(ResponseBody);
+                }
             }
-            else
+            catch (Exception e)
             {
-                return null;
+                LastException = e;
             }
+            return null;
         }
 
         public async Task<FileStats> GetFileStats(string group)
         {
-            var uri = string.Format("{0}/v1/files/{1}/stats", Url, group);
-            var request = new HttpRequestMessage(HttpMethod.Get, uri);
-            request.Headers.Add(AUTHORIZATION, BearerToken);
-            Response = await httpClient.SendAsync(request, cts.Token);
-            ResponseBody = await Response.Content.ReadAsStringAsync();
-            if (Response.StatusCode == HttpStatusCode.OK)
+            try
             {
-                return JsonConvert.DeserializeObject<FileStats>(ResponseBody);
+                await Initialize();
+                var uri = string.Format("{0}/v1/files/{1}/stats", Url, group);
+                var request = new HttpRequestMessage(HttpMethod.Get, uri);
+                request.Headers.Add(AUTHORIZATION, BearerToken);
+                Response = await httpClient.SendAsync(request, cts.Token);
+                ResponseBody = await Response.Content.ReadAsStringAsync();
+                if (Response.StatusCode == HttpStatusCode.OK)
+                {
+                    return JsonConvert.DeserializeObject<FileStats>(ResponseBody);
+                }
             }
-            else
+            catch (Exception e)
             {
-                return null;
+                LastException = e;
             }
+            return null;
         }
 
         public async Task<model.FileInfo> UploadFile(string group, string path)
         {
-            var uri = string.Format("{0}/v1/files/{1}", Url, group);
-            var request = new HttpRequestMessage(HttpMethod.Post, uri);
-            request.Headers.Add(AUTHORIZATION, BearerToken);
-            var content = new MultipartFormDataContent();
-            var fileContent = new StreamContent(File.OpenRead(path));
-            fileContent.Headers.ContentDisposition = new ContentDispositionHeaderValue("form-data")
+            try
             {
-                Name = "file",
-                FileName = path
-            };
-            fileContent.Headers.ContentType = new MediaTypeHeaderValue("text/plain")
-            {
-                 CharSet = "UTF-8"
-            };
-            content.Add(fileContent);
-            request.Content = content;
-            Response = await httpClient.SendAsync(request, cts.Token);
-            ResponseBody = await Response.Content.ReadAsStringAsync();
-            if (Response.StatusCode == HttpStatusCode.OK || Response.StatusCode == HttpStatusCode.Created)
-            {
-                return JsonConvert.DeserializeObject<model.FileInfo>(ResponseBody);
+                await Initialize();
+                var uri = string.Format("{0}/v1/files/{1}", Url, group);
+                var request = new HttpRequestMessage(HttpMethod.Post, uri);
+                request.Headers.Add(AUTHORIZATION, BearerToken);
+                var content = new MultipartFormDataContent();
+                var fileContent = new StreamContent(File.OpenRead(path));
+                fileContent.Headers.ContentDisposition = new ContentDispositionHeaderValue("form-data")
+                {
+                    Name = "file",
+                    FileName = path
+                };
+                fileContent.Headers.ContentType = new MediaTypeHeaderValue("text/plain")
+                {
+                    CharSet = "UTF-8"
+                };
+                content.Add(fileContent);
+                request.Content = content;
+                Response = await httpClient.SendAsync(request, cts.Token);
+                ResponseBody = await Response.Content.ReadAsStringAsync();
+                if (Response.StatusCode == HttpStatusCode.OK || Response.StatusCode == HttpStatusCode.Created)
+                {
+                    return JsonConvert.DeserializeObject<model.FileInfo>(ResponseBody);
+                }
             }
-            else
+            catch (Exception e)
             {
-                return null;
+                LastException = e;
             }
+            return null;
         }
 
         public async Task<FileContents> DownloadFile(int fid)
         {
-            var uri = string.Format("{0}/v1/files/{1}/contents", Url, fid);
-            var request = new HttpRequestMessage(HttpMethod.Get, uri);
-            request.Headers.Add(AUTHORIZATION, BearerToken);
-            Response = await httpClient.SendAsync(request, cts.Token);
-            if (Response.StatusCode == HttpStatusCode.OK)
+            try
             {
-                // NOTE: System.Net.Http.Formatting.Extension NuGet Package needs to be installed to use ReadAsMultipartAsync extension method.
-                var provider = await Response.Content.ReadAsMultipartAsync();
-                foreach (var content in provider.Contents)
+                await Initialize();
+                var uri = string.Format("{0}/v1/files/{1}/contents", Url, fid);
+                var request = new HttpRequestMessage(HttpMethod.Get, uri);
+                request.Headers.Add(AUTHORIZATION, BearerToken);
+                Response = await httpClient.SendAsync(request, cts.Token);
+                if (Response.StatusCode == HttpStatusCode.OK)
                 {
-                    var name = RemoveQuotePair(content.Headers.ContentDisposition.Name);
-                    if (name == "file")
+                    // NOTE: System.Net.Http.Formatting.Extension NuGet Package needs to be installed to use ReadAsMultipartAsync extension method.
+                    var provider = await Response.Content.ReadAsMultipartAsync();
+                    foreach (var content in provider.Contents)
                     {
-                        var encoding = Encoding.GetEncoding(content.Headers.ContentType.CharSet ?? "UTF-8");
-                        using (var stream = await content.ReadAsStreamAsync())
-                        using (var input = new StreamReader(stream, encoding))
+                        var name = RemoveQuotePair(content.Headers.ContentDisposition.Name);
+                        if (name == "file")
                         {
-                            var lines = new List<string>();
-                            string line;
-                            while ((line = input.ReadLine()) != null)
+                            var encoding = Encoding.GetEncoding(content.Headers.ContentType.CharSet ?? "UTF-8");
+                            using (var stream = await content.ReadAsStreamAsync())
+                            using (var input = new StreamReader(stream, encoding))
                             {
-                                lines.Add(line);
+                                var lines = new List<string>();
+                                string line;
+                                while ((line = input.ReadLine()) != null)
+                                {
+                                    lines.Add(line);
+                                }
+                                return FileContents.Store(fid, RemoveQuotePair(content.Headers.ContentDisposition.FileName), lines.ToArray());
                             }
-                            return FileContents.Store(fid, RemoveQuotePair(content.Headers.ContentDisposition.FileName), lines.ToArray());
                         }
                     }
                 }
-                return null;
             }
-            else
+            catch (Exception e)
             {
-                return null;
+                LastException = e;
             }
+            return null;
         }
 
         public async Task<model.FileInfo[]> DeleteFiles(string group)
         {
-            var uri = string.Format("{0}/v1/files/{1}", Url, group);
-            var request = new HttpRequestMessage(HttpMethod.Delete, uri);
-            request.Headers.Add(AUTHORIZATION, BearerToken);
-            Response = await httpClient.SendAsync(request, cts.Token);
-            ResponseBody = await Response.Content.ReadAsStringAsync();
-            if (Response.StatusCode == HttpStatusCode.OK)
+            try
             {
-                return JsonConvert.DeserializeObject<model.FileInfo[]>(ResponseBody);
+                await Initialize();
+                var uri = string.Format("{0}/v1/files/{1}", Url, group);
+                var request = new HttpRequestMessage(HttpMethod.Delete, uri);
+                request.Headers.Add(AUTHORIZATION, BearerToken);
+                Response = await httpClient.SendAsync(request, cts.Token);
+                ResponseBody = await Response.Content.ReadAsStringAsync();
+                if (Response.StatusCode == HttpStatusCode.OK)
+                {
+                    return JsonConvert.DeserializeObject<model.FileInfo[]>(ResponseBody);
+                }
             }
-            else
+            catch (Exception e)
             {
-                return null;
+                LastException = e;
             }
+            return null;
         }
 
         public async Task<bool> DeleteStaleFiles(string group)
         {
-            var uri = string.Format("{0}/v1/files/{1}/stale", Url, group);
-            var request = new HttpRequestMessage(HttpMethod.Delete, uri);
-            request.Headers.Add(AUTHORIZATION, BearerToken);
-            Response = await httpClient.SendAsync(request, cts.Token);
-            ResponseBody = await Response.Content.ReadAsStringAsync();
-            return Response.StatusCode == HttpStatusCode.OK;
+            try
+            {
+                await Initialize();
+                var uri = string.Format("{0}/v1/files/{1}/stale", Url, group);
+                var request = new HttpRequestMessage(HttpMethod.Delete, uri);
+                request.Headers.Add(AUTHORIZATION, BearerToken);
+                Response = await httpClient.SendAsync(request, cts.Token);
+                ResponseBody = await Response.Content.ReadAsStringAsync();
+                return Response.StatusCode == HttpStatusCode.OK;
+            }
+            catch (Exception e)
+            {
+                LastException = e;
+            }
+            return false;
         }
 
         #endregion
 
         #region INDEX
 
-        public async Task<TextDistribution[]> FindText(string group, string text, SearchOptions option)
+        public async Task<object> FindText(string group, string text, SearchOptions option)
         {
-            var uri = string.Format("{0}/v1/index/{1}?text={2}&option={3}", Url, group, text, Enum.GetName(option.GetType(), option));
-            var request = new HttpRequestMessage(HttpMethod.Get, uri);
-            request.Headers.Add(AUTHORIZATION, BearerToken);
-            Response = await httpClient.SendAsync(request, cts.Token);
-            ResponseBody = await Response.Content.ReadAsStringAsync();
-            if (Response.StatusCode == HttpStatusCode.OK)
+            try
             {
-                return JsonConvert.DeserializeObject<TextDistribution[]>(ResponseBody);
+                await Initialize();
+                var uri = string.Format("{0}/v1/index/{1}?text={2}&option={3}", Url, group, text, Enum.GetName(option.GetType(), option));
+                var request = new HttpRequestMessage(HttpMethod.Get, uri);
+                request.Headers.Add(AUTHORIZATION, BearerToken);
+                Response = await httpClient.SendAsync(request, cts.Token);
+                ResponseBody = await Response.Content.ReadAsStringAsync();
+                if (Response.StatusCode == HttpStatusCode.OK)
+                {
+                    return JsonConvert.DeserializeObject<TextDistribution[]>(ResponseBody);
+                }
+                else if (Response.StatusCode == HttpStatusCode.BadRequest)
+                {
+                    return JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody);
+                }
             }
-            else
+            catch (Exception e)
             {
-                return null;
+                LastException = e;
             }
+            return null;
         }
 
         #endregion
