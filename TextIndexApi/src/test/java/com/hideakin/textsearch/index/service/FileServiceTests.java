@@ -412,7 +412,7 @@ public class FileServiceTests {
 		doNothing().when(fileRepository).deleteByFid(81);
 		doNothing().when(fileRepository).deleteByFid(82);
 		doNothing().when(fileRepository).deleteByFid(83);
-		when(em.createQuery("SELECT text FROM texts WHERE gid=111")).thenReturn(
+		when(em.createQuery("SELECT text FROM texts WHERE gid=:gid")).thenReturn(
 			new PseudoQuery(new ArrayList<String>() {{
 				add("CAT");
 				add("DOG");
