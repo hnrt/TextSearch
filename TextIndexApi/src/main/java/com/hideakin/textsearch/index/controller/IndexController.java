@@ -20,8 +20,8 @@ public class IndexController {
 	@RequestMapping(value="/v1/index/{group:[^0-9].*}",method=RequestMethod.GET)
 	public TextDistribution[] findTextByGroup(
 			@PathVariable String group,
-			@RequestParam(name = "text") String text,
-			@RequestParam(name = "option", defaultValue = "exact") SearchOptions option) {
+			@RequestParam(name="text") String text,
+			@RequestParam(name="option") SearchOptions option) {
     	return service.findText(group, text, option);
 	}
 

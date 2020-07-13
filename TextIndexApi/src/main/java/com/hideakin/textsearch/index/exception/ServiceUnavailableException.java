@@ -1,11 +1,11 @@
 package com.hideakin.textsearch.index.exception;
 
-public class ServiceUnavailableException extends RuntimeException {
+public class ServiceUnavailableException extends CustomRuntimeException {
 
-	private static final long serialVersionUID = 1L;
+	private static final long serialVersionUID = 8241428220621362584L;
 
 	public ServiceUnavailableException() {
-		super("Now under maintenance.");
+		super("under_maintenance", "Now under maintenance.");
 	}
 
 }

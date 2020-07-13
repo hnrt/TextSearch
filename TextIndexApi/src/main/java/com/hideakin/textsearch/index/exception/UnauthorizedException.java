@@ -1,22 +1,11 @@
 package com.hideakin.textsearch.index.exception;
 
-public class UnauthorizedException extends RuntimeException {
+public class UnauthorizedException extends CustomRuntimeException {
 
-	private static final long serialVersionUID = 2L;
+	private static final long serialVersionUID = 986336393413990532L;
 
-	private String error;
-	
 	public UnauthorizedException(String error, String errorDescription) {
-		super(errorDescription);
-		this.error = error;
-	}
-
-	public String getError() {
-		return error;
-	}
-
-	public String getErrorDescription() {
-		return super.getMessage();
+		super(error, errorDescription);
 	}
 
 }

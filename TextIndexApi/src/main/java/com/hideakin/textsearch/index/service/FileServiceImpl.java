@@ -100,7 +100,7 @@ public class FileServiceImpl implements FileService {
 	@Override
 	public FileInfo getFile(int fid) {
 		FileEntity entity = fileRepository.findByFid(fid);
-		if (entity != null) {
+		if (entity != null && !entity.isStale()) {
 			FileGroupEntity fileGroupEntity = fileGroupRepository.findByGid(entity.getGid());
 			return new FileInfo(entity, fileGroupEntity);
 		} else {
@@ -133,19 +133,19 @@ public class FileServiceImpl implements FileService {
 				fileRepository.save(next);
 			}
 		}
-		return entity != null ? new FileInfo(entity, fileGroupEntity) : null;
+		return entity != null && !entity.isStale() ? new FileInfo(entity, fileGroupEntity) : null;
 	}
 
 	@Override
 	public String getPath(int fid) {
 		FileEntity entity = fileRepository.findByFid(fid);
-		return entity != null ? entity.getPath() : null;
+		return entity != null && !entity.isStale() ? entity.getPath() : null;
 	}
 
 	@Override
 	public byte[] getContents(int fid) {
 		FileEntity fileEntity = fileRepository.findByFid(fid);
-		if (fileEntity == null) {
+		if (fileEntity == null || fileEntity.isStale()) {
 			return null;
 		}
 		FileContentEntity fileContentEntity = fileContentRepository.findByFid(fid);
@@ -303,7 +303,9 @@ public class FileServiceImpl implements FileService {
 
 	@SuppressWarnings("unchecked")
 	private List<String> getAllTexts(int gid) {
-		return (List<String>)em.createQuery(String.format("SELECT text FROM texts WHERE gid=%d", gid)).getResultList();
+		return (List<String>)em.createQuery("SELECT text FROM texts WHERE gid=:gid")
+				.setParameter("gid", gid)
+				.getResultList();
 	}
 
 	private void applyTextMap(int fid, int gid, Map<String,List<Integer>> textMap) {

@@ -1,22 +1,11 @@
 package com.hideakin.textsearch.index.exception;
 
-public class ForbiddenException extends RuntimeException {
+public class ForbiddenException extends CustomRuntimeException {
 
-	private static final long serialVersionUID = 3L;
-	
-	private String error;
-	
+	private static final long serialVersionUID = 1988725504260498691L;
+
 	public ForbiddenException(String error, String errorDescription) {
-		super(errorDescription);
-		this.error = error;
-	}
-
-	public String getError() {
-		return error;
-	}
-
-	public String getErrorDescription() {
-		return super.getMessage();
+		super(error, errorDescription);
 	}
 
 }

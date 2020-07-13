@@ -10,12 +10,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.hideakin.textsearch.index.data.SearchOptions;
-import com.hideakin.textsearch.index.entity.FileEntity;
 import com.hideakin.textsearch.index.entity.FileGroupEntity;
 import com.hideakin.textsearch.index.entity.TextEntity;
 import com.hideakin.textsearch.index.model.TextDistribution;
 import com.hideakin.textsearch.index.repository.FileGroupRepository;
-import com.hideakin.textsearch.index.repository.FileRepository;
 import com.hideakin.textsearch.index.repository.TextRepository;
 
 @Service
@@ -24,9 +22,6 @@ public class IndexServiceImpl implements IndexService {
 
 	@Autowired
 	private FileGroupRepository fileGroupRepository;
-
-	@Autowired
-	private FileRepository fileRepository;
 
 	@Autowired
 	private TextRepository textRepository;
@@ -38,13 +33,13 @@ public class IndexServiceImpl implements IndexService {
 			return new TextDistribution[0];
 		}
 		int gid = fileGroupEntity.getGid();
+		Map<Integer,TextDistribution> map = new HashMap<Integer,TextDistribution>();
 		if (option == SearchOptions.Exact) {
 			TextEntity textEntity = textRepository.findByTextAndGid(text, gid);
-			if (textEntity != null) {
-				Map<Integer,TextDistribution> map = new HashMap<Integer,TextDistribution>();
-				populateHitMap(map, textEntity);
-				return map.values().toArray(new TextDistribution[map.size()]);
+			if (textEntity == null) {
+				return new TextDistribution[0];
 			}
+			populateHitMap(map, textEntity);
 		} else {
 			List<TextEntity> textEntities;
 			if (option == SearchOptions.Contains) {
@@ -54,17 +49,12 @@ public class IndexServiceImpl implements IndexService {
 			} else if (option == SearchOptions.EndsWith) {
 				textEntities = textRepository.findAllByTextEndingWithAndGid(text, gid);
 			} else {
-				textEntities = null;
+				return new TextDistribution[0];
 			}
-			if (textEntities != null) {
-				Map<Integer,TextDistribution> map = new HashMap<Integer,TextDistribution>();
-				populateHitMap(map, textEntities);
-				return map.values().toArray(new TextDistribution[map.size()]);
-			}
+			populateHitMap(map, textEntities);
 		}
-		return new TextDistribution[0];
+		return map.values().toArray(new TextDistribution[map.size()]);
 	}
-
 
 	private void populateHitMap(Map<Integer,TextDistribution> map, List<TextEntity> entities) {
 		for (TextEntity entity : entities) {
@@ -80,10 +70,7 @@ public class IndexServiceImpl implements IndexService {
 			if (stored != null) {
 				stored.addPositions(dist.getPositions());
 			} else {
-				FileEntity fileEntity = fileRepository.findByFid(fid);
-				if (fileEntity != null && !fileEntity.isStale()) {
-					map.put(fid, dist);
-				}
+				map.put(fid, dist);
 			}
 		}
 	}

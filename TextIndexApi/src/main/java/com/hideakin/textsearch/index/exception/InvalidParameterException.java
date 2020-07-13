@@ -1,22 +1,11 @@
 package com.hideakin.textsearch.index.exception;
 
-public class InvalidParameterException extends RuntimeException {
+public class InvalidParameterException extends CustomRuntimeException {
 
-	private static final long serialVersionUID = 4L;
-
-	private String error;
+	private static final long serialVersionUID = 838010710987448822L;
 
 	public InvalidParameterException(String error, String errorDescription) {
-		super(errorDescription);
-		this.error = error;
-	}
-
-	public String getError() {
-		return error;
-	}
-
-	public String getErrorDescription() {
-		return super.getMessage();
+		super(error, errorDescription);
 	}
 
 }
