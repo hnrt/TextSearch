@@ -51,69 +51,7 @@ namespace com.hideakin.textsearch.model
             return true;
         }
 
-        public async Task<string> Execute()
-        {
-            HitItems.Clear();
-            NotifyOfChange("HitItems");
-            Path = " ";
-            NotifyOfChange("Path");
-            Contents.Clear();
-            NotifyOfChange("Contents");
-            var api = IndexApiClient.Create();
-            var results = await Task<object>.Run(() =>
-            {
-                try
-                {
-                    return (object)IndexSvc.FindText(Group, QueryText);
-                }
-                catch (Exception e)
-                {
-                    return e;
-                }
-            });
-            if (results is HitRowColumns[] hits)
-            {
-                foreach (var hit in hits)
-                {
-                    var contents = FileContents.Find(hit.Fid);
-                    foreach (var entry in hit.Rows)
-                    {
-                        HitItems.Add(new HitItem(hit.Fid, contents.Path, entry.Row + 1, contents.Lines[entry.Row]));
-                    }
-                }
-                NotifyOfChange("HitItems");
-            }
-            else if (results is Exception e)
-            {
-                return e.Message;
-            }
-            return null;
-        }
-
-        public void OnSelectionChanged(HitItem h)
-        {
-            if (h == null)
-            {
-                return;
-            }
-            if (CurrentSelection == null || CurrentSelection.Fid != h.Fid)
-            {
-                Path = h.Path;
-                NotifyOfChange("Path");
-                Contents.Clear();
-                var contents = FileContents.Find(h.Fid);
-                int no = 1;
-                foreach (var line in contents.Lines)
-                {
-                    Contents.Add(new LineText(no, line));
-                    no++;
-                }
-                NotifyOfChange("Contents");
-            }
-            CurrentSelection = h;
-        }
-
-        private async Task UpdateGroups()
+        public async Task UpdateGroups()
         {
             Groups.Clear();
             var api = IndexApiClient.Create();
@@ -137,6 +75,81 @@ namespace com.hideakin.textsearch.model
                 NotifyOfChange("Group");
                 NotifyOfChange("Groups");
             }
+        }
+
+        public async Task<string> Execute()
+        {
+            HitItems.Clear();
+            Path = string.Empty;
+            NotifyOfChange("Path");
+            Contents.Clear();
+            var api = IndexApiClient.Create();
+            var results = await Task<object>.Run(() =>
+            {
+                try
+                {
+                    return (object)IndexSvc.FindText(Group, QueryText);
+                }
+                catch (Exception e)
+                {
+                    return e;
+                }
+            });
+            if (results is HitRowColumns[] hits)
+            {
+                foreach (var hit in hits)
+                {
+                    var contents = FileContents.Find(hit.Fid);
+                    foreach (var entry in hit.Rows)
+                    {
+                        HitItems.Add(new HitItem(hit.Fid, contents.Path, entry.Row + 1, contents.Lines[entry.Row], entry.Columns));
+                    }
+                }
+            }
+            else if (results is Exception e)
+            {
+                return e.Message;
+            }
+            return null;
+        }
+
+        public bool OnSelectionChanged(HitItem h)
+        {
+            bool contentsChanged = false;
+            if (h != null && (CurrentSelection == null || CurrentSelection.Fid != h.Fid))
+            {
+                Path = h.Path;
+                NotifyOfChange("Path");
+                Contents.Clear();
+                var contents = FileContents.Find(h.Fid);
+                int no = 1;
+                foreach (var line in contents.Lines)
+                {
+                    Contents.Add(new LineText(no, line, null));
+                    no++;
+                }
+                foreach (var item in HitItems)
+                {
+                    if (item.Fid == h.Fid)
+                    {
+                        Contents[item.Line - 1].Matches = item.Matches;
+                    }
+                }
+                contentsChanged = true;
+            }
+            CurrentSelection = h;
+            return contentsChanged;
+        }
+
+        public void Clear()
+        {
+            QueryText = string.Empty;
+            NotifyOfChange("QueryText");
+            HitItems.Clear();
+            CurrentSelection = null;
+            Path = " ";
+            NotifyOfChange("Path");
+            Contents.Clear();
         }
 
         private void NotifyOfChange(string name)

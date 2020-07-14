@@ -117,6 +117,12 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="AboutCaption" xml:space="preserve">
+    <value>TextSearch - About</value>
+  </data>
+  <data name="AppCaption" xml:space="preserve">
+    <value>TextSearch</value>
+  </data>
   <data name="ApplyButtonContent" xml:space="preserve">
     <value>_Apply</value>
   </data>
@@ -135,6 +141,9 @@
   <data name="EditMenuItemHeader" xml:space="preserve">
     <value>_Edit</value>
   </data>
+  <data name="EditReloadGroupsMenuItemHeader" xml:space="preserve">
+    <value>Reload _groups</value>
+  </data>
   <data name="FileAuthMenuItemHeader" xml:space="preserve">
     <value>_Authenticate...</value>
   </data>
@@ -144,8 +153,23 @@
   <data name="FileMenuItemHeader" xml:space="preserve">
     <value>_File</value>
   </data>
+  <data name="FileNameColumnHeader" xml:space="preserve">
+    <value>FileName</value>
+  </data>
+  <data name="HelpAboutMenuItemHeader" xml:space="preserve">
+    <value>_About...</value>
+  </data>
   <data name="HelpMenuItemHeader" xml:space="preserve">
     <value>_Help</value>
+  </data>
+  <data name="HitFormat" xml:space="preserve">
+    <value>Hit: {0}</value>
+  </data>
+  <data name="Initializing" xml:space="preserve">
+    <value>Initializing...</value>
+  </data>
+  <data name="LineColumnHeader" xml:space="preserve">
+    <value>Line</value>
   </data>
   <data name="MainWindowTitle" xml:space="preserve">
     <value>TextSearch - What do you want to find today?</value>
@@ -159,10 +183,22 @@
   <data name="QueryLabelContent" xml:space="preserve">
     <value>_Phrase to find:</value>
   </data>
+  <data name="TextColumnHeader" xml:space="preserve">
+    <value>Text</value>
+  </data>
   <data name="UsernameLabelContent" xml:space="preserve">
     <value>_Username</value>
   </data>
+  <data name="VersionFormat" xml:space="preserve">
+    <value>Version {0}</value>
+  </data>
+  <data name="ViewClearMenuItemHeader" xml:space="preserve">
+    <value>_Clear all views</value>
+  </data>
   <data name="ViewMenuItemHeader" xml:space="preserve">
     <value>_View</value>
+  </data>
+  <data name="WaitingForResponse" xml:space="preserve">
+    <value>Waiting for response...</value>
   </data>
 </root>

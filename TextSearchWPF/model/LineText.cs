@@ -12,10 +12,13 @@ namespace com.hideakin.textsearch.model
 
         public string Text { get; set; }
 
-        public LineText(int line, string text)
+        public List<(int Start, int End)> Matches { get; set; }
+
+        public LineText(int line, string text, List<(int Start, int End)> matches)
         {
             Line = line;
             Text = text;
+            Matches = matches;
         }
     }
 }

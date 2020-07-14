@@ -74,6 +74,8 @@
       <DependentUpon>AuthWindow.xaml</DependentUpon>
     </Compile>
     <Compile Include="view\DisableControl.cs" />
+    <Compile Include="view\TemporalText.cs" />
+    <Compile Include="view\TextBlockDecoration.cs" />
     <Compile Include="view\WaitCursor.cs" />
     <Compile Include="view\MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>

@@ -4,15 +4,27 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:local="clr-namespace:com.hideakin.textsearch"
+        xmlns:v="clr-namespace:com.hideakin.textsearch.view"
         xmlns:p="clr-namespace:com.hideakin.textsearch.Properties"
         mc:Ignorable="d"
         Title="{x:Static p:Resources.MainWindowTitle}" Height="450" Width="800">
     <Window.Resources>
+        <v:TextBlockDecoration x:Key="TbDecoConv"/>
         <Style TargetType="ListViewItem">
             <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
         </Style>
         <DataTemplate x:Key="LineItemTemplate">
             <TextBlock HorizontalAlignment="Right" Text="{Binding Path=Line}"/>
+        </DataTemplate>
+        <DataTemplate x:Key="TextItemTemplate">
+            <TextBlock HorizontalAlignment="Left" xml:space="default">
+                <v:TextBlockDecoration.Inlines>
+                    <MultiBinding Converter="{StaticResource TbDecoConv}">
+                        <Binding Path="Text"/>
+                        <Binding Path="Matches"/>
+                    </MultiBinding>
+                </v:TextBlockDecoration.Inlines>
+            </TextBlock>
         </DataTemplate>
     </Window.Resources>
     <Grid>
@@ -25,17 +37,20 @@
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
-        <Menu x:Name="menubar" Grid.Row="0">
-            <MenuItem x:Name="fileMenuItem" Header="{x:Static p:Resources.FileMenuItemHeader}">
-                <MenuItem x:Name="fileAuthMenuItem" Header="{x:Static p:Resources.FileAuthMenuItemHeader}" Click="OnFileAuthMenuItemClick"/>
+        <Menu Name="Menubar" Grid.Row="0">
+            <MenuItem Name="FileMenuItem" Header="{x:Static p:Resources.FileMenuItemHeader}">
+                <MenuItem Name="FileAuthMenuItem" Header="{x:Static p:Resources.FileAuthMenuItemHeader}" Click="OnFileAuth"/>
                 <Separator/>
-                <MenuItem x:Name="fileExitMenuItem" Header="{x:Static p:Resources.FileExitMenuItemHeader}" Click="fileExitMenuItem_Click"/>
+                <MenuItem Name="FileExitMenuItem" Header="{x:Static p:Resources.FileExitMenuItemHeader}" Click="OnFileExit"/>
             </MenuItem>
-            <MenuItem x:Name="editMenuItem" Header="{x:Static p:Resources.EditMenuItemHeader}">
+            <MenuItem Name="EditMenuItem" Header="{x:Static p:Resources.EditMenuItemHeader}">
+                <MenuItem Name="EditReloadGroupsMenuItem" Header="{x:Static p:Resources.EditReloadGroupsMenuItemHeader}" Click="OnReloadGroups"/>
             </MenuItem>
-            <MenuItem x:Name="viewMenuItem" Header="{x:Static p:Resources.ViewMenuItemHeader}">
+            <MenuItem Name="ViewMenuItem" Header="{x:Static p:Resources.ViewMenuItemHeader}">
+                <MenuItem Name="ViewClearMenuItem" Header="{x:Static p:Resources.ViewClearMenuItemHeader}" Click="OnViewClear"/>
             </MenuItem>
-            <MenuItem x:Name="helpMenuItem" Header="{x:Static p:Resources.HelpMenuItemHeader}">
+            <MenuItem Name="HelpMenuItem" Header="{x:Static p:Resources.HelpMenuItemHeader}">
+                <MenuItem Name="HelpAboutMenuItem" Header="{x:Static p:Resources.HelpAboutMenuItemHeader}" Click="OnHelpAbout"/>
             </MenuItem>
         </Menu>
         <Grid Grid.Row="1">
@@ -48,7 +63,7 @@
                 <ColumnDefinition Width="Auto" MinWidth="100"/>
             </Grid.ColumnDefinitions>
             <ComboBox  Name="GroupComboBox" Grid.Row="0" Grid.Column="0" ItemsSource="{Binding Path=Groups,Mode=OneWay,UpdateSourceTrigger=PropertyChanged}" SelectedItem="{Binding Path=Group,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}"/>
-            <TextBox Name="QueryTextBox"  Grid.Row="0" Grid.Column="1" Text="{Binding Path=QueryText,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" />
+            <TextBox Name="QueryTextBox"  Grid.Row="0" Grid.Column="1" Text="{Binding Path=QueryText,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" KeyUp="OnQueryTextBoxKeyUp" />
             <Button Name="QueryButton" Grid.Row="0" Grid.Column="2" Content="{x:Static p:Resources.QueryButtonContent}" VerticalAlignment="Stretch" Click="OnQueryStart" />
         </Grid>
         <Grid Grid.Row="2">
@@ -63,9 +78,9 @@
             <ListView Name="HitListView" Grid.Row="0" ItemsSource="{Binding Path=HitItems,Mode=OneWay,UpdateSourceTrigger=PropertyChanged}" SelectionChanged="OnHitListViewSelectionChanged" >
                 <ListView.View>
                     <GridView>
-                        <GridViewColumn Header="FileName" DisplayMemberBinding="{Binding Path=FileName}"/>
-                        <GridViewColumn Header="Line" Width="50" CellTemplate="{StaticResource LineItemTemplate}"/>
-                        <GridViewColumn Header="Text" DisplayMemberBinding="{Binding Path=Text}"/>
+                        <GridViewColumn x:Name="HitListViewNameColumn" Header="{x:Static p:Resources.FileNameColumnHeader}" Width="200" DisplayMemberBinding="{Binding Path=FileName}"/>
+                        <GridViewColumn x:Name="HitListViewLineColumn" Header="{x:Static p:Resources.LineColumnHeader}" Width="50" CellTemplate="{StaticResource LineItemTemplate}"/>
+                        <GridViewColumn x:Name="HitListViewTextColumn" Header="{x:Static p:Resources.TextColumnHeader}" Width="Auto" CellTemplate="{StaticResource TextItemTemplate}"/>
                     </GridView>
                 </ListView.View>
             </ListView>
@@ -82,8 +97,8 @@
                 <ListView Name="ContentListView" Grid.Row="1" ItemsSource="{Binding Path=Contents,Mode=OneWay,UpdateSourceTrigger=PropertyChanged}">
                     <ListView.View>
                         <GridView>
-                            <GridViewColumn Header="Line" Width="50" CellTemplate="{StaticResource LineItemTemplate}"/>
-                            <GridViewColumn Header="Text" DisplayMemberBinding="{Binding Path=Text}"/>
+                            <GridViewColumn x:Name="ContentListViewLineColumn" Header="{x:Static p:Resources.LineColumnHeader}" Width="50" CellTemplate="{StaticResource LineItemTemplate}"/>
+                            <GridViewColumn x:Name="ContentListViewTextColumn" Header="{x:Static p:Resources.TextColumnHeader}" Width="Auto" CellTemplate="{StaticResource TextItemTemplate}"/>
                         </GridView>
                     </ListView.View>
                 </ListView>

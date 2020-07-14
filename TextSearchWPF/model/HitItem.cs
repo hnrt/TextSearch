@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using System.Windows.Documents;
+using System.Windows.Media;
 
 namespace com.hideakin.textsearch.model
 {
@@ -18,13 +20,16 @@ namespace com.hideakin.textsearch.model
 
         public string Text { get; set; }
 
-        public HitItem(int fid, string path, int line, string text)
+        public List<(int Start, int End)> Matches { get; set; }
+
+        public HitItem(int fid, string path, int line, string text, List<(int Start, int End)> matches)
         {
             Fid = fid;
             Path = path;
             FileName = System.IO.Path.GetFileName(path);
             Line = line;
             Text = text;
+            Matches = matches;
         }
     }
 }

@@ -61,6 +61,24 @@ namespace com.hideakin.textsearch.Properties {
         }
         
         /// <summary>
+        ///   TextSearch - About に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        public static string AboutCaption {
+            get {
+                return ResourceManager.GetString("AboutCaption", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   TextSearch に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        public static string AppCaption {
+            get {
+                return ResourceManager.GetString("AppCaption", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   _Apply に類似しているローカライズされた文字列を検索します。
         /// </summary>
         public static string ApplyButtonContent {
@@ -115,6 +133,15 @@ namespace com.hideakin.textsearch.Properties {
         }
         
         /// <summary>
+        ///   Reload _groups に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        public static string EditReloadGroupsMenuItemHeader {
+            get {
+                return ResourceManager.GetString("EditReloadGroupsMenuItemHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   _Authenticate... に類似しているローカライズされた文字列を検索します。
         /// </summary>
         public static string FileAuthMenuItemHeader {
@@ -142,11 +169,56 @@ namespace com.hideakin.textsearch.Properties {
         }
         
         /// <summary>
+        ///   FileName に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        public static string FileNameColumnHeader {
+            get {
+                return ResourceManager.GetString("FileNameColumnHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   _About... に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        public static string HelpAboutMenuItemHeader {
+            get {
+                return ResourceManager.GetString("HelpAboutMenuItemHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   _Help に類似しているローカライズされた文字列を検索します。
         /// </summary>
         public static string HelpMenuItemHeader {
             get {
                 return ResourceManager.GetString("HelpMenuItemHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Hit: {0} に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        public static string HitFormat {
+            get {
+                return ResourceManager.GetString("HitFormat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Initializing... に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        public static string Initializing {
+            get {
+                return ResourceManager.GetString("Initializing", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Line に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        public static string LineColumnHeader {
+            get {
+                return ResourceManager.GetString("LineColumnHeader", resourceCulture);
             }
         }
         
@@ -187,6 +259,15 @@ namespace com.hideakin.textsearch.Properties {
         }
         
         /// <summary>
+        ///   Text に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        public static string TextColumnHeader {
+            get {
+                return ResourceManager.GetString("TextColumnHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   _Username に類似しているローカライズされた文字列を検索します。
         /// </summary>
         public static string UsernameLabelContent {
@@ -196,11 +277,38 @@ namespace com.hideakin.textsearch.Properties {
         }
         
         /// <summary>
+        ///   Version {0} に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        public static string VersionFormat {
+            get {
+                return ResourceManager.GetString("VersionFormat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   _Clear all views に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        public static string ViewClearMenuItemHeader {
+            get {
+                return ResourceManager.GetString("ViewClearMenuItemHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   _View に類似しているローカライズされた文字列を検索します。
         /// </summary>
         public static string ViewMenuItemHeader {
             get {
                 return ResourceManager.GetString("ViewMenuItemHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Waiting for response... に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        public static string WaitingForResponse {
+            get {
+                return ResourceManager.GetString("WaitingForResponse", resourceCulture);
             }
         }
     }

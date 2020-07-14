@@ -19,9 +19,29 @@ namespace com.hideakin.textsearch.view
     /// </summary>
     public partial class AuthWindow : Window
     {
-        public string Username => UsernameTextBox.Text;
+        public string Username
+        {
+            get
+            {
+                return UsernameTextBox.Text;
+            }
+            set
+            {
+                UsernameTextBox.Text = value;
+            }
+        }
 
-        public string Password => PasswordTextBox.Password;
+        public string Password
+        {
+            get
+            {
+                return PasswordTextBox.Password;
+            }
+            set
+            {
+                PasswordTextBox.Password = value;
+            }
+        }
 
         public AuthWindow()
         {
