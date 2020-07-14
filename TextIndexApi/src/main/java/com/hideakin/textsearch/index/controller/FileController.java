@@ -1,6 +1,5 @@
 package com.hideakin.textsearch.index.controller;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -112,9 +111,9 @@ public class FileController {
 			} else {
 				return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 			}
-		} catch (IOException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
-			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+			return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
 
@@ -134,9 +133,9 @@ public class FileController {
 			} else {
 				return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 			}
-		} catch (IOException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
-			return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
+			return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 	}
 
