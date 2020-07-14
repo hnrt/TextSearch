@@ -172,6 +172,7 @@ namespace com.hideakin.textsearch.command
 
         private void IndexFiles(string group, List<string> paths, bool forceIndexing)
         {
+            var t1 = DateTime.Now;
             Console.WriteLine("Started indexing...");
             AlreadyUploaded = forceIndexing ? new model.FileInfo[0] : FileSvc.GetFiles(group);
             var extensions = PrefSvc.GetExtensions();
@@ -209,7 +210,8 @@ namespace com.hideakin.textsearch.command
             {
                 WaitForIndexFileCompletion();
             }
-            Console.WriteLine("Done.");
+            var t2 = DateTime.Now;
+            Console.WriteLine("Done. Elapsed time: {0}", t2 - t1);
         }
 
         private void IndexDir(string group, string path, List<string> extensions, List<string> skipDirs)
