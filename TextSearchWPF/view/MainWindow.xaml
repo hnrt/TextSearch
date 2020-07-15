@@ -7,7 +7,9 @@
         xmlns:v="clr-namespace:com.hideakin.textsearch.view"
         xmlns:p="clr-namespace:com.hideakin.textsearch.Properties"
         mc:Ignorable="d"
-        Title="{x:Static p:Resources.MainWindowTitle}" Height="450" Width="800">
+        Title="{x:Static p:Resources.MainWindowTitle}" Height="450" Width="800"
+        Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}"
+        SizeChanged="OnWindowSizeChanged">
     <Window.Resources>
         <v:TextBlockDecoration x:Key="TbDecoConv"/>
         <Style TargetType="ListViewItem">
@@ -25,6 +27,19 @@
                     </MultiBinding>
                 </v:TextBlockDecoration.Inlines>
             </TextBlock>
+        </DataTemplate>
+        <DataTemplate x:Key="PathItemTemplate">
+            <TextBlock HorizontalAlignment="Left" xml:space="default">
+                <v:TextBlockDecoration.Inlines>
+                    <MultiBinding Converter="{StaticResource TbDecoConv}">
+                        <Binding Path="Path"/>
+                        <Binding Path="HitRows"/>
+                    </MultiBinding>
+                </v:TextBlockDecoration.Inlines>
+            </TextBlock>
+        </DataTemplate>
+        <DataTemplate x:Key="SizeItemTemplate">
+            <TextBlock HorizontalAlignment="Right" Text="{Binding Path=Size}"/>
         </DataTemplate>
     </Window.Resources>
     <Grid>
@@ -53,7 +68,7 @@
                 <MenuItem Name="HelpAboutMenuItem" Header="{x:Static p:Resources.HelpAboutMenuItemHeader}" Click="OnHelpAbout"/>
             </MenuItem>
         </Menu>
-        <Grid Grid.Row="1">
+        <Grid Grid.Row="1" Margin="4,4,4,4">
             <Grid.RowDefinitions>
                 <RowDefinition Height="Auto"/>
             </Grid.RowDefinitions>
@@ -62,11 +77,11 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto" MinWidth="100"/>
             </Grid.ColumnDefinitions>
-            <ComboBox  Name="GroupComboBox" Grid.Row="0" Grid.Column="0" ItemsSource="{Binding Path=Groups,Mode=OneWay,UpdateSourceTrigger=PropertyChanged}" SelectedItem="{Binding Path=Group,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}"/>
-            <TextBox Name="QueryTextBox"  Grid.Row="0" Grid.Column="1" Text="{Binding Path=QueryText,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" KeyUp="OnQueryTextBoxKeyUp" />
+            <ComboBox  Name="GroupComboBox" Grid.Row="0" Grid.Column="0" ItemsSource="{Binding Path=Groups,Mode=OneWay,UpdateSourceTrigger=PropertyChanged}" SelectedItem="{Binding Path=Group,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static p:Resources.GroupComboBoxTooltip}" SelectionChanged="OnGroupComboBoxSelectionChanged"/>
+            <TextBox Name="QueryTextBox"  Grid.Row="0" Grid.Column="1" Margin="4,0,4,0" Text="{Binding Path=QueryText,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" KeyUp="OnQueryTextBoxKeyUp" TextChanged="OnQueryTextBoxTextChanged" />
             <Button Name="QueryButton" Grid.Row="0" Grid.Column="2" Content="{x:Static p:Resources.QueryButtonContent}" VerticalAlignment="Stretch" Click="OnQueryStart" />
         </Grid>
-        <Grid Grid.Row="2">
+        <Grid Grid.Row="2" Margin="4,0,4,0">
             <Grid.RowDefinitions>
                 <RowDefinition Height="*" MinHeight="100"/>
                 <RowDefinition Height="Auto"/>
@@ -75,7 +90,7 @@
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*"/>
             </Grid.ColumnDefinitions>
-            <ListView Name="HitListView" Grid.Row="0" ItemsSource="{Binding Path=HitItems,Mode=OneWay,UpdateSourceTrigger=PropertyChanged}" SelectionChanged="OnHitListViewSelectionChanged" >
+            <ListView Name="HitListView" ItemsSource="{Binding Path=HitItems,Mode=OneWay,UpdateSourceTrigger=PropertyChanged}" SelectionChanged="OnHitListViewSelectionChanged">
                 <ListView.View>
                     <GridView>
                         <GridViewColumn x:Name="HitListViewNameColumn" Header="{x:Static p:Resources.FileNameColumnHeader}" Width="200" DisplayMemberBinding="{Binding Path=FileName}"/>
@@ -84,7 +99,15 @@
                     </GridView>
                 </ListView.View>
             </ListView>
-            <GridSplitter Grid.Row="1" HorizontalAlignment="Stretch" Height="5"/>
+            <ListView Name="FileListView" Visibility="Hidden" ItemsSource="{Binding Path=FileItems,Mode=OneWay,UpdateSourceTrigger=PropertyChanged}" SelectionChanged="OnFileListViewSelectionChanged">
+                <ListView.View>
+                    <GridView>
+                        <GridViewColumn x:Name="FileListViewPathColumn" Header="{x:Static p:Resources.PathColumnHeader}" Width="Auto" CellTemplate="{StaticResource PathItemTemplate}"/>
+                        <GridViewColumn x:Name="FileListViewSizeColumn" Header="{x:Static p:Resources.SizeColumnHeader}" Width="100"  CellTemplate="{StaticResource SizeItemTemplate}"/>
+                    </GridView>
+                </ListView.View>
+            </ListView>
+            <GridSplitter Grid.Row="1" HorizontalAlignment="Stretch" Height="4" Background="{DynamicResource {x:Static SystemColors.ControlLightBrushKey}}"/>
             <Grid Grid.Row="2">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -93,7 +116,17 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
-                <Label Name="PathLabel" Grid.Row="0" Content="{Binding Path=Path,Mode=OneWay,UpdateSourceTrigger=PropertyChanged}"/>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="100"/>
+                    </Grid.ColumnDefinitions>
+                    <Label Name="PathLabel" Content="{Binding Path=Path,Mode=OneWay,UpdateSourceTrigger=PropertyChanged}"/>
+                    <Button Name="UpperViewSwitchButton" Grid.Column="1" Margin="4,0,0,4" Content="{x:Static p:Resources.FileList}" Click="OnUpperViewSwitchButtonClick"/>
+                </Grid>
                 <ListView Name="ContentListView" Grid.Row="1" ItemsSource="{Binding Path=Contents,Mode=OneWay,UpdateSourceTrigger=PropertyChanged}">
                     <ListView.View>
                         <GridView>

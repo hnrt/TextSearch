@@ -150,11 +150,17 @@
   <data name="FileExitMenuItemHeader" xml:space="preserve">
     <value>E_xit</value>
   </data>
+  <data name="FileList" xml:space="preserve">
+    <value>File List</value>
+  </data>
   <data name="FileMenuItemHeader" xml:space="preserve">
     <value>_File</value>
   </data>
   <data name="FileNameColumnHeader" xml:space="preserve">
     <value>FileName</value>
+  </data>
+  <data name="GroupComboBoxTooltip" xml:space="preserve">
+    <value>Group</value>
   </data>
   <data name="HelpAboutMenuItemHeader" xml:space="preserve">
     <value>_About...</value>
@@ -164,6 +170,12 @@
   </data>
   <data name="HitFormat" xml:space="preserve">
     <value>Hit: {0}</value>
+  </data>
+  <data name="HitList" xml:space="preserve">
+    <value>Hit List</value>
+  </data>
+  <data name="InitializationFailure" xml:space="preserve">
+    <value>Failed to initialize.</value>
   </data>
   <data name="Initializing" xml:space="preserve">
     <value>Initializing...</value>
@@ -177,14 +189,23 @@
   <data name="PasswordLabelContent" xml:space="preserve">
     <value>_Password</value>
   </data>
+  <data name="PathColumnHeader" xml:space="preserve">
+    <value>Path</value>
+  </data>
   <data name="QueryButtonContent" xml:space="preserve">
     <value>_Find</value>
   </data>
   <data name="QueryLabelContent" xml:space="preserve">
     <value>_Phrase to find:</value>
   </data>
+  <data name="SizeColumnHeader" xml:space="preserve">
+    <value>Size</value>
+  </data>
   <data name="TextColumnHeader" xml:space="preserve">
     <value>Text</value>
+  </data>
+  <data name="UpdateGroupsFailure" xml:space="preserve">
+    <value>Failed to update groups.</value>
   </data>
   <data name="UsernameLabelContent" xml:space="preserve">
     <value>_Username</value>

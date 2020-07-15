@@ -160,6 +160,15 @@ namespace com.hideakin.textsearch.Properties {
         }
         
         /// <summary>
+        ///   File List に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        public static string FileList {
+            get {
+                return ResourceManager.GetString("FileList", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   _File に類似しているローカライズされた文字列を検索します。
         /// </summary>
         public static string FileMenuItemHeader {
@@ -174,6 +183,15 @@ namespace com.hideakin.textsearch.Properties {
         public static string FileNameColumnHeader {
             get {
                 return ResourceManager.GetString("FileNameColumnHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Group に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        public static string GroupComboBoxTooltip {
+            get {
+                return ResourceManager.GetString("GroupComboBoxTooltip", resourceCulture);
             }
         }
         
@@ -201,6 +219,24 @@ namespace com.hideakin.textsearch.Properties {
         public static string HitFormat {
             get {
                 return ResourceManager.GetString("HitFormat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Hit List に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        public static string HitList {
+            get {
+                return ResourceManager.GetString("HitList", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Failed to initialize. に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        public static string InitializationFailure {
+            get {
+                return ResourceManager.GetString("InitializationFailure", resourceCulture);
             }
         }
         
@@ -241,6 +277,15 @@ namespace com.hideakin.textsearch.Properties {
         }
         
         /// <summary>
+        ///   Path に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        public static string PathColumnHeader {
+            get {
+                return ResourceManager.GetString("PathColumnHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   _Find に類似しているローカライズされた文字列を検索します。
         /// </summary>
         public static string QueryButtonContent {
@@ -259,11 +304,29 @@ namespace com.hideakin.textsearch.Properties {
         }
         
         /// <summary>
+        ///   Size に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        public static string SizeColumnHeader {
+            get {
+                return ResourceManager.GetString("SizeColumnHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Text に類似しているローカライズされた文字列を検索します。
         /// </summary>
         public static string TextColumnHeader {
             get {
                 return ResourceManager.GetString("TextColumnHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Failed to update groups. に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        public static string UpdateGroupsFailure {
+            get {
+                return ResourceManager.GetString("UpdateGroupsFailure", resourceCulture);
             }
         }
         

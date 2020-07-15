@@ -43,9 +43,9 @@ namespace com.hideakin.textsearch.view
             if (values != null && values.Length == 2 && values[0] is string text)
             {
                 List<Inline> inlines = new List<Inline>();
-                int index = 0;
                 if (values[1] is List<(int Start, int End)> matches)
                 {
+                    int index = 0;
                     foreach (var (start, end) in matches)
                     {
                         if (index < start)
@@ -55,10 +55,25 @@ namespace com.hideakin.textsearch.view
                         inlines.Add(new Run(text.Substring(start, end - start)) { Foreground = Brushes.Red });
                         index = end;
                     }
+                    if (index < text.Length)
+                    {
+                        inlines.Add(new Run(text.Substring(index, text.Length - index)));
+                    }
                 }
-                if (index < text.Length)
+                else if (values[1] is int hitRows)
                 {
-                    inlines.Add(new Run(text.Substring(index, text.Length - index)));
+                    if (hitRows > 0)
+                    {
+                        inlines.Add(new Run(text) { Foreground = Brushes.Red });
+                    }
+                    else
+                    {
+                        inlines.Add(new Run(text));
+                    }
+                }
+                else
+                {
+                    inlines.Add(new Run(text));
                 }
                 return inlines;
             }
