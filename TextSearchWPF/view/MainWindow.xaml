@@ -125,7 +125,7 @@
                         <ColumnDefinition Width="100"/>
                     </Grid.ColumnDefinitions>
                     <Label Name="PathLabel" Content="{Binding Path=Path,Mode=OneWay,UpdateSourceTrigger=PropertyChanged}"/>
-                    <Button Name="UpperViewSwitchButton" Grid.Column="1" Margin="4,0,0,4" Content="{x:Static p:Resources.FileList}" Click="OnUpperViewSwitchButtonClick"/>
+                    <Button Name="UpperViewSwitchButton" Grid.Column="1" Margin="4,0,0,4" Content="{x:Static p:Resources.SwitchToFileList}" ToolTip="{x:Static p:Resources.SwitchToFileListTooltip}" Click="OnUpperViewSwitchButtonClick"/>
                 </Grid>
                 <ListView Name="ContentListView" Grid.Row="1" ItemsSource="{Binding Path=Contents,Mode=OneWay,UpdateSourceTrigger=PropertyChanged}">
                     <ListView.View>

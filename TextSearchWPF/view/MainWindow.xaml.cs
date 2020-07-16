@@ -21,11 +21,6 @@ namespace com.hideakin.textsearch.view
     {
         private readonly TextSearchClient client = new TextSearchClient();
 
-        private const double LISTVIEW_COLUMN_WIDTH_ADJUSTMENT = 6.0;
-        private double HitListViewScrollContentPresenterWidth = double.NaN;
-        private double FileListViewScrollContentPresenterWidth = double.NaN;
-        private double ContentListViewScrollContentPresenterWidth = double.NaN;
-
         private bool CanStartQuery => GroupComboBox.SelectedItem != null && QueryTextBox.Text.Trim().Length > 0;
 
         public MainWindow()
@@ -40,12 +35,9 @@ namespace com.hideakin.textsearch.view
         private async void OnFirstActivate(object sender, EventArgs e)
         {
             Activated -= OnFirstActivate;
-            HitListView.GetScrollContentPresenter().SizeChanged += OnHitListViewScrollContentPresenterSizeChanged;
-            FileListView.GetScrollContentPresenter().SizeChanged += OnFileListViewScrollContentPresenterSizeChanged;
-            ContentListView.GetScrollContentPresenter().SizeChanged += OnContentListViewScrollContentPresenterSizeChanged;
-            AdjustHitListViewContentColumn();
-            AdjustFileListViewPathColumn();
-            AdjustContentListViewTextColumn();
+            (new GridViewColumnWidthAdjuster(HitListView, HitListViewTextColumn, HitListViewNameColumn, HitListViewLineColumn)).Adjust();
+            (new GridViewColumnWidthAdjuster(FileListView, FileListViewPathColumn, FileListViewSizeColumn)).Adjust();
+            (new GridViewColumnWidthAdjuster(ContentListView, ContentListViewTextColumn, ContentListViewLineColumn)).Adjust();
             using (var wip = WorkInProgress.Create()
                 .DisableControl(FileAuthMenuItem)
                 .DisableControl(EditReloadGroupsMenuItem)
@@ -65,21 +57,6 @@ namespace com.hideakin.textsearch.view
 
         private void OnWindowSizeChanged(object sender, SizeChangedEventArgs e)
         {
-        }
-
-        private void OnHitListViewScrollContentPresenterSizeChanged(object sender, SizeChangedEventArgs e)
-        {
-            AdjustHitListViewContentColumn();
-        }
-
-        private void OnFileListViewScrollContentPresenterSizeChanged(object sender, SizeChangedEventArgs e)
-        {
-            AdjustFileListViewPathColumn();
-        }
-
-        private void OnContentListViewScrollContentPresenterSizeChanged(object sender, SizeChangedEventArgs e)
-        {
-            AdjustContentListViewTextColumn();
         }
 
         private void OnFileExit(object sender, RoutedEventArgs e)
@@ -144,6 +121,11 @@ namespace com.hideakin.textsearch.view
         private void OnViewClear(object sender, RoutedEventArgs e)
         {
             client.Clear();
+            FileListView.SelectedItem = null;
+            if (FileListView.Visibility == Visibility.Visible)
+            {
+                CollectionViewSource.GetDefaultView(FileListView.ItemsSource).Refresh();
+            }
             StatusBarLabel.Content = " ";
         }
 
@@ -175,7 +157,6 @@ namespace com.hideakin.textsearch.view
                 var message = await client.Execute();
                 if (message == null)
                 {
-                    AdjustHitListViewContentColumn();
                     wip.SetFinalContent(Properties.Resources.HitFormat, client.HitItems.Count);
                 }
                 else
@@ -199,17 +180,18 @@ namespace com.hideakin.textsearch.view
             }
         }
 
-        private void OnHitListViewSelectionChanged(object sender, SelectionChangedEventArgs e)
+        private async void OnHitListViewSelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (HitListView.SelectedItem is HitItem h)
             {
-                if (client.OnSelectionChanged(h))
-                {
-                    AdjustContentListViewTextColumn();
-                }
+                await client.OnSelectionChanged(h);
                 int v = h.Line - 1;
                 ContentListView.SelectedIndex = v;
                 ContentListView.ScrollIntoView(ContentListView.SelectedItem);
+            }
+            else
+            {
+                ContentListView.SelectedIndex = -1;
             }
         }
 
@@ -217,31 +199,22 @@ namespace com.hideakin.textsearch.view
         {
             if (FileListView.SelectedItem is FileItem f)
             {
-                using (WorkInProgress.Create())
+                if (HitListView.SelectedItem == null || HitListView.SelectedItem is HitItem h && h.Fid != f.Fid)
                 {
-                    if (await client.OnFileSelectionChanged(f))
+                    if (f.HitRows > 0 && HitListView.ItemsSource is ObservableCollection<HitItem> hh)
                     {
-                        AdjustContentListViewTextColumn();
-                        if (ContentListView.ItemsSource is ObservableCollection<LineText> tt)
-                        {
-                            if (f.HitRows > 0 && HitListView.ItemsSource is ObservableCollection<HitItem> hh)
-                            {
-                                var h = hh.Where(x => x.Fid == f.Fid).FirstOrDefault();
-                                if (h != null)
-                                {
-                                    ContentListView.SelectedItem = tt[h.Line - 1];
-                                    ContentListView.ScrollIntoView(tt[h.Line - 1]);
-                                }
-                                else
-                                {
-                                    ContentListView.ScrollIntoView(tt[0]);
-                                }
-                            }
-                            else
-                            {
-                                ContentListView.ScrollIntoView(tt[0]);
-                            }
-                        }
+                        HitListView.SelectedItem = hh.Where(x => x.Fid == f.Fid).FirstOrDefault();
+                    }
+                    else
+                    {
+                        HitListView.SelectedItem = null;
+                    }
+                    if (HitListView.SelectedItem == null)
+                    {
+                        await client.OnSelectionChanged(f);
+                        ContentListView.SelectedIndex = 0;
+                        ContentListView.ScrollIntoView(ContentListView.SelectedItem);
+                        ContentListView.SelectedIndex = -1;
                     }
                 }
             }
@@ -269,17 +242,18 @@ namespace com.hideakin.textsearch.view
                 {
                     if (FileListView.SelectedItem is FileItem f)
                     {
-                        if (HitListView.SelectedItem is HitItem h && h.Fid != f.Fid)
+                        if (HitListView.SelectedItem == null || HitListView.SelectedItem is HitItem h && h.Fid != f.Fid)
                         {
                             HitListView.SelectedItem = hh.Where(x => x.Fid == f.Fid).FirstOrDefault();
-                            if (HitListView.SelectedItem != null)
-                            {
-                                HitListView.ScrollIntoView(HitListView.SelectedItem);
-                            }
                         }
                     }
                 }
-                UpperViewSwitchButton.Content = Properties.Resources.FileList;
+                if (HitListView.SelectedItem != null)
+                {
+                    HitListView.ScrollIntoView(HitListView.SelectedItem);
+                }
+                UpperViewSwitchButton.Content = Properties.Resources.SwitchToFileList;
+                UpperViewSwitchButton.ToolTip = Properties.Resources.SwitchToFileListTooltip;
             }
         }
 
@@ -289,64 +263,20 @@ namespace com.hideakin.textsearch.view
             {
                 HitListView.Visibility = Visibility.Hidden;
                 FileListView.Visibility = Visibility.Visible;
+                CollectionViewSource.GetDefaultView(FileListView.ItemsSource).Refresh();
                 if (FileListView.ItemsSource is ObservableCollection<FileItem> ff)
                 {
                     if (HitListView.SelectedItem is HitItem h)
                     {
                         FileListView.SelectedItem = ff.Where(x => x.Fid == h.Fid).FirstOrDefault();
-                        if (FileListView.SelectedItem != null)
-                        {
-                            FileListView.ScrollIntoView(FileListView.SelectedItem);
-                        }
                     }
                 }
-                UpperViewSwitchButton.Content = Properties.Resources.HitList;
-            }
-        }
-
-        // Note:
-        // ScrollContentPresenter's SizeChanged event is fired even when its ActualWidth is not changed.
-        // As such, the adjustment for a column header needs to be done only when ActualWidth was changed.
-
-        private void AdjustHitListViewContentColumn()
-        {
-            var wP = HitListView.GetScrollContentPresenter().ActualWidth;
-            if (HitListViewScrollContentPresenterWidth != wP)
-            {
-                var w = wP - (HitListViewNameColumn.ActualWidth + HitListViewLineColumn.ActualWidth) - LISTVIEW_COLUMN_WIDTH_ADJUSTMENT;
-                if (w > 0)
+                if (FileListView.SelectedItem != null)
                 {
-                    HitListViewTextColumn.Width = w;
+                    FileListView.ScrollIntoView(FileListView.SelectedItem);
                 }
-                HitListViewScrollContentPresenterWidth = wP;
-            }
-        }
-
-        private void AdjustFileListViewPathColumn()
-        {
-            var wP = FileListView.GetScrollContentPresenter().ActualWidth;
-            if (FileListViewScrollContentPresenterWidth != wP)
-            {
-                var w = wP - FileListViewSizeColumn.ActualWidth - LISTVIEW_COLUMN_WIDTH_ADJUSTMENT;
-                if (w > 0)
-                {
-                    FileListViewPathColumn.Width = w;
-                }
-                FileListViewScrollContentPresenterWidth = wP;
-            }
-        }
-
-        private void AdjustContentListViewTextColumn()
-        {
-            var wP = ContentListView.GetScrollContentPresenter().ActualWidth;
-            if (ContentListViewScrollContentPresenterWidth != wP)
-            {
-                var w = wP - ContentListViewLineColumn.ActualWidth - LISTVIEW_COLUMN_WIDTH_ADJUSTMENT;
-                if (ContentListViewTextColumn.ActualWidth < w)
-                {
-                    ContentListViewTextColumn.Width = w;
-                }
-                ContentListViewScrollContentPresenterWidth = wP;
+                UpperViewSwitchButton.Content = Properties.Resources.SwitchToHitList;
+                UpperViewSwitchButton.ToolTip = Properties.Resources.SwitchToHitListTooltip;
             }
         }
     }

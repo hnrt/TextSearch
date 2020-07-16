@@ -150,9 +150,6 @@
   <data name="FileExitMenuItemHeader" xml:space="preserve">
     <value>E_xit</value>
   </data>
-  <data name="FileList" xml:space="preserve">
-    <value>File List</value>
-  </data>
   <data name="FileMenuItemHeader" xml:space="preserve">
     <value>_File</value>
   </data>
@@ -160,7 +157,7 @@
     <value>FileName</value>
   </data>
   <data name="GroupComboBoxTooltip" xml:space="preserve">
-    <value>Group</value>
+    <value>Group to indicate a set of files for searching/browsing</value>
   </data>
   <data name="HelpAboutMenuItemHeader" xml:space="preserve">
     <value>_About...</value>
@@ -170,9 +167,6 @@
   </data>
   <data name="HitFormat" xml:space="preserve">
     <value>Hit: {0}</value>
-  </data>
-  <data name="HitList" xml:space="preserve">
-    <value>Hit List</value>
   </data>
   <data name="InitializationFailure" xml:space="preserve">
     <value>Failed to initialize.</value>
@@ -200,6 +194,18 @@
   </data>
   <data name="SizeColumnHeader" xml:space="preserve">
     <value>Size</value>
+  </data>
+  <data name="SwitchToFileList" xml:space="preserve">
+    <value>File List</value>
+  </data>
+  <data name="SwitchToFileListTooltip" xml:space="preserve">
+    <value>Switches to File List</value>
+  </data>
+  <data name="SwitchToHitList" xml:space="preserve">
+    <value>Hit Results</value>
+  </data>
+  <data name="SwitchToHitListTooltip" xml:space="preserve">
+    <value>Switches to Hit Results</value>
   </data>
   <data name="TextColumnHeader" xml:space="preserve">
     <value>Text</value>

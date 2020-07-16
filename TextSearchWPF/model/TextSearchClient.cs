@@ -22,11 +22,9 @@ namespace com.hideakin.textsearch.model
 
         public ObservableCollection<HitItem> HitItems { get; } = new ObservableCollection<HitItem>();
 
-        private HitItem CurrentSelection { get; set; }
-
         public ObservableCollection<FileItem> FileItems { get; } = new ObservableCollection<FileItem>();
 
-        public FileItem CurrentFileItem { get; set; }
+        private int Fid { get; set; } = -1;
 
         public string Path { get; private set; } = " ";
 
@@ -134,24 +132,31 @@ namespace com.hideakin.textsearch.model
             });
             if (results is HitRowColumns[] hits)
             {
+                var m = new List<(HitRowColumns Hit, FileContents Contents)>();
                 foreach (var hit in hits)
                 {
                     var contents = FileContents.Find(hit.Fid);
+                    m.Add((hit, contents));
+                }
+                m.Sort((a, b) => 
+                {
+                    return a.Contents.Path.ToUpperInvariant().CompareTo(b.Contents.Path.ToUpperInvariant());
+                });
+                var d = new Dictionary<int, int>();
+                foreach (var (hit, contents) in m)
+                {
                     foreach (var entry in hit.Rows)
                     {
-                        HitItems.Add(new HitItem(hit.Fid, contents.Path, entry.Row + 1, contents.Lines[entry.Row], entry.Columns));
-                    }
-                }
-                var d = new Dictionary<int, int>();
-                foreach (var h in HitItems)
-                {
-                    if (d.TryGetValue(h.Fid, out var n))
-                    {
-                        d[h.Fid] = n + 1;
-                    }
-                    else
-                    {
-                        d.Add(h.Fid, 1);
+                        var item = new HitItem(contents.Fid, contents.Path, entry.Row + 1, contents.Lines[entry.Row], entry.Columns);
+                        HitItems.Add(item);
+                        if (d.TryGetValue(item.Fid, out var hitRows))
+                        {
+                            d[item.Fid] = hitRows + 1;
+                        }
+                        else
+                        {
+                            d.Add(item.Fid, 1);
+                        }
                     }
                 }
                 foreach (var f in FileItems)
@@ -173,15 +178,46 @@ namespace com.hideakin.textsearch.model
             return null;
         }
 
-        public bool OnSelectionChanged(HitItem h)
+        public async Task<bool> OnSelectionChanged(HitItem h)
         {
-            bool contentsChanged = false;
-            if (h != null && (CurrentSelection == null || CurrentSelection.Fid != h.Fid))
+            if (h != null && h.Fid != Fid)
             {
-                Path = h.Path;
-                NotifyOfChange("Path");
-                Contents.Clear();
-                var contents = FileContents.Find(h.Fid);
+                await SetContents(h.Fid, h.Path);
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        public async Task<bool> OnSelectionChanged(FileItem f)
+        {
+            if (f != null && f.Fid != Fid)
+            {
+                await SetContents(f.Fid, f.Path);
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        private async Task SetContents(int fid, string path)
+        {
+            Fid = fid;
+            Path = path;
+            NotifyOfChange("Path");
+            var contents = FileContents.Find(fid);
+            if (contents == null)
+            {
+                var api = IndexApiClient.Create();
+                contents = await api.DownloadFile(fid);
+            }
+            Contents.Clear();
+            if (contents != null)
+            {
                 int no = 1;
                 foreach (var line in contents.Lines)
                 {
@@ -190,63 +226,12 @@ namespace com.hideakin.textsearch.model
                 }
                 foreach (var item in HitItems)
                 {
-                    if (item.Fid == h.Fid)
+                    if (item.Fid == fid)
                     {
                         Contents[item.Line - 1].Matches = item.Matches;
                     }
                 }
-                contentsChanged = true;
             }
-            CurrentSelection = h;
-            return contentsChanged;
-        }
-
-        public async Task<bool> OnFileSelectionChanged(FileItem f)
-        {
-            bool contentsChanged = false;
-            if (f != null)
-            {
-                if (CurrentFileItem == null || CurrentFileItem.Fid != f.Fid)
-                {
-                    Path = f.Path;
-                    NotifyOfChange("Path");
-                    Contents.Clear();
-                    var contents = FileContents.Find(f.Fid);
-                    if (contents == null)
-                    {
-                        var api = IndexApiClient.Create();
-                        contents = await api.DownloadFile(f.Fid);
-                    }
-                    if (contents != null)
-                    {
-                        int no = 1;
-                        foreach (var line in contents.Lines)
-                        {
-                            Contents.Add(new LineText(no, line, null));
-                            no++;
-                        }
-                        if (HitItems.Count > 0)
-                        {
-                            foreach (var item in HitItems)
-                            {
-                                if (item.Fid == f.Fid)
-                                {
-                                    Contents[item.Line - 1].Matches = item.Matches;
-                                }
-                            }
-                        }
-                    }
-                    contentsChanged = true;
-                }
-            }
-            else if (CurrentFileItem != null)
-            {
-                Path = " ";
-                NotifyOfChange("Path");
-                Contents.Clear();
-            }
-            CurrentFileItem = f;
-            return contentsChanged;
         }
 
         public void Clear()
@@ -254,10 +239,15 @@ namespace com.hideakin.textsearch.model
             QueryText = string.Empty;
             NotifyOfChange("QueryText");
             HitItems.Clear();
-            CurrentSelection = null;
+            Fid = -1;
             Path = " ";
             NotifyOfChange("Path");
             Contents.Clear();
+            foreach (var f in FileItems)
+            {
+                f.HitRows = 0;
+            }
+            NotifyOfChange("FileItems");
         }
 
         private void NotifyOfChange(string name)

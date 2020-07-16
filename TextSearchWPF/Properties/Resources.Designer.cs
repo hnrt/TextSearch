@@ -160,15 +160,6 @@ namespace com.hideakin.textsearch.Properties {
         }
         
         /// <summary>
-        ///   File List に類似しているローカライズされた文字列を検索します。
-        /// </summary>
-        public static string FileList {
-            get {
-                return ResourceManager.GetString("FileList", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   _File に類似しているローカライズされた文字列を検索します。
         /// </summary>
         public static string FileMenuItemHeader {
@@ -187,7 +178,7 @@ namespace com.hideakin.textsearch.Properties {
         }
         
         /// <summary>
-        ///   Group に類似しているローカライズされた文字列を検索します。
+        ///   Group to indicate a set of files for searching/browsing に類似しているローカライズされた文字列を検索します。
         /// </summary>
         public static string GroupComboBoxTooltip {
             get {
@@ -219,15 +210,6 @@ namespace com.hideakin.textsearch.Properties {
         public static string HitFormat {
             get {
                 return ResourceManager.GetString("HitFormat", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Hit List に類似しているローカライズされた文字列を検索します。
-        /// </summary>
-        public static string HitList {
-            get {
-                return ResourceManager.GetString("HitList", resourceCulture);
             }
         }
         
@@ -309,6 +291,42 @@ namespace com.hideakin.textsearch.Properties {
         public static string SizeColumnHeader {
             get {
                 return ResourceManager.GetString("SizeColumnHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   File List に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        public static string SwitchToFileList {
+            get {
+                return ResourceManager.GetString("SwitchToFileList", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Switches to File List に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        public static string SwitchToFileListTooltip {
+            get {
+                return ResourceManager.GetString("SwitchToFileListTooltip", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Hit Results に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        public static string SwitchToHitList {
+            get {
+                return ResourceManager.GetString("SwitchToHitList", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Switches to Hit Results に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        public static string SwitchToHitListTooltip {
+            get {
+                return ResourceManager.GetString("SwitchToHitListTooltip", resourceCulture);
             }
         }
         
