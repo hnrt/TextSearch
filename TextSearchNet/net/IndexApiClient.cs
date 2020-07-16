@@ -1,5 +1,7 @@
 ﻿using com.hideakin.textsearch.data;
+using com.hideakin.textsearch.exception;
 using com.hideakin.textsearch.model;
+using com.hideakin.textsearch.utility;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
@@ -21,9 +23,13 @@ namespace com.hideakin.textsearch.net
 
         private static readonly string AUTHORIZATION = "Authorization";
 
+        private static readonly string APPLICATION_JSON = "application/json";
+
         public static string Url { get; set; } = @"http://localhost:8080";
 
-        private static ApiCreadentialsCollection CredCollection { get; } = ApiCreadentialsCollection.Load(GetFilePath());
+        private static string CredentialsFilePath => AppData.GetPath("credentials.json");
+
+        private static ApiCreadentialsCollection CredCollection { get; } = ApiCreadentialsCollection.Load(CredentialsFilePath);
 
         public static ApiCredentials Credentials { get; } = new ApiCredentials();
 
@@ -75,9 +81,9 @@ namespace com.hideakin.textsearch.net
             }
         }
 
-        public static IndexApiClient Create()
+        public static IndexApiClient Create(CancellationToken ct)
         {
-            return new IndexApiClient();
+            return new IndexApiClient(ct);
         }
 
         #endregion
@@ -88,16 +94,15 @@ namespace com.hideakin.textsearch.net
 
         public string ResponseBody { get; private set; }
 
-        private readonly CancellationTokenSource cts = new CancellationTokenSource();
-
-        public Exception LastException { get; private set; }
+        private readonly CancellationToken ct;
 
         #endregion
 
         #region CONSTRUCTOR
 
-        private IndexApiClient()
+        private IndexApiClient(CancellationToken ct)
         {
+            this.ct = ct;
         }
 
         #endregion
@@ -108,49 +113,31 @@ namespace com.hideakin.textsearch.net
         {
             using (new IndexApiClientSpinLock())
             {
-                if (TokenNeedsToBeUpdated)
+                if (Credentials.EncryptedToken == null || Credentials.ExpiresAt <= DateTime.Now.AddMinutes(3))
                 {
-                    if (Credentials.Username == null || Credentials.EncryptedPassword == null)
+                    if (Credentials.Username == null)
                     {
-                        throw new Exception("No valid API key is available. Credentials need to be specified.");
+                        throw new InsufficientCredentialInformationException("No username is provided for authentication.");
+                    }
+                    if (Credentials.EncryptedPassword == null)
+                    {
+                        throw new InsufficientCredentialInformationException("No password is provided for authentication.");
                     }
                     var result = await Authenticate(Credentials.Username, Credentials.Password);
                     if (result is AuthenticateResponse ar)
                     {
                         return;
                     }
-                    else if (result is ErrorResponse e)
+                    else if (result is Exception e)
                     {
-                        throw new Exception(e.ErrorDescription);
+                        throw e;
                     }
                     else
                     {
-                        throw new Exception("Unexpected value returned: " + result.GetType().ToString());
+                        throw new NotImplementedException();
                     }
                 }
             }
-        }
-
-        private bool TokenNeedsToBeUpdated => Credentials.EncryptedToken == null || Credentials.ExpiresAt <= DateTime.Now.AddMinutes(3);
-
-        private static string GetFilePath()
-        {
-            return Path.Combine(GetDirPath(), string.Format("credentials.json"));
-        }
-
-        private static string GetDirPath()
-        {
-            var dir1 = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "HNRT");
-            if (!Directory.Exists(dir1))
-            {
-                Directory.CreateDirectory(dir1);
-            }
-            var dir2 = Path.Combine(dir1, "TextSearch");
-            if (!Directory.Exists(dir2))
-            {
-                Directory.CreateDirectory(dir2);
-            }
-            return dir2;
         }
 
         #endregion
@@ -164,7 +151,7 @@ namespace com.hideakin.textsearch.net
                 var uri = string.Format("{0}/v1/authentication", Url);
                 var request = new HttpRequestMessage(HttpMethod.Get, uri);
                 request.Headers.Add(AUTHORIZATION, GetBasicToken(username, password));
-                Response = await httpClient.SendAsync(request, cts.Token);
+                Response = await httpClient.SendAsync(request, ct);
                 ResponseBody = await Response.Content.ReadAsStringAsync();
                 if (Response.StatusCode == HttpStatusCode.OK)
                 {
@@ -175,22 +162,17 @@ namespace com.hideakin.textsearch.net
                     Credentials.ExpiresAt = DateTime.Now.AddSeconds(ar.ExpiresIn);
                     CredCollection.SetCredentials(Credentials);
                     CredCollection.LastUser = Credentials.Username;
-                    CredCollection.Save(GetFilePath());
+                    CredCollection.Save(CredentialsFilePath);
                     return ar;
                 }
                 else
                 {
-                    return JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody);
+                    return new ErrorResponseException(JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody), "Authentication request failed.");
                 }
             }
             catch (Exception e)
             {
-                LastException = e;
-                return new ErrorResponse()
-                {
-                    Error = "api_request_failure",
-                    ErrorDescription = e.Message
-                };
+                return e;
             }
         }
 
@@ -212,31 +194,34 @@ namespace com.hideakin.textsearch.net
 
         #region MAINTENANCE
 
-        public async Task<bool> Check()
+        public async Task<object> GetMaintenance()
         {
             try
             {
                 var uri = string.Format("{0}/v1/maintenance", Url);
                 var request = new HttpRequestMessage(HttpMethod.Get, uri);
-                Response = await httpClient.SendAsync(request, cts.Token);
+                Response = await httpClient.SendAsync(request, ct);
                 ResponseBody = await Response.Content.ReadAsStringAsync();
                 if (Response.StatusCode == HttpStatusCode.OK)
                 {
-                    return ResponseBody == "false";
+                    return ResponseBody == "true";
+                }
+                else
+                {
+                    return new UnrecognizedResponseException(Response.StatusCode, ResponseBody, "GetMaintenance request failed.");
                 }
             }
             catch (Exception e)
             {
-                LastException = e;
+                return e;
             }
-            return false;
         }
 
         #endregion
 
         #region USER
 
-        public async Task<UserInfo[]> GetUsers()
+        public async Task<object> GetUsers()
         {
             try
             {
@@ -244,21 +229,24 @@ namespace com.hideakin.textsearch.net
                 var uri = string.Format("{0}/v1/users", Url);
                 var request = new HttpRequestMessage(HttpMethod.Get, uri);
                 request.Headers.Add(AUTHORIZATION, BearerToken);
-                Response = await httpClient.SendAsync(request, cts.Token);
+                Response = await httpClient.SendAsync(request, ct);
                 ResponseBody = await Response.Content.ReadAsStringAsync();
                 if (Response.StatusCode == HttpStatusCode.OK)
                 {
                     return JsonConvert.DeserializeObject<UserInfo[]>(ResponseBody);
                 }
+                else
+                {
+                    return new UnrecognizedResponseException(Response.StatusCode, ResponseBody, "GetUsers request failed.");
+                }
             }
             catch (Exception e)
             {
-                LastException = e;
+                return e;
             }
-            return null;
         }
 
-        public async Task<UserInfo> GetUser(int uid)
+        public async Task<object> GetUser(int uid)
         {
             try
             {
@@ -266,21 +254,24 @@ namespace com.hideakin.textsearch.net
                 var uri = string.Format("{0}/v1/users/{1}", Url, uid);
                 var request = new HttpRequestMessage(HttpMethod.Get, uri);
                 request.Headers.Add(AUTHORIZATION, BearerToken);
-                Response = await httpClient.SendAsync(request, cts.Token);
+                Response = await httpClient.SendAsync(request, ct);
                 ResponseBody = await Response.Content.ReadAsStringAsync();
                 if (Response.StatusCode == HttpStatusCode.OK)
                 {
                     return JsonConvert.DeserializeObject<UserInfo>(ResponseBody);
                 }
+                else
+                {
+                    return new UnrecognizedResponseException(Response.StatusCode, ResponseBody, "GetUserByUID request failed.");
+                }
             }
             catch (Exception e)
             {
-                LastException = e;
+                return e;
             }
-            return null;
         }
 
-        public async Task<UserInfo> GetUser(string username)
+        public async Task<object> GetUser(string username)
         {
             try
             {
@@ -288,18 +279,21 @@ namespace com.hideakin.textsearch.net
                 var uri = string.Format("{0}/v1/users?username={1}", Url, username);
                 var request = new HttpRequestMessage(HttpMethod.Get, uri);
                 request.Headers.Add(AUTHORIZATION, BearerToken);
-                Response = await httpClient.SendAsync(request, cts.Token);
+                Response = await httpClient.SendAsync(request, ct);
                 ResponseBody = await Response.Content.ReadAsStringAsync();
                 if (Response.StatusCode == HttpStatusCode.OK)
                 {
                     return JsonConvert.DeserializeObject<UserInfo>(ResponseBody);
                 }
+                else
+                {
+                    return new UnrecognizedResponseException(Response.StatusCode, ResponseBody, "GetUserByName request failed.");
+                }
             }
             catch (Exception e)
             {
-                LastException = e;
+                return e;
             }
-            return null;
         }
 
         public async Task<object> CreateUser(string username, string password, string[] roles)
@@ -311,8 +305,8 @@ namespace com.hideakin.textsearch.net
                 var request = new HttpRequestMessage(HttpMethod.Post, uri);
                 request.Headers.Add(AUTHORIZATION, BearerToken);
                 var input = new UserRequest(username, password, roles);
-                request.Content = new StringContent(JsonConvert.SerializeObject(input), Encoding.UTF8, "application/json");
-                Response = await httpClient.SendAsync(request, cts.Token);
+                request.Content = new StringContent(JsonConvert.SerializeObject(input), Encoding.UTF8, APPLICATION_JSON);
+                Response = await httpClient.SendAsync(request, ct);
                 ResponseBody = await Response.Content.ReadAsStringAsync();
                 if (Response.StatusCode == HttpStatusCode.Created)
                 {
@@ -320,14 +314,17 @@ namespace com.hideakin.textsearch.net
                 }
                 else if (Response.StatusCode == HttpStatusCode.BadRequest || Response.StatusCode == HttpStatusCode.Forbidden)
                 {
-                    return JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody);
+                    return new ErrorResponseException(JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody), "CreateUser request failed.");
+                }
+                else
+                {
+                    return new UnrecognizedResponseException(Response.StatusCode, ResponseBody, "CreateUser request failed.");
                 }
             }
             catch (Exception e)
             {
-                LastException = e;
+                return e;
             }
-            return null;
         }
 
         public async Task<object> UpdateUser(int uid, string username, string password, string[] roles)
@@ -339,8 +336,8 @@ namespace com.hideakin.textsearch.net
                 var request = new HttpRequestMessage(HttpMethod.Put, uri);
                 request.Headers.Add(AUTHORIZATION, BearerToken);
                 var input = new UserRequest(username, password, roles);
-                request.Content = new StringContent(JsonConvert.SerializeObject(input), Encoding.UTF8, "application/json");
-                Response = await httpClient.SendAsync(request, cts.Token);
+                request.Content = new StringContent(JsonConvert.SerializeObject(input), Encoding.UTF8, APPLICATION_JSON);
+                Response = await httpClient.SendAsync(request, ct);
                 ResponseBody = await Response.Content.ReadAsStringAsync();
                 if (Response.StatusCode == HttpStatusCode.OK)
                 {
@@ -348,14 +345,17 @@ namespace com.hideakin.textsearch.net
                 }
                 else if (Response.StatusCode == HttpStatusCode.BadRequest || Response.StatusCode == HttpStatusCode.Forbidden)
                 {
-                    return JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody);
+                    return new ErrorResponseException(JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody), "UpdateUser request failed.");
+                }
+                else
+                {
+                    return new UnrecognizedResponseException(Response.StatusCode, ResponseBody, "UpdateUser request failed.");
                 }
             }
             catch (Exception e)
             {
-                LastException = e;
+                return e;
             }
-            return null;
         }
 
         public async Task<object> DeleteUser(int uid)
@@ -366,7 +366,7 @@ namespace com.hideakin.textsearch.net
                 var uri = string.Format("{0}/v1/users/{1}", Url, uid);
                 var request = new HttpRequestMessage(HttpMethod.Delete, uri);
                 request.Headers.Add(AUTHORIZATION, BearerToken);
-                Response = await httpClient.SendAsync(request, cts.Token);
+                Response = await httpClient.SendAsync(request, ct);
                 ResponseBody = await Response.Content.ReadAsStringAsync();
                 if (Response.StatusCode == HttpStatusCode.OK)
                 {
@@ -374,21 +374,24 @@ namespace com.hideakin.textsearch.net
                 }
                 else if (Response.StatusCode == HttpStatusCode.BadRequest || Response.StatusCode == HttpStatusCode.Forbidden)
                 {
-                    return JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody);
+                    return new ErrorResponseException(JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody), "DeleteUser request failed.");
+                }
+                else
+                {
+                    return new UnrecognizedResponseException(Response.StatusCode, ResponseBody, "DeleteUser request failed.");
                 }
             }
             catch (Exception e)
             {
-                LastException = e;
+                return e;
             }
-            return null;
         }
 
         #endregion
 
         #region GROUP
 
-        public async Task<FileGroupInfo[]> GetFileGroups()
+        public async Task<object> GetFileGroups()
         {
             try
             {
@@ -396,18 +399,21 @@ namespace com.hideakin.textsearch.net
                 var uri = string.Format("{0}/v1/groups", Url);
                 var request = new HttpRequestMessage(HttpMethod.Get, uri);
                 request.Headers.Add(AUTHORIZATION, BearerToken);
-                Response = await httpClient.SendAsync(request, cts.Token);
+                Response = await httpClient.SendAsync(request, ct);
                 ResponseBody = await Response.Content.ReadAsStringAsync();
                 if (Response.StatusCode == HttpStatusCode.OK)
                 {
                     return JsonConvert.DeserializeObject<FileGroupInfo[]>(ResponseBody);
                 }
+                else
+                {
+                    return new UnrecognizedResponseException(Response.StatusCode, ResponseBody, "GetFileGroups request failed.");
+                }
             }
             catch (Exception e)
             {
-                LastException = e;
+                return e;
             }
-            return null;
         }
 
         public async Task<object> CreateFileGroup(string group)
@@ -419,8 +425,8 @@ namespace com.hideakin.textsearch.net
                 var request = new HttpRequestMessage(HttpMethod.Post, uri);
                 request.Headers.Add(AUTHORIZATION, BearerToken);
                 var input = new FileGroupRequest(group);
-                request.Content = new StringContent(JsonConvert.SerializeObject(input), Encoding.UTF8, "application/json");
-                Response = await httpClient.SendAsync(request, cts.Token);
+                request.Content = new StringContent(JsonConvert.SerializeObject(input), Encoding.UTF8, APPLICATION_JSON);
+                Response = await httpClient.SendAsync(request, ct);
                 ResponseBody = await Response.Content.ReadAsStringAsync();
                 if (Response.StatusCode == HttpStatusCode.Created)
                 {
@@ -428,14 +434,17 @@ namespace com.hideakin.textsearch.net
                 }
                 else if (Response.StatusCode == HttpStatusCode.BadRequest || Response.StatusCode == HttpStatusCode.Forbidden)
                 {
-                    return JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody);
+                    return new ErrorResponseException(JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody), "CreateFileGroup request failed.");
+                }
+                else
+                {
+                    return new UnrecognizedResponseException(Response.StatusCode, ResponseBody, "CreateFileGroup request failed.");
                 }
             }
             catch (Exception e)
             {
-                LastException = e;
+                return e;
             }
-            return null;
         }
 
         public async Task<object> UpdateFileGroup(int gid, string group)
@@ -447,8 +456,8 @@ namespace com.hideakin.textsearch.net
                 var request = new HttpRequestMessage(HttpMethod.Put, uri);
                 request.Headers.Add(AUTHORIZATION, BearerToken);
                 var input = new FileGroupRequest(group);
-                request.Content = new StringContent(JsonConvert.SerializeObject(input), Encoding.UTF8, "application/json");
-                Response = await httpClient.SendAsync(request, cts.Token);
+                request.Content = new StringContent(JsonConvert.SerializeObject(input), Encoding.UTF8, APPLICATION_JSON);
+                Response = await httpClient.SendAsync(request, ct);
                 ResponseBody = await Response.Content.ReadAsStringAsync();
                 if (Response.StatusCode == HttpStatusCode.OK)
                 {
@@ -456,14 +465,17 @@ namespace com.hideakin.textsearch.net
                 }
                 else if (Response.StatusCode == HttpStatusCode.BadRequest || Response.StatusCode == HttpStatusCode.Forbidden)
                 {
-                    return JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody);
+                    return new ErrorResponseException(JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody), "UpdateFileGroup request failed.");
+                }
+                else
+                {
+                    return new UnrecognizedResponseException(Response.StatusCode, ResponseBody, "UpdateFileGroup request failed.");
                 }
             }
             catch (Exception e)
             {
-                LastException = e;
+                return e;
             }
-            return null;
         }
 
         public async Task<object> DeleteFileGroup(int gid)
@@ -474,7 +486,7 @@ namespace com.hideakin.textsearch.net
                 var uri = string.Format("{0}/v1/groups/{1}", Url, gid);
                 var request = new HttpRequestMessage(HttpMethod.Delete, uri);
                 request.Headers.Add(AUTHORIZATION, BearerToken);
-                Response = await httpClient.SendAsync(request, cts.Token);
+                Response = await httpClient.SendAsync(request, ct);
                 ResponseBody = await Response.Content.ReadAsStringAsync();
                 if (Response.StatusCode == HttpStatusCode.OK)
                 {
@@ -482,21 +494,24 @@ namespace com.hideakin.textsearch.net
                 }
                 else if (Response.StatusCode == HttpStatusCode.Forbidden)
                 {
-                    return JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody);
+                    return new ErrorResponseException(JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody), "DeleteFileGroup request failed.");
+                }
+                else
+                {
+                    return new UnrecognizedResponseException(Response.StatusCode, ResponseBody, "DeleteFileGroup request failed.");
                 }
             }
             catch (Exception e)
             {
-                LastException = e;
+                return e;
             }
-            return null;
         }
 
         #endregion
 
         #region PREFERENCE
 
-        public async Task<string> GetPreference(string name)
+        public async Task<object> GetPreference(string name)
         {
             try
             {
@@ -504,21 +519,24 @@ namespace com.hideakin.textsearch.net
                 var uri = string.Format("{0}/v1/preferences/{1}", Url, name);
                 var request = new HttpRequestMessage(HttpMethod.Get, uri);
                 request.Headers.Add(AUTHORIZATION, BearerToken);
-                Response = await httpClient.SendAsync(request, cts.Token);
+                Response = await httpClient.SendAsync(request, ct);
                 ResponseBody = await Response.Content.ReadAsStringAsync();
                 if (Response.StatusCode == HttpStatusCode.OK)
                 {
                     return JsonConvert.DeserializeObject<ValueResponse>(ResponseBody).Value;
                 }
+                else
+                {
+                    return new UnrecognizedResponseException(Response.StatusCode, ResponseBody, "GetPreference request failed.");
+                }
             }
             catch (Exception e)
             {
-                LastException = e;
+                return e;
             }
-            return null;
         }
 
-        public async Task<ErrorResponse> SetPreference(string name, string value)
+        public async Task<object> SetPreference(string name, string value)
         {
             try
             {
@@ -527,30 +545,25 @@ namespace com.hideakin.textsearch.net
                 var request = new HttpRequestMessage(HttpMethod.Post, uri);
                 request.Headers.Add(AUTHORIZATION, BearerToken);
                 var input = new UpdatePreferenceRequest(name, value);
-                request.Content = new StringContent(JsonConvert.SerializeObject(input), Encoding.UTF8, "application/json");
-                Response = await httpClient.SendAsync(request, cts.Token);
+                request.Content = new StringContent(JsonConvert.SerializeObject(input), Encoding.UTF8, APPLICATION_JSON);
+                Response = await httpClient.SendAsync(request, ct);
                 ResponseBody = await Response.Content.ReadAsStringAsync();
                 if (Response.StatusCode == HttpStatusCode.Created || Response.StatusCode == HttpStatusCode.OK)
                 {
-                    return null;
+                    return (int)Response.StatusCode;
                 }
                 else
                 {
-                    return JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody);
+                    return new ErrorResponseException(JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody), "SetPreference request failed.");
                 }
             }
             catch (Exception e)
             {
-                LastException = e;
+                return e;
             }
-            return new ErrorResponse()
-            {
-                Error = "unexpected_error",
-                ErrorDescription = "Failed to access Index API."
-            };
         }
 
-        public async Task<bool> DeletePreference(string name)
+        public async Task<object> DeletePreference(string name)
         {
             try
             {
@@ -558,22 +571,28 @@ namespace com.hideakin.textsearch.net
                 var uri = string.Format("{0}/v1/preferences/{1}", Url, name);
                 var request = new HttpRequestMessage(HttpMethod.Delete, uri);
                 request.Headers.Add(AUTHORIZATION, BearerToken);
-                Response = await httpClient.SendAsync(request, cts.Token);
+                Response = await httpClient.SendAsync(request, ct);
                 ResponseBody = await Response.Content.ReadAsStringAsync();
-                return Response.StatusCode == HttpStatusCode.OK;
+                if (Response.StatusCode == HttpStatusCode.OK)
+                {
+                    return (int)Response.StatusCode;
+                }
+                else
+                {
+                    return new UnrecognizedResponseException(Response.StatusCode, ResponseBody, "DeletePreference request failed.");
+                }
             }
             catch (Exception e)
             {
-                LastException = e;
+                return e;
             }
-            return false;
         }
 
         #endregion
 
         #region FILE
 
-        public async Task<model.FileInfo[]> GetFiles(string group)
+        public async Task<object> GetFiles(string group)
         {
             try
             {
@@ -581,21 +600,24 @@ namespace com.hideakin.textsearch.net
                 var uri = string.Format("{0}/v1/files/{1}", Url, group);
                 var request = new HttpRequestMessage(HttpMethod.Get, uri);
                 request.Headers.Add(AUTHORIZATION, BearerToken);
-                Response = await httpClient.SendAsync(request, cts.Token);
+                Response = await httpClient.SendAsync(request, ct);
                 ResponseBody = await Response.Content.ReadAsStringAsync();
                 if (Response.StatusCode == HttpStatusCode.OK)
                 {
                     return JsonConvert.DeserializeObject<model.FileInfo[]>(ResponseBody);
                 }
+                else
+                {
+                    return new UnrecognizedResponseException(Response.StatusCode, ResponseBody, "GetFiles request failed.");
+                }
             }
             catch (Exception e)
             {
-                LastException = e;
+                return e;
             }
-            return null;
         }
 
-        public async Task<model.FileInfo> GetFile(string group, string path)
+        public async Task<object> GetFile(string group, string path)
         {
             try
             {
@@ -603,21 +625,24 @@ namespace com.hideakin.textsearch.net
                 var uri = string.Format("{0}/v1/files/{1}/file?path={2}", Url, group, path);
                 var request = new HttpRequestMessage(HttpMethod.Get, uri);
                 request.Headers.Add(AUTHORIZATION, BearerToken);
-                Response = await httpClient.SendAsync(request, cts.Token);
+                Response = await httpClient.SendAsync(request, ct);
                 ResponseBody = await Response.Content.ReadAsStringAsync();
                 if (Response.StatusCode == HttpStatusCode.OK)
                 {
                     return JsonConvert.DeserializeObject<model.FileInfo>(ResponseBody);
                 }
+                else
+                {
+                    return new UnrecognizedResponseException(Response.StatusCode, ResponseBody, "GetFile request failed.");
+                }
             }
             catch (Exception e)
             {
-                LastException = e;
+                return e;
             }
-            return null;
         }
 
-        public async Task<FileStats> GetFileStats(string group)
+        public async Task<object> GetFileStats(string group)
         {
             try
             {
@@ -625,21 +650,24 @@ namespace com.hideakin.textsearch.net
                 var uri = string.Format("{0}/v1/files/{1}/stats", Url, group);
                 var request = new HttpRequestMessage(HttpMethod.Get, uri);
                 request.Headers.Add(AUTHORIZATION, BearerToken);
-                Response = await httpClient.SendAsync(request, cts.Token);
+                Response = await httpClient.SendAsync(request, ct);
                 ResponseBody = await Response.Content.ReadAsStringAsync();
                 if (Response.StatusCode == HttpStatusCode.OK)
                 {
                     return JsonConvert.DeserializeObject<FileStats>(ResponseBody);
                 }
+                else
+                {
+                    return new UnrecognizedResponseException(Response.StatusCode, ResponseBody, "GetFileStats request failed.");
+                }
             }
             catch (Exception e)
             {
-                LastException = e;
+                return e;
             }
-            return null;
         }
 
-        public async Task<model.FileInfo> UploadFile(string group, string path)
+        public async Task<object> UploadFile(string group, string path)
         {
             try
             {
@@ -660,21 +688,24 @@ namespace com.hideakin.textsearch.net
                 };
                 content.Add(fileContent);
                 request.Content = content;
-                Response = await httpClient.SendAsync(request, cts.Token);
+                Response = await httpClient.SendAsync(request, ct);
                 ResponseBody = await Response.Content.ReadAsStringAsync();
                 if (Response.StatusCode == HttpStatusCode.OK || Response.StatusCode == HttpStatusCode.Created)
                 {
                     return JsonConvert.DeserializeObject<model.FileInfo>(ResponseBody);
                 }
+                else
+                {
+                    return new UnrecognizedResponseException(Response.StatusCode, ResponseBody, "UploadFile request failed.");
+                }
             }
             catch (Exception e)
             {
-                LastException = e;
+                return e;
             }
-            return null;
         }
 
-        public async Task<FileContents> DownloadFile(int fid)
+        public async Task<object> DownloadFile(int fid)
         {
             try
             {
@@ -682,7 +713,7 @@ namespace com.hideakin.textsearch.net
                 var uri = string.Format("{0}/v1/files/{1}/contents", Url, fid);
                 var request = new HttpRequestMessage(HttpMethod.Get, uri);
                 request.Headers.Add(AUTHORIZATION, BearerToken);
-                Response = await httpClient.SendAsync(request, cts.Token);
+                Response = await httpClient.SendAsync(request, ct);
                 if (Response.StatusCode == HttpStatusCode.OK)
                 {
                     // NOTE: System.Net.Http.Formatting.Extension NuGet Package needs to be installed to use ReadAsMultipartAsync extension method.
@@ -707,15 +738,15 @@ namespace com.hideakin.textsearch.net
                         }
                     }
                 }
+                return new UnrecognizedResponseException(Response.StatusCode, "", "DownloadFile request failed.");
             }
             catch (Exception e)
             {
-                LastException = e;
+                return e;
             }
-            return null;
         }
 
-        public async Task<model.FileInfo[]> DeleteFiles(string group)
+        public async Task<object> DeleteFiles(string group)
         {
             try
             {
@@ -723,21 +754,24 @@ namespace com.hideakin.textsearch.net
                 var uri = string.Format("{0}/v1/files/{1}", Url, group);
                 var request = new HttpRequestMessage(HttpMethod.Delete, uri);
                 request.Headers.Add(AUTHORIZATION, BearerToken);
-                Response = await httpClient.SendAsync(request, cts.Token);
+                Response = await httpClient.SendAsync(request, ct);
                 ResponseBody = await Response.Content.ReadAsStringAsync();
                 if (Response.StatusCode == HttpStatusCode.OK)
                 {
                     return JsonConvert.DeserializeObject<model.FileInfo[]>(ResponseBody);
                 }
+                else
+                {
+                    return new UnrecognizedResponseException(Response.StatusCode, ResponseBody, "DeleteFiles request failed.");
+                }
             }
             catch (Exception e)
             {
-                LastException = e;
+                return e;
             }
-            return null;
         }
 
-        public async Task<bool> DeleteStaleFiles(string group)
+        public async Task<object> DeleteStaleFiles(string group)
         {
             try
             {
@@ -745,15 +779,21 @@ namespace com.hideakin.textsearch.net
                 var uri = string.Format("{0}/v1/files/{1}/stale", Url, group);
                 var request = new HttpRequestMessage(HttpMethod.Delete, uri);
                 request.Headers.Add(AUTHORIZATION, BearerToken);
-                Response = await httpClient.SendAsync(request, cts.Token);
+                Response = await httpClient.SendAsync(request, ct);
                 ResponseBody = await Response.Content.ReadAsStringAsync();
-                return Response.StatusCode == HttpStatusCode.OK;
+                if (Response.StatusCode == HttpStatusCode.OK)
+                {
+                    return (int)Response.StatusCode;
+                }
+                else
+                {
+                    return new UnrecognizedResponseException(Response.StatusCode, ResponseBody, "DeleteStaleFiles request failed.");
+                }
             }
             catch (Exception e)
             {
-                LastException = e;
+                return e;
             }
-            return false;
         }
 
         #endregion
@@ -768,7 +808,7 @@ namespace com.hideakin.textsearch.net
                 var uri = string.Format("{0}/v1/index/{1}?text={2}&option={3}", Url, group, text, Enum.GetName(option.GetType(), option));
                 var request = new HttpRequestMessage(HttpMethod.Get, uri);
                 request.Headers.Add(AUTHORIZATION, BearerToken);
-                Response = await httpClient.SendAsync(request, cts.Token);
+                Response = await httpClient.SendAsync(request, ct);
                 ResponseBody = await Response.Content.ReadAsStringAsync();
                 if (Response.StatusCode == HttpStatusCode.OK)
                 {
@@ -776,14 +816,17 @@ namespace com.hideakin.textsearch.net
                 }
                 else if (Response.StatusCode == HttpStatusCode.BadRequest)
                 {
-                    return JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody);
+                    return new ErrorResponseException(JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody), "FindText request failed.");
+                }
+                else
+                {
+                    return new UnrecognizedResponseException(Response.StatusCode, ResponseBody, "FindText request failed.");
                 }
             }
             catch (Exception e)
             {
-                LastException = e;
+                return e;
             }
-            return null;
         }
 
         #endregion

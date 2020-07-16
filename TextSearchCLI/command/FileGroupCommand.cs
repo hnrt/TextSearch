@@ -1,15 +1,21 @@
 ﻿using com.hideakin.textsearch.model;
 using com.hideakin.textsearch.service;
-using com.hideakin.textsearch.utility;
 using System;
-using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 
 namespace com.hideakin.textsearch.command
 {
     internal class FileGroupCommand : ICommand
     {
-        private FileGroupService FileGrpSvc { get; } = new FileGroupService();
+        private readonly CancellationTokenSource cts;
+        private readonly FileGroupService grp;
+
+        public FileGroupCommand()
+        {
+            cts = new CancellationTokenSource();
+            grp = new FileGroupService(cts.Token);
+        }
 
         public void Register(CommandLine commandLine, CommandQueue commandQueue)
         {
@@ -18,13 +24,10 @@ namespace com.hideakin.textsearch.command
                 {
                     commandQueue.Add(() =>
                     {
-                        var values = FileGrpSvc.GetFileGroups();
-                        if (values != null)
+                        var values = grp.GetFileGroups();
+                        foreach (FileGroupInfo entry in values.OrderBy(x => x.Gid))
                         {
-                            foreach (FileGroupInfo entry in values.OrderBy(x => x.Gid))
-                            {
-                                Console.WriteLine("{0}", entry);
-                            }
+                            Console.WriteLine("{0}", entry);
                         }
                     });
                 })
@@ -37,7 +40,7 @@ namespace com.hideakin.textsearch.command
                     var groupname = (string)e.Current;
                     commandQueue.Add(() =>
                     {
-                        var entry = FileGrpSvc.CreateFileGroup(groupname);
+                        var entry = grp.CreateFileGroup(groupname);
                         Console.WriteLine("Created. {0}", entry);
                     });
                 })
@@ -55,7 +58,7 @@ namespace com.hideakin.textsearch.command
                     string groupname = (string)e.Current;
                     commandQueue.Add(() =>
                     {
-                        var entry = FileGrpSvc.UpdateFileGroup(gid, groupname);
+                        var entry = grp.UpdateFileGroup(gid, groupname);
                         Console.WriteLine("Updated. {0}", entry);
                     });
                 })
@@ -68,7 +71,7 @@ namespace com.hideakin.textsearch.command
                     int gid = int.Parse((string)e.Current);
                     commandQueue.Add(() =>
                     {
-                        var entry = FileGrpSvc.DeleteFileGroup(gid);
+                        var entry = grp.DeleteFileGroup(gid);
                         Console.WriteLine("Deleted. {0}", entry);
                     });
                 })

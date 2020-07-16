@@ -1,13 +1,19 @@
-﻿using com.hideakin.textsearch.net;
-using com.hideakin.textsearch.service;
+﻿using com.hideakin.textsearch.service;
 using System;
-using System.Collections.Generic;
+using System.Threading;
 
 namespace com.hideakin.textsearch.command
 {
     internal class ConfigurationCommand : ICommand
     {
-        private PreferenceService PrefSvc { get; } = new PreferenceService();
+        private readonly CancellationTokenSource cts;
+        private readonly PreferenceService pref;
+
+        public ConfigurationCommand()
+        {
+            cts = new CancellationTokenSource();
+            pref = new PreferenceService(cts.Token);
+        }
 
         public void Register(CommandLine commandLine, CommandQueue commandQueue)
         {
@@ -23,13 +29,13 @@ namespace com.hideakin.textsearch.command
                     {
                         throw new Exception("URL does not look valid.");
                     }
-                    PrefSvc.Url = a;
+                    pref.Url = a;
                 })
                 .AddHandler("-print-extensions", (e) =>
                 {
                     commandQueue.Add(() =>
                     {
-                        var list = PrefSvc.GetExtensions();
+                        var list = pref.GetExtensions();
                         foreach (string ext in list)
                         {
                             Console.WriteLine("{0}", ext);
@@ -46,7 +52,7 @@ namespace com.hideakin.textsearch.command
                     commandQueue.Add(() =>
                     {
                         Console.WriteLine("Adding extensions setting...");
-                        var res = PrefSvc.AddExtensions(exts);
+                        var res = pref.AddExtensions(exts);
                         Console.WriteLine("{0}", res);
                     });
                 })
@@ -55,7 +61,7 @@ namespace com.hideakin.textsearch.command
                     commandQueue.Add(() =>
                     {
                         Console.WriteLine("Clearing extensions setting...");
-                        PrefSvc.ClearExtensions();
+                        pref.ClearExtensions();
                         Console.WriteLine("Done.");
                     });
                 })
@@ -63,7 +69,7 @@ namespace com.hideakin.textsearch.command
                 {
                     commandQueue.Add(() =>
                     {
-                        var list = PrefSvc.GetSkipDirs();
+                        var list = pref.GetSkipDirs();
                         foreach (string dir in list)
                         {
                             Console.WriteLine("{0}", dir);
@@ -80,7 +86,7 @@ namespace com.hideakin.textsearch.command
                     commandQueue.Add(() =>
                     {
                         Console.WriteLine("Adding skip-dirs setting...");
-                        PrefSvc.AddSkipDirs(dirs);
+                        pref.AddSkipDirs(dirs);
                         Console.WriteLine("Done.");
                     });
                 })
@@ -89,7 +95,7 @@ namespace com.hideakin.textsearch.command
                     commandQueue.Add(() =>
                     {
                         Console.WriteLine("Clearing skip-dirs setting...");
-                        PrefSvc.ClearSkipDirs();
+                        pref.ClearSkipDirs();
                         Console.WriteLine("Done.");
                     });
                 })
@@ -100,10 +106,6 @@ namespace com.hideakin.textsearch.command
                 .AddTranslation("-pd", "-print-skip-dirs")
                 .AddTranslation("-skip", "-add-skip-dirs")
                 .AddTranslation("-skip-dirs", "-add-skip-dirs")
-                .AddTranslation("-u", "-username")
-                .AddTranslation("-user", "-username")
-                .AddTranslation("-p", "-password")
-                .AddTranslation("-pass", "-password")
                 .AddUsageHeader("Usage <configuration>:")
                 .AddUsage("{0} -print-extensions", Program.Name)
                 .AddUsage("{0} -add-extensions EXT[,EXT2...]", Program.Name)
@@ -111,9 +113,7 @@ namespace com.hideakin.textsearch.command
                 .AddUsage("{0} -print-skip-dirs", Program.Name)
                 .AddUsage("{0} -add-skip-dirs DIR[,DIR2...]", Program.Name)
                 .AddUsage("{0} -clear-skip-dirs", Program.Name)
-                .AddOption("-index-api URL")
-                .AddOption("-username USERNAME")
-                .AddOption("-password PASSWORD");
+                .AddOption("-index-api URL");
         }
     }
 }

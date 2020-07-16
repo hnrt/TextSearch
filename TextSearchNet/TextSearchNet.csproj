@@ -85,6 +85,9 @@
   <ItemGroup>
     <Compile Include="data\SearchOptions.cs" />
     <Compile Include="data\UploadFileStatus.cs" />
+    <Compile Include="exception\ErrorResponseException.cs" />
+    <Compile Include="exception\InsufficientCredentialInformationException.cs" />
+    <Compile Include="exception\UnrecognizedResponseException.cs" />
     <Compile Include="model\ApiCreadentialsCollection.cs" />
     <Compile Include="model\ApiCredentials.cs" />
     <Compile Include="model\AuthenticateResponse.cs" />
@@ -117,6 +120,7 @@
     <Compile Include="service\PreferenceService.cs" />
     <Compile Include="service\ServiceBase.cs" />
     <Compile Include="service\UserService.cs" />
+    <Compile Include="utility\AppData.cs" />
     <Compile Include="utility\Debug.cs" />
     <Compile Include="utility\HitRangesListExtension.cs" />
     <Compile Include="utility\StringExtension.cs" />

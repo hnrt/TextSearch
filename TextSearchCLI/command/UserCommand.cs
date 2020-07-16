@@ -3,12 +3,20 @@ using com.hideakin.textsearch.utility;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 
 namespace com.hideakin.textsearch.command
 {
     internal class UserCommand : ICommand
     {
-        private UserService UserSvc { get; } = new UserService();
+        private readonly CancellationTokenSource cts;
+        private readonly UserService usr;
+
+        public UserCommand()
+        {
+            cts = new CancellationTokenSource();
+            usr = new UserService(cts.Token);
+        }
 
         public void Register(CommandLine commandLine, CommandQueue commandQueue)
         {
@@ -17,7 +25,7 @@ namespace com.hideakin.textsearch.command
                 {
                     commandQueue.Add(() =>
                     {
-                        var users = UserSvc.GetUsers();
+                        var users = usr.GetUsers();
                         foreach (var entry in users.OrderBy(x => x.Uid))
                         {
                             Console.WriteLine("{0}", entry);
@@ -35,7 +43,7 @@ namespace com.hideakin.textsearch.command
                         int uid = int.Parse((string)e.Current);
                         commandQueue.Add(() =>
                         {
-                            var entry = UserSvc.GetUser(uid);
+                            var entry = usr.GetUser(uid);
                             Console.WriteLine("{0}", entry);
                         });
                     }
@@ -44,7 +52,7 @@ namespace com.hideakin.textsearch.command
                         var username = (string)e.Current;
                         commandQueue.Add(() =>
                         {
-                            var entry = UserSvc.GetUser(username);
+                            var entry = usr.GetUser(username);
                             Console.WriteLine("{0}", entry);
                         });
                     }
@@ -69,7 +77,7 @@ namespace com.hideakin.textsearch.command
                     roles.MergeItems((string)e.Current);
                     commandQueue.Add(() =>
                     {
-                        var entry = UserSvc.CreateUser(username, password, roles.ToArray());
+                        var entry = usr.CreateUser(username, password, roles.ToArray());
                         Console.WriteLine("Created. {0}", entry);
                     });
                 })
@@ -118,7 +126,7 @@ namespace com.hideakin.textsearch.command
                     commandLine2.Parse(e);
                     commandQueue.Add(() =>
                     {
-                        var entry = UserSvc.UpdateUser(uid, username, password, roles.ToArray());
+                        var entry = usr.UpdateUser(uid, username, password, roles.ToArray());
                         Console.WriteLine("Updated. {0}", entry);
                     });
                 })
@@ -131,7 +139,7 @@ namespace com.hideakin.textsearch.command
                     int uid = int.Parse((string)e.Current);
                     commandQueue.Add(() =>
                     {
-                        var entry = UserSvc.DeleteUser(uid);
+                        var entry = usr.DeleteUser(uid);
                         Console.WriteLine("Deleted. {0}", entry);
                     });
                 })

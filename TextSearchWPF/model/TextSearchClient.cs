@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using com.hideakin.textsearch.net;
 
@@ -30,10 +31,18 @@ namespace com.hideakin.textsearch.model
 
         public ObservableCollection<LineText> Contents { get; } = new ObservableCollection<LineText>();
 
-        private IndexService IndexSvc { get; } = new IndexService();
+        private IndexService IndexSvc { get; }
+
+        private readonly CancellationTokenSource cts = new CancellationTokenSource();
 
         public TextSearchClient()
         {
+            IndexSvc = new IndexService(cts.Token);
+        }
+
+        public void Cancel()
+        {
+            cts.Cancel();
         }
 
         public async Task<bool> Initialize()
@@ -44,7 +53,7 @@ namespace com.hideakin.textsearch.model
 
         public async Task<bool> Authenticate(string username, string password)
         {
-            var api = IndexApiClient.Create();
+            var api = IndexApiClient.Create(cts.Token);
             var result = await api.Authenticate(username, password);
             if (result is ErrorResponse e)
             {
@@ -58,13 +67,13 @@ namespace com.hideakin.textsearch.model
         {
             string lastSelection = Group;
             Groups.Clear();
-            var api = IndexApiClient.Create();
+            var api = IndexApiClient.Create(cts.Token);
             var results = await api.GetFileGroups();
-            if (results != null)
+            if (results is FileGroupInfo[] groups)
             {
                 string defaultGroup = "default";
                 Groups.Add(defaultGroup);
-                foreach (var group in results.OrderBy(x => x.Name))
+                foreach (var group in groups.OrderBy(x => x.Name))
                 {
                     if (group.Name != defaultGroup)
                     {
@@ -91,11 +100,11 @@ namespace com.hideakin.textsearch.model
             FileItems.Clear();
             if (Group != null)
             {
-                var api = IndexApiClient.Create();
+                var api = IndexApiClient.Create(cts.Token);
                 var results = await api.GetFiles(Group);
-                if (results != null)
+                if (results is FileInfo[] entries)
                 {
-                    foreach (var entry in results.OrderBy(x => x.Path.ToUpperInvariant()))
+                    foreach (var entry in entries.OrderBy(x => x.Path.ToUpperInvariant()))
                     {
                         FileItems.Add(new FileItem(entry.Fid, entry.Path, entry.Size));
                     }
@@ -114,31 +123,20 @@ namespace com.hideakin.textsearch.model
 
         public async Task<string> Execute()
         {
-            HitItems.Clear();
-            Path = string.Empty;
-            NotifyOfChange("Path");
-            Contents.Clear();
-            var api = IndexApiClient.Create();
-            var results = await Task<object>.Run(() =>
+            try
             {
-                try
-                {
-                    return (object)IndexSvc.FindText(Group, QueryText);
-                }
-                catch (Exception e)
-                {
-                    return e;
-                }
-            });
-            if (results is HitRowColumns[] hits)
-            {
+                HitItems.Clear();
+                Path = string.Empty;
+                NotifyOfChange("Path");
+                Contents.Clear();
+                var hits = await IndexSvc.FindTextAsync(Group, QueryText);
                 var m = new List<(HitRowColumns Hit, FileContents Contents)>();
                 foreach (var hit in hits)
                 {
                     var contents = FileContents.Find(hit.Fid);
                     m.Add((hit, contents));
                 }
-                m.Sort((a, b) => 
+                m.Sort((a, b) =>
                 {
                     return a.Contents.Path.ToUpperInvariant().CompareTo(b.Contents.Path.ToUpperInvariant());
                 });
@@ -170,12 +168,12 @@ namespace com.hideakin.textsearch.model
                         f.HitRows = 0;
                     }
                 }
+                return null;
             }
-            else if (results is Exception e)
+            catch (Exception e)
             {
                 return e.Message;
             }
-            return null;
         }
 
         public async Task<bool> OnSelectionChanged(HitItem h)
@@ -212,8 +210,16 @@ namespace com.hideakin.textsearch.model
             var contents = FileContents.Find(fid);
             if (contents == null)
             {
-                var api = IndexApiClient.Create();
-                contents = await api.DownloadFile(fid);
+                var api = IndexApiClient.Create(cts.Token);
+                var result = await api.DownloadFile(fid);
+                if (result is FileContents c)
+                {
+                    contents = c;
+                }
+                else
+                {
+                    //TODO: Error
+                }
             }
             Contents.Clear();
             if (contents != null)

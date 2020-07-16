@@ -2,12 +2,20 @@
 using com.hideakin.textsearch.service;
 using System;
 using System.Text;
+using System.Threading;
 
 namespace com.hideakin.textsearch.command
 {
     internal class SearchCommand : ICommand
     {
-        private IndexService IndexSvc { get; } = new IndexService();
+        private readonly CancellationTokenSource cts;
+        private readonly IndexService idx;
+
+        public SearchCommand()
+        {
+            cts = new CancellationTokenSource();
+            idx = new IndexService(cts.Token);
+        }
 
         public void Register(CommandLine commandLine, CommandQueue commandQueue)
         {
@@ -57,7 +65,7 @@ namespace com.hideakin.textsearch.command
 
         private void Query(string group, string expression, bool formatHTML)
         {
-            var rsp = IndexSvc.FindText(group, expression);
+            var rsp = idx.FindText(group, expression);
             if (formatHTML)
             {
                 FormatQueryResultsInHtml(rsp);

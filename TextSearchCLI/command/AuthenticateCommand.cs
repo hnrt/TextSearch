@@ -1,11 +1,6 @@
-﻿using com.hideakin.textsearch.model;
-using com.hideakin.textsearch.net;
-using com.hideakin.textsearch.service;
+﻿using com.hideakin.textsearch.service;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Threading;
 
 namespace com.hideakin.textsearch.command
 {
@@ -13,10 +8,13 @@ namespace com.hideakin.textsearch.command
     {
         private static readonly string AUTHENTICATE = "-authenticate";
 
-        private UserService UserSvc { get; } = new UserService();
+        private readonly CancellationTokenSource cts;
+        private readonly UserService usr;
 
         public AuthenticateCommand()
         {
+            cts = new CancellationTokenSource();
+            usr = new UserService(cts.Token);
         }
 
         public void Register(CommandLine commandLine, CommandQueue commandQueue)
@@ -38,15 +36,8 @@ namespace com.hideakin.textsearch.command
                     var password = s.Substring(pos + 1);
                     commandQueue.Add(() =>
                     {
-                        var result = UserSvc.Authenticate(username, password);
-                        if (result is AuthenticateResponse a)
-                        {
-                            Console.WriteLine("OK. {0}", a.AccessToken);
-                        }
-                        else if (result is ErrorResponse x)
-                        {
-                            Console.WriteLine("ERROR: {0}", x.ErrorDescription);
-                        }
+                        var response = usr.Authenticate(username, password);
+                        Console.WriteLine("OK. {0}", response.AccessToken);
                     });
                 })
                 .AddTranslation("-a", AUTHENTICATE)

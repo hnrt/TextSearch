@@ -6,6 +6,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 
 namespace com.hideakin.textsearch.command
 {
@@ -13,13 +14,18 @@ namespace com.hideakin.textsearch.command
     {
         private static readonly string DEFAULT_GROUP = "default";
 
-        private FileService FileSvc { get; } = new FileService();
+        private readonly CancellationTokenSource cts;
+        private readonly FileService file;
+        private readonly PreferenceService pref;
+        private model.FileInfo[] alreadyUploaded;
+        private readonly int ConcurrencyLevel = 8;
 
-        private PreferenceService PrefSvc { get; } = new PreferenceService();
-
-        private model.FileInfo[] AlreadyUploaded { get; set; }
-
-        public int ConcurrencyLevel { get; set; } = 8;
+        public FileCommand()
+        {
+            cts = new CancellationTokenSource();
+            file = new FileService(cts.Token);
+            pref = new PreferenceService(cts.Token);
+        }
 
         public void Register(CommandLine commandLine, CommandQueue commandQueue)
         {
@@ -37,13 +43,10 @@ namespace com.hideakin.textsearch.command
                     }
                     commandQueue.Add(() =>
                     {
-                        var fi = FileSvc.GetFiles(group);
-                        if (fi != null)
+                        var fi = file.GetFiles(group);
+                        foreach (var entry in fi.OrderBy(x => x.Fid))
                         {
-                            foreach (var entry in fi.OrderBy(x => x.Fid))
-                            {
-                                Console.WriteLine("[{0}] {1}", entry.Fid, entry.Path);
-                            }
+                            Console.WriteLine("[{0}] {1}", entry.Fid, entry.Path);
                         }
                     });
                 })
@@ -60,7 +63,7 @@ namespace com.hideakin.textsearch.command
                     }
                     commandQueue.Add(() =>
                     {
-                        var stats = FileSvc.GetFileStats(group);
+                        var stats = file.GetFileStats(group);
                         Console.WriteLine("{0}", stats);
                     });
                 })
@@ -78,11 +81,11 @@ namespace com.hideakin.textsearch.command
                     var path = (string)e.Current;
                     commandQueue.Add(() =>
                     {
-                        var info = FileSvc.GetFile(group, path);
+                        var info = file.GetFile(group, path);
                         var contents = FileContents.Find(info.Fid);
                         if (contents == null)
                         {
-                            contents = FileSvc.DownloadFile(info.Fid);
+                            contents = file.DownloadFile(info.Fid);
                         }
                         foreach (var line in contents.Lines)
                         {
@@ -135,7 +138,7 @@ namespace com.hideakin.textsearch.command
                     commandQueue.Add(() =>
                     {
                         Console.WriteLine("Started deleting files...");
-                        FileSvc.DeleteFiles(group);
+                        file.DeleteFiles(group);
                         Console.WriteLine("Done.");
                     });
                 })
@@ -153,7 +156,7 @@ namespace com.hideakin.textsearch.command
                     commandQueue.Add(() =>
                     {
                         Console.WriteLine("Started deleting stale files...");
-                        FileSvc.DeleteStaleFiles(group);
+                        file.DeleteStaleFiles(group);
                         Console.WriteLine("Done.");
                     });
                 })
@@ -174,9 +177,9 @@ namespace com.hideakin.textsearch.command
         {
             var t1 = DateTime.Now;
             Console.WriteLine("Started indexing...");
-            AlreadyUploaded = forceIndexing ? new model.FileInfo[0] : FileSvc.GetFiles(group);
-            var extensions = PrefSvc.GetExtensions();
-            var skipDirs = PrefSvc.GetSkipDirs();
+            alreadyUploaded = forceIndexing ? new model.FileInfo[0] : file.GetFiles(group);
+            var extensions = pref.GetExtensions();
+            var skipDirs = pref.GetSkipDirs();
             foreach (string path in paths)
             {
                 if (Directory.Exists(path))
@@ -206,7 +209,7 @@ namespace com.hideakin.textsearch.command
                     Console.WriteLine("Unable to find {0}...", path);
                 }
             }
-            while (FileSvc.Uploading > 0)
+            while (file.Uploading > 0)
             {
                 WaitForIndexFileCompletion();
             }
@@ -245,7 +248,7 @@ namespace com.hideakin.textsearch.command
         private void IndexFile(string group, string path)
         {
             path = Path.GetFullPath(path).NormalizePath();
-            var fileInfo = AlreadyUploaded.Where(x => x.Path == path).Select(x => x).FirstOrDefault();
+            var fileInfo = alreadyUploaded.Where(x => x.Path == path).Select(x => x).FirstOrDefault();
             if (fileInfo != null)
             {
                 Console.WriteLine("{0}", path);
@@ -253,11 +256,11 @@ namespace com.hideakin.textsearch.command
             }
             else
             {
-                if (FileSvc.Uploading >= ConcurrencyLevel)
+                if (file.Uploading >= ConcurrencyLevel)
                 {
                     WaitForIndexFileCompletion();
                 }
-                FileSvc.AsyncUploadFile(group, path);
+                file.UploadFileAsync(group, path);
             }
         }
 
@@ -265,7 +268,7 @@ namespace com.hideakin.textsearch.command
         {
             try
             {
-                var fileInfo = FileSvc.WaitForUploadFileCompletion(out var result);
+                var fileInfo = file.WaitForUploadFileCompletion(out var result);
                 Console.WriteLine("{0}", fileInfo.Path);
                 Console.WriteLine("    Uploaded. FID={0}{1}", fileInfo.Fid, result == UploadFileStatus.Created ? " (NEW)" : "");
             }

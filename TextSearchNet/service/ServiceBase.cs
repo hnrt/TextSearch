@@ -1,5 +1,7 @@
 ﻿using System;
 using System.Net.Http;
+using System.Threading;
+using com.hideakin.textsearch.model;
 using com.hideakin.textsearch.net;
 using com.hideakin.textsearch.utility;
 
@@ -7,8 +9,11 @@ namespace com.hideakin.textsearch.service
 {
     public class ServiceBase
     {
-        protected ServiceBase()
+        protected readonly CancellationToken ct;
+
+        protected ServiceBase(CancellationToken ct)
         {
+            this.ct = ct;
         }
 
         public string Url
@@ -23,19 +28,23 @@ namespace com.hideakin.textsearch.service
             }
         }
 
-        public object Authenticate(string username, string password)
+        public AuthenticateResponse Authenticate(string username, string password)
         {
-            var client = IndexApiClient.Create();
+            var client = IndexApiClient.Create(ct);
             var task = client.Authenticate(username, password);
             task.Wait();
-            return task.Result;
-        }
-
-        protected Exception NewResponseException(HttpResponseMessage response)
-        {
-            return new Exception(string.Format("Status {0}: {1}",
-                (int)response.StatusCode,
-                string.IsNullOrEmpty(response.ReasonPhrase) ? HttpReasonPhrase.Get(response.StatusCode) : response.ReasonPhrase));
+            if (task.Result is AuthenticateResponse ar)
+            {
+                return ar;
+            }
+            else if (task.Result is Exception e)
+            {
+                throw e;
+            }
+            else
+            {
+                throw new NotImplementedException();
+            }
         }
 
         protected void DebugPut(string header, string input, string[] texts)
