@@ -1,4 +1,5 @@
-﻿using com.hideakin.textsearch.service;
+﻿using com.hideakin.textsearch.net;
+using com.hideakin.textsearch.service;
 using System;
 using System.Threading;
 
@@ -29,7 +30,15 @@ namespace com.hideakin.textsearch.command
                     {
                         throw new Exception("URL does not look valid.");
                     }
-                    pref.Url = a;
+                    IndexApiClient.Url = a;
+                })
+                .AddHandler("-username", (e) =>
+                {
+                    if (!e.MoveNext())
+                    {
+                        throw new Exception("Username is not specified.");
+                    }
+                    IndexApiClient.ChangeUser((string)e.Current);
                 })
                 .AddHandler("-print-extensions", (e) =>
                 {
@@ -99,6 +108,7 @@ namespace com.hideakin.textsearch.command
                         Console.WriteLine("Done.");
                     });
                 })
+                .AddTranslation("-u", "-username")
                 .AddTranslation("-pe", "-print-extensions")
                 .AddTranslation("-print-ext", "-print-extensions")
                 .AddTranslation("-ext", "-add-extensions")
@@ -113,7 +123,8 @@ namespace com.hideakin.textsearch.command
                 .AddUsage("{0} -print-skip-dirs", Program.Name)
                 .AddUsage("{0} -add-skip-dirs DIR[,DIR2...]", Program.Name)
                 .AddUsage("{0} -clear-skip-dirs", Program.Name)
-                .AddOption("-index-api URL");
+                .AddOption("-index-api URL")
+                .AddOption("-username USERNAME");
         }
     }
 }

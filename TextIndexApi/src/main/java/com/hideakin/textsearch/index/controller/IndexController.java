@@ -1,6 +1,8 @@
 package com.hideakin.textsearch.index.controller;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -18,11 +20,16 @@ public class IndexController {
 	private IndexService service;
 	
 	@RequestMapping(value="/v1/index/{group:[^0-9].*}",method=RequestMethod.GET)
-	public TextDistribution[] findTextByGroup(
+	public ResponseEntity<?> findTextByGroup(
 			@PathVariable String group,
 			@RequestParam(name="text") String text,
 			@RequestParam(name="option") SearchOptions option) {
-    	return service.findText(group, text, option);
+		TextDistribution[] results = service.findText(group, text, option);
+		if (results != null) {
+			return new ResponseEntity<>(results, HttpStatus.OK);
+		} else {
+			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
+		}
 	}
 
 }

@@ -4,6 +4,7 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using com.hideakin.textsearch.data;
+using com.hideakin.textsearch.exception;
 using com.hideakin.textsearch.model;
 using com.hideakin.textsearch.net;
 
@@ -142,7 +143,7 @@ namespace com.hideakin.textsearch.service
             }
             else if (ufTask.Result is Exception e)
             {
-                throw new Exception(string.Format("Failed to upload \"{0}\".", path), e);
+                throw new UploadFileException(path, e);
             }
             else
             {

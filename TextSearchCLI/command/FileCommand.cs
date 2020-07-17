@@ -1,4 +1,5 @@
 ﻿using com.hideakin.textsearch.data;
+using com.hideakin.textsearch.exception;
 using com.hideakin.textsearch.model;
 using com.hideakin.textsearch.service;
 using com.hideakin.textsearch.utility;
@@ -18,7 +19,7 @@ namespace com.hideakin.textsearch.command
         private readonly FileService file;
         private readonly PreferenceService pref;
         private model.FileInfo[] alreadyUploaded;
-        private readonly int ConcurrencyLevel = 8;
+        private int concurrencyLevel = 8;
 
         public FileCommand()
         {
@@ -100,13 +101,30 @@ namespace com.hideakin.textsearch.command
                         throw new Exception("Group name is not specified.");
                     }
                     var forceIndexing = false;
-                    if ((string)e.Current == "-force" || (string)e.Current == "-f")
-                    {
-                        forceIndexing = true;
-                        if (!e.MoveNext())
+                    var commandLine2 = new CommandLine();
+                    commandLine2
+                        .AddHandler("-force", (ee) =>
                         {
-                            throw new Exception("Group name is not specified.");
-                        }
+                            forceIndexing = true;
+                        })
+                        .AddHandler("-concurrency", (ee) => 
+                        {
+                            if (!e.MoveNext())
+                            {
+                                throw new Exception("Concurrency level number is not specified.");
+                            }
+                            concurrencyLevel = int.Parse((string)ee.Current);
+                            if (concurrencyLevel < 1 || 255 < concurrencyLevel)
+                            {
+                                throw new Exception("Concurrency level number is out of the valid range.");
+                            }
+                        })
+                        .AddTranslation("-f", "-force")
+                        .AddTranslation("-c", "-concurrency");
+                    e = commandLine2.Parse(e);
+                    if (e == null)
+                    {
+                        throw new Exception("Group name is not specified.");
                     }
                     var group = (string)e.Current;
                     if (!e.MoveNext())
@@ -168,7 +186,7 @@ namespace com.hideakin.textsearch.command
                 .AddUsage("{0} -print-files [GROUPNAME]", Program.Name)
                 .AddUsage("{0} -print-file-stats [GROUPNAME]", Program.Name)
                 .AddUsage("{0} -print-file GROUPNAME PATH", Program.Name)
-                .AddUsage("{0} -index-files [-force] GROUPNAME PATH...", Program.Name)
+                .AddUsage("{0} -index-files [-force] [-concurrency NUMBER] GROUPNAME PATH...", Program.Name)
                 .AddUsage("{0} -delete-files [GROUPNAME]", Program.Name)
                 .AddUsage("{0} -delete-stale-files [GROUPNAME]", Program.Name);
         }
@@ -188,25 +206,25 @@ namespace com.hideakin.textsearch.command
                     {
                         Console.WriteLine("Skipping {0}...", path);
                     }
-                    else
+                    else if (!IndexDir(group, path, extensions, skipDirs))
                     {
-                        IndexDir(group, path, extensions, skipDirs);
+                        break;
                     }
                 }
                 else if (File.Exists(path))
                 {
-                    if (extensions.Count == 0 || extensions.Contains(Path.GetExtension(path)))
-                    {
-                        IndexFile(group, path);
-                    }
-                    else
+                    if (extensions.Count > 0 && !extensions.Contains(Path.GetExtension(path)))
                     {
                         Console.WriteLine("Skipping {0}...", path);
+                    }
+                    else if (!IndexFile(group, path))
+                    {
+                        break;
                     }
                 }
                 else
                 {
-                    Console.WriteLine("Unable to find {0}...", path);
+                    Console.WriteLine("ERROR: Unable to find '{0}'.", path);
                 }
             }
             while (file.Uploading > 0)
@@ -217,7 +235,7 @@ namespace com.hideakin.textsearch.command
             Console.WriteLine("Done. Elapsed time: {0}", t2 - t1);
         }
 
-        private void IndexDir(string group, string path, List<string> extensions, List<string> skipDirs)
+        private bool IndexDir(string group, string path, List<string> extensions, List<string> skipDirs)
         {
             var dirs = Directory.GetDirectories(path);
             foreach (string dir in dirs)
@@ -226,26 +244,27 @@ namespace com.hideakin.textsearch.command
                 {
                     Console.WriteLine("Skipping {0}...", dir);
                 }
-                else
+                else if (!IndexDir(group, dir, extensions, skipDirs))
                 {
-                    IndexDir(group, dir, extensions, skipDirs);
+                    return false;
                 }
             }
             var files = Directory.GetFiles(path);
             foreach (string file in files)
             {
-                if (extensions.Count == 0 || extensions.Contains(Path.GetExtension(file)))
-                {
-                    IndexFile(group, file);
-                }
-                else
+                if (extensions.Count > 0 && !extensions.Contains(Path.GetExtension(file)))
                 {
                     Console.WriteLine("Skipping {0}...", file);
                 }
+                else if (!IndexFile(group, file))
+                {
+                    return false;
+                }
             }
+            return true;
         }
 
-        private void IndexFile(string group, string path)
+        private bool IndexFile(string group, string path)
         {
             path = Path.GetFullPath(path).NormalizePath();
             var fileInfo = alreadyUploaded.Where(x => x.Path == path).Select(x => x).FirstOrDefault();
@@ -256,21 +275,44 @@ namespace com.hideakin.textsearch.command
             }
             else
             {
-                if (file.Uploading >= ConcurrencyLevel)
+                if (file.Uploading >= concurrencyLevel)
                 {
-                    WaitForIndexFileCompletion();
+                    if (!WaitForIndexFileCompletion())
+                    {
+                        return false;
+                    }
                 }
                 file.UploadFileAsync(group, path);
             }
+            return true;
         }
 
-        private void WaitForIndexFileCompletion()
+        private bool WaitForIndexFileCompletion()
         {
             try
             {
                 var fileInfo = file.WaitForUploadFileCompletion(out var result);
                 Console.WriteLine("{0}", fileInfo.Path);
                 Console.WriteLine("    Uploaded. FID={0}{1}", fileInfo.Fid, result == UploadFileStatus.Created ? " (NEW)" : "");
+                return true;
+            }
+            catch (UploadFileException e)
+            {
+                if (e.InnerException is ErrorResponseException er)
+                {
+                    Console.WriteLine("ERROR: Failed to upload '{0}'.", e.Path);
+                    Console.WriteLine("\t{0}", er.ErrorResponse.ErrorDescription);
+                    return false;
+                }
+                else if (e.InnerException is GroupNotFoundException g)
+                {
+                    Console.WriteLine("ERROR: {0}", g.Message);
+                    return false;
+                }
+                else
+                {
+                    throw;
+                }
             }
             catch (Exception e)
             {
@@ -279,6 +321,7 @@ namespace com.hideakin.textsearch.command
                 {
                     Console.WriteLine("\t{0}", e.Message);
                 }
+                return true;
             }
         }
     }

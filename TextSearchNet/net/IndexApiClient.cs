@@ -35,7 +35,7 @@ namespace com.hideakin.textsearch.net
 
         #endregion
 
-        #region CLASS INITIALIZER
+        #region CLASS INITIALIZER / METHODS
 
         static IndexApiClient()
         {
@@ -55,29 +55,35 @@ namespace com.hideakin.textsearch.net
             {
                 Credentials.Password = envPassword;
             }
-            if (Credentials.Username != null)
+            if (Credentials.Username != null && Credentials.EncryptedPassword == null)
             {
-                var c = CredCollection.GetCredentials(Credentials.Username);
-                if (c != null)
-                {
-                    if (Credentials.EncryptedPassword != null)
-                    {
-                        Credentials.EncryptedPassword = c.EncryptedPassword;
-                    }
-                    Credentials.EncryptedToken = c.EncryptedToken;
-                    Credentials.ExpiresAt = c.ExpiresAt;
-                }
+                ChangeUser(Credentials.Username);
             }
             else
             {
-                var c = CredCollection.GetCredentials();
-                if (c != null)
+                ChangeUser();
+            }
+        }
+
+        public static bool ChangeUser(string username = null)
+        {
+            var c = username != null ? CredCollection.GetCredentials(username) : CredCollection.GetCredentials();
+            if (c != null)
+            {
+                Credentials.Username = c.Username;
+                Credentials.EncryptedPassword = c.EncryptedPassword;
+                Credentials.EncryptedToken = c.EncryptedToken;
+                Credentials.ExpiresAt = c.ExpiresAt;
+                if (username != null && username != CredCollection.LastUser)
                 {
-                    Credentials.Username = c.Username;
-                    Credentials.EncryptedPassword = c.EncryptedPassword;
-                    Credentials.EncryptedToken = c.EncryptedToken;
-                    Credentials.ExpiresAt = c.ExpiresAt;
+                    CredCollection.LastUser = c.Username;
+                    CredCollection.Save(CredentialsFilePath);
                 }
+                return true;
+            }
+            else
+            {
+                return false;
             }
         }
 
@@ -235,6 +241,10 @@ namespace com.hideakin.textsearch.net
                 {
                     return JsonConvert.DeserializeObject<UserInfo[]>(ResponseBody);
                 }
+                else if (Response.StatusCode == HttpStatusCode.Forbidden)
+                {
+                    return new ErrorResponseException(JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody), "GetUsers request failed.");
+                }
                 else
                 {
                     return new UnrecognizedResponseException(Response.StatusCode, ResponseBody, "GetUsers request failed.");
@@ -260,6 +270,14 @@ namespace com.hideakin.textsearch.net
                 {
                     return JsonConvert.DeserializeObject<UserInfo>(ResponseBody);
                 }
+                else if (Response.StatusCode == HttpStatusCode.Forbidden)
+                {
+                    return new ErrorResponseException(JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody), "GetUserByUID request failed.");
+                }
+                else if (Response.StatusCode == HttpStatusCode.NotFound)
+                {
+                    return new UserNotExistException(uid);
+                }
                 else
                 {
                     return new UnrecognizedResponseException(Response.StatusCode, ResponseBody, "GetUserByUID request failed.");
@@ -284,6 +302,14 @@ namespace com.hideakin.textsearch.net
                 if (Response.StatusCode == HttpStatusCode.OK)
                 {
                     return JsonConvert.DeserializeObject<UserInfo>(ResponseBody);
+                }
+                else if (Response.StatusCode == HttpStatusCode.Forbidden)
+                {
+                    return new ErrorResponseException(JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody), "GetUserByName request failed.");
+                }
+                else if (Response.StatusCode == HttpStatusCode.NotFound)
+                {
+                    return new UserNotFoundException(username);
                 }
                 else
                 {
@@ -347,6 +373,10 @@ namespace com.hideakin.textsearch.net
                 {
                     return new ErrorResponseException(JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody), "UpdateUser request failed.");
                 }
+                else if (Response.StatusCode == HttpStatusCode.NotFound)
+                {
+                    return new UserNotExistException(uid);
+                }
                 else
                 {
                     return new UnrecognizedResponseException(Response.StatusCode, ResponseBody, "UpdateUser request failed.");
@@ -375,6 +405,10 @@ namespace com.hideakin.textsearch.net
                 else if (Response.StatusCode == HttpStatusCode.BadRequest || Response.StatusCode == HttpStatusCode.Forbidden)
                 {
                     return new ErrorResponseException(JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody), "DeleteUser request failed.");
+                }
+                else if (Response.StatusCode == HttpStatusCode.NotFound)
+                {
+                    return new UserNotExistException(uid);
                 }
                 else
                 {
@@ -467,6 +501,10 @@ namespace com.hideakin.textsearch.net
                 {
                     return new ErrorResponseException(JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody), "UpdateFileGroup request failed.");
                 }
+                else if (Response.StatusCode == HttpStatusCode.NotFound)
+                {
+                    return new GroupNotExistException(gid);
+                }
                 else
                 {
                     return new UnrecognizedResponseException(Response.StatusCode, ResponseBody, "UpdateFileGroup request failed.");
@@ -496,8 +534,12 @@ namespace com.hideakin.textsearch.net
                 {
                     return new ErrorResponseException(JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody), "DeleteFileGroup request failed.");
                 }
-                else
+                else if (Response.StatusCode == HttpStatusCode.NotFound)
                 {
+                    return new GroupNotExistException(gid);
+                }
+                else
+                        {
                     return new UnrecognizedResponseException(Response.StatusCode, ResponseBody, "DeleteFileGroup request failed.");
                 }
             }
@@ -577,6 +619,10 @@ namespace com.hideakin.textsearch.net
                 {
                     return (int)Response.StatusCode;
                 }
+                else if (Response.StatusCode == HttpStatusCode.Forbidden)
+                {
+                    return new ErrorResponseException(JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody), "FindText request failed.");
+                }
                 else
                 {
                     return new UnrecognizedResponseException(Response.StatusCode, ResponseBody, "DeletePreference request failed.");
@@ -606,6 +652,10 @@ namespace com.hideakin.textsearch.net
                 {
                     return JsonConvert.DeserializeObject<model.FileInfo[]>(ResponseBody);
                 }
+                else if (Response.StatusCode == HttpStatusCode.NotFound)
+                {
+                    return new GroupNotFoundException(group);
+                }
                 else
                 {
                     return new UnrecognizedResponseException(Response.StatusCode, ResponseBody, "GetFiles request failed.");
@@ -631,6 +681,10 @@ namespace com.hideakin.textsearch.net
                 {
                     return JsonConvert.DeserializeObject<model.FileInfo>(ResponseBody);
                 }
+                else if (Response.StatusCode == HttpStatusCode.NotFound)
+                {
+                    return new GroupFileNotFoundException(group, path);
+                }
                 else
                 {
                     return new UnrecognizedResponseException(Response.StatusCode, ResponseBody, "GetFile request failed.");
@@ -655,6 +709,10 @@ namespace com.hideakin.textsearch.net
                 if (Response.StatusCode == HttpStatusCode.OK)
                 {
                     return JsonConvert.DeserializeObject<FileStats>(ResponseBody);
+                }
+                else if (Response.StatusCode == HttpStatusCode.NotFound)
+                {
+                    return new GroupNotFoundException(group);
                 }
                 else
                 {
@@ -693,6 +751,14 @@ namespace com.hideakin.textsearch.net
                 if (Response.StatusCode == HttpStatusCode.OK || Response.StatusCode == HttpStatusCode.Created)
                 {
                     return JsonConvert.DeserializeObject<model.FileInfo>(ResponseBody);
+                }
+                else if (Response.StatusCode == HttpStatusCode.Forbidden)
+                {
+                    return new ErrorResponseException(JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody), "UploadFile request failed.");
+                }
+                else if (Response.StatusCode == HttpStatusCode.NotFound)
+                {
+                    return new GroupNotFoundException(group);
                 }
                 else
                 {
@@ -738,6 +804,10 @@ namespace com.hideakin.textsearch.net
                         }
                     }
                 }
+                else if (Response.StatusCode == HttpStatusCode.NotFound)
+                {
+                    return new FileNotExistException(fid);
+                }
                 return new UnrecognizedResponseException(Response.StatusCode, "", "DownloadFile request failed.");
             }
             catch (Exception e)
@@ -759,6 +829,14 @@ namespace com.hideakin.textsearch.net
                 if (Response.StatusCode == HttpStatusCode.OK)
                 {
                     return JsonConvert.DeserializeObject<model.FileInfo[]>(ResponseBody);
+                }
+                else if (Response.StatusCode == HttpStatusCode.Forbidden)
+                {
+                    return new ErrorResponseException(JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody), "DeleteStaleFiles request failed.");
+                }
+                else if (Response.StatusCode == HttpStatusCode.NotFound)
+                {
+                    return new GroupNotFoundException(group);
                 }
                 else
                 {
@@ -784,6 +862,14 @@ namespace com.hideakin.textsearch.net
                 if (Response.StatusCode == HttpStatusCode.OK)
                 {
                     return (int)Response.StatusCode;
+                }
+                else if (Response.StatusCode == HttpStatusCode.Forbidden)
+                {
+                    return new ErrorResponseException(JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody), "DeleteStaleFiles request failed.");
+                }
+                else if (Response.StatusCode == HttpStatusCode.NotFound)
+                {
+                    return new GroupNotFoundException(group);
                 }
                 else
                 {
@@ -817,6 +903,10 @@ namespace com.hideakin.textsearch.net
                 else if (Response.StatusCode == HttpStatusCode.BadRequest)
                 {
                     return new ErrorResponseException(JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody), "FindText request failed.");
+                }
+                else if (Response.StatusCode == HttpStatusCode.NotFound)
+                {
+                    return new GroupNotFoundException(group);
                 }
                 else
                 {

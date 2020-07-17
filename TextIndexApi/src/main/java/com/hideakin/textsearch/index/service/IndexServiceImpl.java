@@ -30,7 +30,7 @@ public class IndexServiceImpl implements IndexService {
 	public TextDistribution[] findText(String group, String text, SearchOptions option) {
 		FileGroupEntity fileGroupEntity = fileGroupRepository.findByName(group);
 		if (fileGroupEntity == null) {
-			return new TextDistribution[0];
+			return null;
 		}
 		int gid = fileGroupEntity.getGid();
 		Map<Integer,TextDistribution> map = new HashMap<Integer,TextDistribution>();
@@ -49,7 +49,7 @@ public class IndexServiceImpl implements IndexService {
 			} else if (option == SearchOptions.EndsWith) {
 				textEntities = textRepository.findAllByTextEndingWithAndGid(text, gid);
 			} else {
-				return new TextDistribution[0];
+				return new TextDistribution[0]; // never reach here
 			}
 			populateHitMap(map, textEntities);
 		}

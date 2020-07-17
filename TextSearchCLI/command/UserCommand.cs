@@ -143,6 +143,7 @@ namespace com.hideakin.textsearch.command
                         Console.WriteLine("Deleted. {0}", entry);
                     });
                 })
+                .AddTranslation("-pu", "-print-users")
                 .AddUsageHeader("Usage <user>:")
                 .AddUsage("{0} -print-users", Program.Name)
                 .AddUsage("{0} -print-user UID", Program.Name)

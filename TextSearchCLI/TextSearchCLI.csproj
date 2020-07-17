@@ -98,6 +98,7 @@
     <Compile Include="command\ICommand.cs" />
     <Compile Include="command\SearchCommand.cs" />
     <Compile Include="command\UserCommand.cs" />
+    <Compile Include="input\Keyboard.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

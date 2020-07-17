@@ -3,7 +3,7 @@ using System.Net;
 
 namespace com.hideakin.textsearch.net
 {
-    internal class HttpReasonPhrase
+    public class HttpReasonPhrase
     {
         private static readonly Dictionary<int, string> dict = new Dictionary<int, string>()
         {

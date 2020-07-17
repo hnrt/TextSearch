@@ -16,18 +16,6 @@ namespace com.hideakin.textsearch.service
             this.ct = ct;
         }
 
-        public string Url
-        {
-            get
-            {
-                return IndexApiClient.Url;
-            }
-            set
-            {
-                IndexApiClient.Url = value;
-            }
-        }
-
         public AuthenticateResponse Authenticate(string username, string password)
         {
             var client = IndexApiClient.Create(ct);

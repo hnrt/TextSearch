@@ -39,7 +39,7 @@ public class IndexServiceTests {
 	public void findText_nogroup() {
 		when(fileGroupRepository.findByName("xyzzy")).thenReturn(null);
 		TextDistribution[] hits = indexService.findText("xyzzy", "FOO", SearchOptions.Exact);
-		Assertions.assertEquals(0, hits.length);
+		Assertions.assertEquals(null, hits);
 		verify(fileGroupRepository, times(1)).findByName("xyzzy");
 	}
 

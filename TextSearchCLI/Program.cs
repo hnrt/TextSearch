@@ -1,4 +1,6 @@
 ﻿using com.hideakin.textsearch.command;
+using com.hideakin.textsearch.exception;
+using com.hideakin.textsearch.net;
 using System;
 
 namespace com.hideakin.textsearch
@@ -49,6 +51,19 @@ namespace com.hideakin.textsearch
                 var app = new Program();
                 app.Run(args);
                 Environment.Exit(0);
+            }
+            catch (UnrecognizedResponseException e)
+            {
+                Console.Error.WriteLine("ERROR: {0}", e.Message);
+                Console.Error.WriteLine("\tStatus {0} ({1})", (int)e.StatusCode, e.StandardReasonPhrase);
+                if (e.ResponseBody.Length > 0)
+                {
+                    Console.Error.WriteLine("\t{0}", e.ResponseBody.Replace("\r\n", "\r\n\t"));
+                }
+            }
+            catch (ErrorResponseException e)
+            {
+                Console.Error.WriteLine("ERROR: {0}", e.ErrorResponse.ErrorDescription);
             }
             catch (Exception e)
             {
