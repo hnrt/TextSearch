@@ -1,6 +1,7 @@
 package com.hideakin.textsearch.index.entity;
 
 import java.io.Serializable;
+import java.util.Objects;
 
 import javax.persistence.Column;
 
@@ -37,6 +38,24 @@ public class TextId implements Serializable {
 
 	public void setGid(int gid) {
 		this.gid = gid;
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (o == this) {
+			return true;
+		}
+		if (!(o instanceof TextId)) {
+			return false;
+		}
+		TextId other = (TextId)o;
+		return gid == other.gid
+				&& Objects.equals(text, other.text);
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(text, gid);
 	}
 
 }
