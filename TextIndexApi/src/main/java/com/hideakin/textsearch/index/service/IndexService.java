@@ -6,5 +6,6 @@ import com.hideakin.textsearch.index.model.TextDistribution;
 public interface IndexService {
 
 	TextDistribution[] findText(String group, String text, SearchOptions option);
+	TextDistribution[] findText(String group, String text, SearchOptions option, int limit, int offset);
 
 }
