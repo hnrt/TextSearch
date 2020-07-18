@@ -18,20 +18,22 @@ namespace com.hideakin.textsearch.service
 
         public AuthenticateResponse Authenticate(string username, string password)
         {
-            var client = IndexApiClient.Create(ct);
-            var task = client.Authenticate(username, password);
-            task.Wait();
-            if (task.Result is AuthenticateResponse ar)
+            using(var client = IndexApiClient.Create(ct))
             {
-                return ar;
-            }
-            else if (task.Result is Exception e)
-            {
-                throw e;
-            }
-            else
-            {
-                throw new NotImplementedException();
+                var task = client.Authenticate(username, password);
+                task.Wait();
+                if (task.Result is AuthenticateResponse ar)
+                {
+                    return ar;
+                }
+                else if (task.Result is Exception e)
+                {
+                    throw e;
+                }
+                else
+                {
+                    throw new NotImplementedException();
+                }
             }
         }
 

@@ -22,58 +22,64 @@ namespace com.hideakin.textsearch.service
 
         public string GetPreference(string name)
         {
-            var client = IndexApiClient.Create(ct);
-            var task = client.GetPreference(name);
-            task.Wait();
-            if (task.Result is string value)
+            using(var client = IndexApiClient.Create(ct))
             {
-                return value;
-            }
-            else if (task.Result is Exception e)
-            {
-                throw e;
-            }
-            else
-            {
-                throw new NotImplementedException();
+                var task = client.GetPreference(name);
+                task.Wait();
+                if (task.Result is string value)
+                {
+                    return value;
+                }
+                else if (task.Result is Exception e)
+                {
+                    throw e;
+                }
+                else
+                {
+                    throw new NotImplementedException();
+                }
             }
         }
 
         public string SetPreference(string name, string value)
         {
-            var client = IndexApiClient.Create(ct);
-            var task = client.SetPreference(name, value);
-            task.Wait();
-            if (task.Result is int statusCode)
+            using(var client = IndexApiClient.Create(ct))
             {
-                return statusCode == 201 ? "Created." : "Updated.";
-            }
-            else if (task.Result is Exception e)
-            {
-                throw e;
-            }
-            else
-            {
-                throw new NotImplementedException();
+                var task = client.SetPreference(name, value);
+                task.Wait();
+                if (task.Result is int statusCode)
+                {
+                    return statusCode == 201 ? "Created." : "Updated.";
+                }
+                else if (task.Result is Exception e)
+                {
+                    throw e;
+                }
+                else
+                {
+                    throw new NotImplementedException();
+                }
             }
         }
 
         public void DeletePreference(string name)
         {
-            var client = IndexApiClient.Create(ct);
-            var task = client.DeletePreference(name);
-            task.Wait();
-            if (task.Result is int)
+            using(var client = IndexApiClient.Create(ct))
             {
-                return;
-            }
-            else if (task.Result is Exception e)
-            {
-                throw e;
-            }
-            else
-            {
-                throw new NotImplementedException();
+                var task = client.DeletePreference(name);
+                task.Wait();
+                if (task.Result is int)
+                {
+                    return;
+                }
+                else if (task.Result is Exception e)
+                {
+                    throw e;
+                }
+                else
+                {
+                    throw new NotImplementedException();
+                }
             }
         }
 

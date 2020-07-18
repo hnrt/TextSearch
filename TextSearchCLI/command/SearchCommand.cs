@@ -10,11 +10,13 @@ namespace com.hideakin.textsearch.command
     {
         private readonly CancellationTokenSource cts;
         private readonly IndexService idx;
+        private readonly FileService file;
 
         public SearchCommand()
         {
             cts = new CancellationTokenSource();
             idx = new IndexService(cts.Token);
+            file = new FileService(cts.Token);
         }
 
         public void Register(CommandLine commandLine, CommandQueue commandQueue)
@@ -81,6 +83,10 @@ namespace com.hideakin.textsearch.command
             foreach (var prc in results)
             {
                 var contents = FileContents.Find(prc.Fid);
+                if (contents == null)
+                {
+                    contents = file.DownloadFile(prc.Fid);
+                }
                 Console.WriteLine("{0}", contents.Path);
                 foreach (var entry in prc.Rows)
                 {
@@ -107,6 +113,10 @@ namespace com.hideakin.textsearch.command
             foreach (var prc in results)
             {
                 var contents = FileContents.Find(prc.Fid);
+                if (contents == null)
+                {
+                    contents = file.DownloadFile(prc.Fid);
+                }
                 Console.WriteLine("<p>");
                 Console.WriteLine("<font class=\"path\">{0}</font>", contents.Path);
                 Console.WriteLine("<table>");

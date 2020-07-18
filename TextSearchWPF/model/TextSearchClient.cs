@@ -133,7 +133,7 @@ namespace com.hideakin.textsearch.model
                 var m = new List<(HitRowColumns Hit, FileContents Contents)>();
                 foreach (var hit in hits)
                 {
-                    var contents = FileContents.Find(hit.Fid);
+                    var contents = await DownloadFile(hit.Fid);
                     m.Add((hit, contents));
                 }
                 m.Sort((a, b) =>
@@ -169,6 +169,25 @@ namespace com.hideakin.textsearch.model
                     }
                 }
                 return null;
+            }
+            catch (AggregateException ae)
+            {
+                var sb = new StringBuilder();
+                foreach (var e in ae.InnerExceptions)
+                {
+                    if (sb.Length > 0)
+                    {
+                        sb.AppendLine();
+                    }
+                    sb.Append(e.Message);
+                    Exception x = e;
+                    while ((x = x.InnerException) != null)
+                    {
+                        sb.AppendLine();
+                        sb.Append(x.Message);
+                    }
+                }
+                return sb.ToString();
             }
             catch (Exception e)
             {
@@ -207,20 +226,7 @@ namespace com.hideakin.textsearch.model
             Fid = fid;
             Path = path;
             NotifyOfChange("Path");
-            var contents = FileContents.Find(fid);
-            if (contents == null)
-            {
-                var api = IndexApiClient.Create(cts.Token);
-                var result = await api.DownloadFile(fid);
-                if (result is FileContents c)
-                {
-                    contents = c;
-                }
-                else
-                {
-                    //TODO: Error
-                }
-            }
+            var contents = await DownloadFile(fid);
             Contents.Clear();
             if (contents != null)
             {
@@ -238,6 +244,29 @@ namespace com.hideakin.textsearch.model
                     }
                 }
             }
+        }
+
+        private async Task<FileContents> DownloadFile(int fid)
+        {
+            var contents = FileContents.Find(fid);
+            if (contents == null)
+            {
+                var api = IndexApiClient.Create(cts.Token);
+                var result = await api.DownloadFile(fid);
+                if (result is FileContents c)
+                {
+                    contents = c;
+                }
+                else if (result is Exception e)
+                {
+                    throw e;
+                }
+                else
+                {
+                    throw new NotImplementedException();
+                }
+            }
+            return contents;
         }
 
         public void Clear()

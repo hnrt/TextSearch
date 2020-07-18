@@ -1,4 +1,5 @@
 ﻿using com.hideakin.textsearch.data;
+using com.hideakin.textsearch.exception;
 using com.hideakin.textsearch.model;
 using com.hideakin.textsearch.net;
 using com.hideakin.textsearch.utility;
@@ -29,20 +30,22 @@ namespace com.hideakin.textsearch.service
                 DebugPut("phrase", text, qTexts);
                 if (tokenizer.Tokens.Count == 1)
                 {
-                    var client = IndexApiClient.Create(ct);
-                    var task = client.FindText(group, tokenizer.Tokens[0].Text, SearchOptions.Contains);
-                    task.Wait();
-                    if (task.Result is TextDistribution[] hits)
+                    using(var client = IndexApiClient.Create(ct))
                     {
-                        rangesList = HitRangesListExtension.ToList(hits);
-                    }
-                    else if (task.Result is Exception e)
-                    {
-                        throw e;
-                    }
-                    else
-                    {
-                        throw new NotImplementedException();
+                        var task = client.FindText(group, tokenizer.Tokens[0].Text, SearchOptions.Contains);
+                        task.Wait();
+                        if (task.Result is TextDistribution[] hits)
+                        {
+                            rangesList = HitRangesListExtension.ToList(hits);
+                        }
+                        else if (task.Result is Exception e)
+                        {
+                            throw e;
+                        }
+                        else
+                        {
+                            throw new NotImplementedException();
+                        }
                     }
                 }
                 else if (tokenizer.Tokens.Count > 1)
@@ -62,6 +65,10 @@ namespace com.hideakin.textsearch.service
                     clients[tasks.Length - 1] = client;
                     tasks[tasks.Length - 1] = client.FindText(group, tokenizer.Tokens[tasks.Length - 1].Text, SearchOptions.StartsWith);
                     Task.WaitAll(tasks);
+                    foreach (var c in clients)
+                    {
+                        c.Dispose();
+                    }
                     {
                         if (tasks[0].Result is TextDistribution[] hits)
                         {
@@ -128,75 +135,85 @@ namespace com.hideakin.textsearch.service
 
         private static async Task<HitRowColumns> ToHitRowColumns(string[] qTexts, int fid, List<(int Start, int End)> ranges, CancellationToken ct)
         {
-            var client = IndexApiClient.Create(ct);
-            var result = await client.DownloadFile(fid);
-            if (result is FileContents contents)
+            using(var client = IndexApiClient.Create(ct))
             {
-                var dct = new Dictionary<int, List<(int Start, int End)>>();
-                var tokenizer = new TextTokenizer();
-                tokenizer.Run(contents.Lines);
-                foreach (var (start, end) in ranges)
+                var result = await client.DownloadFile(fid);
+                if (result is FileContents contents)
                 {
-                    if (end < tokenizer.Tokens.Count)
+                    var dct = new Dictionary<int, List<(int Start, int End)>>();
+                    var tokenizer = new TextTokenizer();
+                    tokenizer.Run(contents.Lines);
+                    foreach (var (start, end) in ranges)
                     {
-                        if (tokenizer.Tokens[start].Row == tokenizer.Tokens[end].Row)
+                        if (end < tokenizer.Tokens.Count)
                         {
-                            if (!dct.TryGetValue(tokenizer.Tokens[start].Row, out var colRanges))
+                            if (tokenizer.Tokens[start].Row == tokenizer.Tokens[end].Row)
                             {
-                                colRanges = new List<(int Start, int End)>();
-                                dct.Add(tokenizer.Tokens[start].Row, colRanges);
-                            }
-                            if (qTexts.Length == 1)
-                            {
-                                int index = tokenizer.Tokens[start].Text.IndexOf(qTexts[0]);
-                                while (index >= 0)
+                                if (!dct.TryGetValue(tokenizer.Tokens[start].Row, out var colRanges))
                                 {
-                                    int start2 = tokenizer.Tokens[start].Column + index;
-                                    int end2 = start2 + qTexts[0].Length;
-                                    colRanges.Add((start2, end2));
-                                    index = tokenizer.Tokens[start].Text.IndexOf(qTexts[0], index + qTexts[0].Length);
+                                    colRanges = new List<(int Start, int End)>();
+                                    dct.Add(tokenizer.Tokens[start].Row, colRanges);
                                 }
-                            }
-                            else // if (qTexts.Length > 1)
-                            {
-                                int start2 = tokenizer.Tokens[start].Column + tokenizer.Tokens[start].Text.Length - qTexts.First().Length;
-                                int end2 = tokenizer.Tokens[end].Column + qTexts.Last().Length;
-                                colRanges.Add((start2, end2));
+                                if (qTexts.Length == 1)
+                                {
+                                    int index = tokenizer.Tokens[start].Text.IndexOf(qTexts[0]);
+                                    while (index >= 0)
+                                    {
+                                        int start2 = tokenizer.Tokens[start].Column + index;
+                                        int end2 = start2 + qTexts[0].Length;
+                                        colRanges.Add((start2, end2));
+                                        index = tokenizer.Tokens[start].Text.IndexOf(qTexts[0], index + qTexts[0].Length);
+                                    }
+                                }
+                                else // if (qTexts.Length > 1)
+                                {
+                                    int start2 = tokenizer.Tokens[start].Column + tokenizer.Tokens[start].Text.Length - qTexts.First().Length;
+                                    int end2 = tokenizer.Tokens[end].Column + qTexts.Last().Length;
+                                    colRanges.Add((start2, end2));
+                                }
                             }
                         }
                     }
-                }
-                var list = new List<RowColumns>(dct.Count);
-                foreach (var kv in dct)
-                {
-                    list.Add(new RowColumns(kv.Key, kv.Value));
-                }
-                foreach (var e in list)
-                {
-                    e.Columns.Sort((x, y) =>
+                    if (dct.Count == 0)
                     {
-                        return x.Start < y.Start ? -1 :
-                            x.Start > y.Start ? 1 :
-                            x.End < y.End ? -1 :
-                            x.End > y.End ? 1 :
+                        return null;
+                    }
+                    var list = new List<RowColumns>(dct.Count);
+                    foreach (var kv in dct)
+                    {
+                        list.Add(new RowColumns(kv.Key, kv.Value));
+                    }
+                    foreach (var e in list)
+                    {
+                        e.Columns.Sort((x, y) =>
+                        {
+                            return x.Start < y.Start ? -1 :
+                                x.Start > y.Start ? 1 :
+                                x.End < y.End ? -1 :
+                                x.End > y.End ? 1 :
+                                0;
+                        });
+                    }
+                    list.Sort((x, y) =>
+                    {
+                        return x.Row < y.Row ? -1 :
+                            x.Row > y.Row ? 1 :
                             0;
                     });
+                    return new HitRowColumns(fid, list);
                 }
-                list.Sort((x, y) =>
+                else if (result is FileNotExistException)
                 {
-                    return x.Row < y.Row ? -1 :
-                        x.Row > y.Row ? 1 :
-                        0;
-                });
-                return new HitRowColumns(fid, list);
-            }
-            else if (result is Exception e)
-            {
-                throw e;
-            }
-            else
-            {
-                throw new NotImplementedException();
+                    return null;
+                }
+                else if (result is Exception e)
+                {
+                    throw e;
+                }
+                else
+                {
+                    throw new NotImplementedException();
+                }
             }
         }
     }

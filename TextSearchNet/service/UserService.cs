@@ -14,115 +14,127 @@ namespace com.hideakin.textsearch.service
 
         public UserInfo[] GetUsers()
         {
-            var client = IndexApiClient.Create(ct);
-            var task = client.GetUsers();
-            task.Wait();
-            if (task.Result is UserInfo[] array)
+            using(var client = IndexApiClient.Create(ct))
             {
-                return array;
-            }
-            else if (task.Result is Exception e)
-            {
-                throw e;
-            }
-            else
-            {
-                throw new NotImplementedException();
+                var task = client.GetUsers();
+                task.Wait();
+                if (task.Result is UserInfo[] array)
+                {
+                    return array;
+                }
+                else if (task.Result is Exception e)
+                {
+                    throw e;
+                }
+                else
+                {
+                    throw new NotImplementedException();
+                }
             }
         }
 
         public UserInfo GetUser(int uid)
         {
-            var client = IndexApiClient.Create(ct);
-            var task = client.GetUser(uid);
-            task.Wait();
-            if (task.Result is UserInfo info)
+            using(var client = IndexApiClient.Create(ct))
             {
-                return info;
-            }
-            else if (task.Result is Exception e)
-            {
-                throw e;
-            }
-            else
-            {
-                throw new NotImplementedException();
+                var task = client.GetUser(uid);
+                task.Wait();
+                if (task.Result is UserInfo info)
+                {
+                    return info;
+                }
+                else if (task.Result is Exception e)
+                {
+                    throw e;
+                }
+                else
+                {
+                    throw new NotImplementedException();
+                }
             }
         }
 
         public UserInfo GetUser(string username)
         {
-            var client = IndexApiClient.Create(ct);
-            var task = client.GetUser(username);
-            task.Wait();
-            if (task.Result is UserInfo info)
+            using(var client = IndexApiClient.Create(ct))
             {
-                return info;
-            }
-            else if (task.Result is Exception e)
-            {
-                throw e;
-            }
-            else
-            {
-                throw new NotImplementedException();
+                var task = client.GetUser(username);
+                task.Wait();
+                if (task.Result is UserInfo info)
+                {
+                    return info;
+                }
+                else if (task.Result is Exception e)
+                {
+                    throw e;
+                }
+                else
+                {
+                    throw new NotImplementedException();
+                }
             }
         }
 
         public UserInfo CreateUser(string username, string password, string[] roles)
         {
-            var client = IndexApiClient.Create(ct);
-            var task = client.CreateUser(username, password, roles);
-            task.Wait();
-            if (task.Result is UserInfo info)
+            using(var client = IndexApiClient.Create(ct))
             {
-                return info;
-            }
-            else if (task.Result is Exception e)
-            {
-                throw e;
-            }
-            else
-            {
-                throw new NotImplementedException();
+                var task = client.CreateUser(username, password, roles);
+                task.Wait();
+                if (task.Result is UserInfo info)
+                {
+                    return info;
+                }
+                else if (task.Result is Exception e)
+                {
+                    throw e;
+                }
+                else
+                {
+                    throw new NotImplementedException();
+                }
             }
         }
 
         public UserInfo UpdateUser(int uid, string username, string password, string[] roles)
         {
-            var client = IndexApiClient.Create(ct);
-            var task = client.UpdateUser(uid, username, password, roles);
-            task.Wait();
-            if (task.Result is UserInfo info)
+            using(var client = IndexApiClient.Create(ct))
             {
-                return info;
-            }
-            else if (task.Result is Exception e)
-            {
-                throw e;
-            }
-            else
-            {
-                throw new NotImplementedException();
+                var task = client.UpdateUser(uid, username, password, roles);
+                task.Wait();
+                if (task.Result is UserInfo info)
+                {
+                    return info;
+                }
+                else if (task.Result is Exception e)
+                {
+                    throw e;
+                }
+                else
+                {
+                    throw new NotImplementedException();
+                }
             }
         }
 
         public UserInfo DeleteUser(int uid)
         {
-            var client = IndexApiClient.Create(ct);
-            var task = client.DeleteUser(uid);
-            task.Wait();
-            if (task.Result is UserInfo info)
+            using(var client = IndexApiClient.Create(ct))
             {
-                return info;
-            }
-            else if (task.Result is Exception e)
-            {
-                throw e;
-            }
-            else
-            {
-                throw new NotImplementedException();
+                var task = client.DeleteUser(uid);
+                task.Wait();
+                if (task.Result is UserInfo info)
+                {
+                    return info;
+                }
+                else if (task.Result is Exception e)
+                {
+                    throw e;
+                }
+                else
+                {
+                    throw new NotImplementedException();
+                }
             }
         }
     }
