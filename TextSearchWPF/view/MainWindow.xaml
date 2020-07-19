@@ -77,7 +77,7 @@
                 <ColumnDefinition Width="*"/>
                 <ColumnDefinition Width="Auto" MinWidth="100"/>
             </Grid.ColumnDefinitions>
-            <ComboBox  Name="GroupComboBox" Grid.Row="0" Grid.Column="0" ItemsSource="{Binding Path=Groups,Mode=OneWay,UpdateSourceTrigger=PropertyChanged}" SelectedItem="{Binding Path=Group,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static p:Resources.GroupComboBoxTooltip}" SelectionChanged="OnGroupComboBoxSelectionChanged"/>
+            <ComboBox  Name="GroupComboBox" Grid.Row="0" Grid.Column="0" ItemsSource="{Binding Path=Groups,Mode=OneWay,UpdateSourceTrigger=PropertyChanged}" SelectedItem="{Binding Path=Group,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" ToolTip="{x:Static p:Resources.GroupComboBoxTooltip}"/>
             <TextBox Name="QueryTextBox"  Grid.Row="0" Grid.Column="1" Margin="4,0,4,0" Text="{Binding Path=QueryText,Mode=TwoWay,UpdateSourceTrigger=PropertyChanged}" KeyUp="OnQueryTextBoxKeyUp" TextChanged="OnQueryTextBoxTextChanged" />
             <Button Name="QueryButton" Grid.Row="0" Grid.Column="2" Content="{x:Static p:Resources.QueryButtonContent}" VerticalAlignment="Stretch" Click="OnQueryStart" />
         </Grid>

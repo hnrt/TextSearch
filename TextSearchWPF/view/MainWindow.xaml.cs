@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -12,13 +13,17 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using Newtonsoft.Json;
 using com.hideakin.textsearch.model;
 using com.hideakin.textsearch.net;
+using com.hideakin.textsearch.utility;
 
 namespace com.hideakin.textsearch.view
 {
     public partial class MainWindow : Window
     {
+        private static readonly string STATE_PATH = System.IO.Path.Combine(AppData.DirectoryPath, "state.json");
+
         private readonly TextSearchClient client = new TextSearchClient();
 
         private bool CanStartQuery => GroupComboBox.SelectedItem != null && QueryTextBox.Text.Trim().Length > 0;
@@ -30,6 +35,7 @@ namespace com.hideakin.textsearch.view
             QueryButton.IsEnabled = CanStartQuery;
             StatusBarLabel.Content = " ";
             Activated += OnFirstActivate;
+            Closed += OnClosed;
         }
 
         private async void OnFirstActivate(object sender, EventArgs e)
@@ -54,6 +60,47 @@ namespace com.hideakin.textsearch.view
                     wip.SetFinalContent(Properties.Resources.InitializationFailure);
                 }
             }
+            LoadLastState();
+            GroupComboBox.SelectionChanged += OnGroupComboBoxSelectionChanged;
+        }
+
+        private void OnClosed(object sender, EventArgs e)
+        {
+            SaveLastState();
+        }
+
+        private async void LoadLastState()
+        {
+            if (File.Exists(STATE_PATH))
+            {
+                var state = JsonConvert.DeserializeObject<LastState>(File.ReadAllText(STATE_PATH));
+                if (state.Group != null && GroupComboBox.HasItems && GroupComboBox.Items.Contains(state.Group))
+                {
+                    GroupComboBox.SelectedItem = state.Group;
+                }
+                if (await client.UpdateFiles())
+                {
+                    if (state.Path != null && FileListView.ItemsSource is ObservableCollection<FileItem> ff)
+                    {
+                        var f = ff.Where(x => x.Path == state.Path).FirstOrDefault();
+                        if (f != null)
+                        {
+                            FileListView.SelectedItem = f;
+                            FileListView.ScrollIntoView(f);
+                        }
+                    }
+                }
+            }
+        }
+
+        private void SaveLastState()
+        {
+            var state = new LastState()
+            {
+                Group = GroupComboBox.SelectedItem is string s ? s : null,
+                Path = FileListView.SelectedItem is FileItem f ? f.Path : null
+            };
+            File.WriteAllText(STATE_PATH, JsonConvert.SerializeObject(state));
         }
 
         private void OnWindowSizeChanged(object sender, SizeChangedEventArgs e)

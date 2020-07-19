@@ -80,8 +80,11 @@ namespace com.hideakin.textsearch.model
                         Groups.Add(group.Name);
                     }
                 }
-                Group = (lastSelection != null && Groups.Contains(lastSelection)) ? lastSelection : defaultGroup;
-                NotifyOfChange("Group");
+                if (lastSelection != null && Groups.Contains(lastSelection))
+                {
+                    Group = lastSelection;
+                    NotifyOfChange("Group");
+                }
                 return true;
             }
             else
