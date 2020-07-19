@@ -185,6 +185,13 @@ namespace com.hideakin.textsearch.model
                     {
                         sb.AppendLine();
                         sb.Append(x.Message);
+#if DEBUG
+                        sb.AppendFormat(" {0}", x.GetType().FullName);
+                        if (x is System.Net.Sockets.SocketException sx)
+                        {
+                            sb.AppendFormat(" SocketErrorCode={0}", sx.SocketErrorCode.ToString());
+                        }
+#endif
                     }
                 }
                 return sb.ToString();

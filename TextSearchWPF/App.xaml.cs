@@ -8,10 +8,10 @@ using System.Windows;
 
 namespace com.hideakin.textsearch
 {
-    /// <summary>
-    /// App.xaml の相互作用ロジック
-    /// </summary>
     public partial class App : Application
     {
+        private void OnExit(object sender, ExitEventArgs e)
+        {
+        }
     }
 }

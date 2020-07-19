@@ -38,6 +38,7 @@ namespace com.hideakin.textsearch.view
             (new GridViewColumnWidthAdjuster(HitListView, HitListViewTextColumn, HitListViewNameColumn, HitListViewLineColumn)).Adjust();
             (new GridViewColumnWidthAdjuster(FileListView, FileListViewPathColumn, FileListViewSizeColumn)).Adjust();
             (new GridViewColumnWidthAdjuster(ContentListView, ContentListViewTextColumn, ContentListViewLineColumn)).Adjust();
+            SwitchToFileList();
             using (var wip = WorkInProgress.Create()
                 .DisableControl(FileAuthMenuItem)
                 .DisableControl(EditReloadGroupsMenuItem)

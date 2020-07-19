@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace com.hideakin.textsearch.model
@@ -7,7 +8,7 @@ namespace com.hideakin.textsearch.model
     {
         public int Fid { get; set; }
 
-        public List<(int Start, int End)> Ranges { get; }
+        public List<(int Start, int End)> Ranges { get; private set; }
 
         public HitRanges()
         {
@@ -28,6 +29,72 @@ namespace com.hideakin.textsearch.model
             foreach (int position in td.Positions)
             {
                 Ranges.Add((position, position));
+            }
+        }
+
+        public HitRanges Add(TextDistribution td)
+        {
+            if (td.Positions.Length == 0)
+            {
+                return this;
+            }
+            if (Ranges.Count == 0)
+            {
+                foreach (int position in td.Positions)
+                {
+                    Ranges.Add((position, position));
+                }
+                return this;
+            }
+            var r = new List<(int Start, int End)>(Ranges.Count + td.Positions.Length);
+            int a = Ranges[0].Start;
+            int b = td.Positions[0];
+            int i = 1;
+            int j = 1;
+            while (true)
+            {
+                if (a < b)
+                {
+                    r.Add((a, a));
+                    if (i < Ranges.Count)
+                    {
+                        a = Ranges[i++].Start;
+                    }
+                    else
+                    {
+                        r.Add((b, b));
+                        while (j < td.Positions.Length)
+                        {
+                            b = td.Positions[j++];
+                            r.Add((b, b));
+                        }
+                        Ranges = r;
+                        return this;
+                    }
+                }
+                else if (a > b)
+                {
+                    r.Add((b, b));
+                    if (j < td.Positions.Length)
+                    {
+                        b = td.Positions[j++];
+                    }
+                    else
+                    {
+                        r.Add((a, a));
+                        while (i < Ranges.Count)
+                        {
+                            a = Ranges[i++].Start;
+                            r.Add((a, a));
+                        }
+                        Ranges = r;
+                        return this;
+                    }
+                }
+                else
+                {
+                    throw new Exception("HitRanges.Add: Detected duplicate positions.");
+                }
             }
         }
 

@@ -16,6 +16,23 @@ namespace com.hideakin.textsearch.utility
             return list;
         }
 
+        public static List<HitRanges> Add(this List<HitRanges> list, TextDistribution[] array)
+        {
+            foreach (var entry in array)
+            {
+                var y = list.Where(x => x.Fid == entry.Fid).FirstOrDefault();
+                if (y != null)
+                {
+                    y.Add(entry);
+                }
+                else
+                {
+                    list.Add(new HitRanges(entry));
+                }
+            }
+            return list;
+        }
+
         public static List<HitRanges> Merge(this List<HitRanges> list, TextDistribution[] array)
         {
             int index = 0;

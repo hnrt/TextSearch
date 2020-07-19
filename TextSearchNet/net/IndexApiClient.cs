@@ -9,6 +9,7 @@ using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
+using System.Net.Sockets;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -24,6 +25,12 @@ namespace com.hideakin.textsearch.net
         private static readonly string AUTHORIZATION = "Authorization";
 
         private static readonly string APPLICATION_JSON = "application/json";
+
+        private static readonly string CONNECTION = "Connection";
+
+        private static readonly string CLOSE = "close";
+
+        private const int MAX_ATTEMPTS = 1000;
 
         public static string Url { get; set; } = @"http://localhost:8080";
 
@@ -788,6 +795,7 @@ namespace com.hideakin.textsearch.net
                 using(var request = new HttpRequestMessage(HttpMethod.Post, uri))
                 {
                     request.Headers.Add(AUTHORIZATION, BearerToken);
+                    request.Headers.Add(CONNECTION, CLOSE);
                     var content = new MultipartFormDataContent();
                     var fileContent = new StreamContent(File.OpenRead(path));
                     fileContent.Headers.ContentDisposition = new ContentDispositionHeaderValue("form-data")
@@ -829,48 +837,79 @@ namespace com.hideakin.textsearch.net
 
         public async Task<object> DownloadFile(int fid)
         {
-            try
+            for (int attempt = 1; ; attempt++)
             {
-                await Initialize();
-                var uri = string.Format("{0}/v1/files/{1}/contents", Url, fid);
-                using(var request = new HttpRequestMessage(HttpMethod.Get, uri))
+                try
                 {
-                    request.Headers.Add(AUTHORIZATION, BearerToken);
-                    Response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
-                    if (Response.StatusCode == HttpStatusCode.OK)
+                    await Initialize();
+                    var uri = string.Format("{0}/v1/files/{1}/contents", Url, fid);
+                    using (var request = new HttpRequestMessage(HttpMethod.Get, uri))
                     {
-                        // NOTE: System.Net.Http.Formatting.Extension NuGet Package needs to be installed to use ReadAsMultipartAsync extension method.
-                        var provider = await Response.Content.ReadAsMultipartAsync();
-                        foreach (var content in provider.Contents)
+                        request.Headers.Add(AUTHORIZATION, BearerToken);
+                        request.Headers.Add(CONNECTION, CLOSE);
+                        Response = await httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct);
+                        if (Response.StatusCode == HttpStatusCode.OK)
                         {
-                            var name = RemoveQuotePair(content.Headers.ContentDisposition.Name);
-                            if (name == "file")
+                            // NOTE: System.Net.Http.Formatting.Extension NuGet Package needs to be installed to use ReadAsMultipartAsync extension method.
+                            var provider = await Response.Content.ReadAsMultipartAsync();
+                            foreach (var content in provider.Contents)
                             {
-                                var encoding = Encoding.GetEncoding(content.Headers.ContentType.CharSet ?? "UTF-8");
-                                using (var stream = await content.ReadAsStreamAsync())
-                                using (var input = new StreamReader(stream, encoding))
+                                using (content)
                                 {
-                                    var lines = new List<string>();
-                                    string line;
-                                    while ((line = input.ReadLine()) != null)
+                                    var name = RemoveQuotePair(content.Headers.ContentDisposition.Name);
+                                    if (name == "file")
                                     {
-                                        lines.Add(line);
+                                        var encoding = Encoding.GetEncoding(content.Headers.ContentType.CharSet ?? "UTF-8");
+                                        using (var stream = await content.ReadAsStreamAsync())
+                                        using (var input = new StreamReader(stream, encoding))
+                                        {
+                                            var lines = new List<string>();
+                                            string line;
+                                            while ((line = input.ReadLine()) != null)
+                                            {
+                                                lines.Add(line);
+                                            }
+                                            return FileContents.Store(fid, RemoveQuotePair(content.Headers.ContentDisposition.FileName), lines.ToArray());
+                                        }
                                     }
-                                    return FileContents.Store(fid, RemoveQuotePair(content.Headers.ContentDisposition.FileName), lines.ToArray());
                                 }
                             }
                         }
+                        else if (Response.StatusCode == HttpStatusCode.NotFound)
+                        {
+                            return new FileNotExistException(fid);
+                        }
+                        return new UnrecognizedResponseException(Response.StatusCode, "", "DownloadFile request failed.");
                     }
-                    else if (Response.StatusCode == HttpStatusCode.NotFound)
-                    {
-                        return new FileNotExistException(fid);
-                    }
-                    return new UnrecognizedResponseException(Response.StatusCode, "", "DownloadFile request failed.");
                 }
-            }
-            catch (Exception e)
-            {
-                return e;
+                catch (HttpRequestException e) when(e.InnerException is WebException ei && ei.InnerException is SocketException eii && eii.SocketErrorCode == SocketError.AccessDenied && attempt < MAX_ATTEMPTS)
+                {
+#if DEBUG
+                    Console.WriteLine("#DownloadFile({0})@{1} Access denied. Retrying...", fid, attempt);
+#endif
+                    Thread.Sleep(10);
+                    continue;
+                }
+                catch (IOException e) when(e.InnerException is IOException ei && ei.InnerException is SocketException eii && eii.SocketErrorCode == SocketError.ConnectionAborted && attempt < MAX_ATTEMPTS)
+                {
+#if DEBUG
+                    Console.WriteLine("#DownloadFile({0})@{1} Connection aborted. Retrying...", fid, attempt);
+#endif
+                    Thread.Sleep(10);
+                    continue;
+                }
+                catch (IOException e) when (e.InnerException is IOException ei && ei.InnerException is SocketException eii && eii.SocketErrorCode == SocketError.ConnectionReset && attempt < MAX_ATTEMPTS)
+                {
+#if DEBUG
+                    Console.WriteLine("#DownloadFile({0})@{1} Connection reset. Retrying...", fid, attempt);
+#endif
+                    Thread.Sleep(10);
+                    continue;
+                }
+                catch (Exception e)
+                {
+                    return e;
+                }
             }
         }
 
@@ -974,6 +1013,41 @@ namespace com.hideakin.textsearch.net
                     else
                     {
                         return new UnrecognizedResponseException(Response.StatusCode, ResponseBody, "FindText request failed.");
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                return e;
+            }
+        }
+
+        public async Task<object> FindText(string group, string text, SearchOptions option, int limit, int offset)
+        {
+            try
+            {
+                await Initialize();
+                var uri = string.Format("{0}/v2/index/{1}?text={2}&option={3}&limit={4}&offset={5}", Url, group, text, Enum.GetName(option.GetType(), option), limit, offset);
+                using (var request = new HttpRequestMessage(HttpMethod.Get, uri))
+                {
+                    request.Headers.Add(AUTHORIZATION, BearerToken);
+                    Response = await httpClient.SendAsync(request, ct);
+                    ResponseBody = await Response.Content.ReadAsStringAsync();
+                    if (Response.StatusCode == HttpStatusCode.OK)
+                    {
+                        return JsonConvert.DeserializeObject<TextDistribution[]>(ResponseBody);
+                    }
+                    else if (Response.StatusCode == HttpStatusCode.BadRequest)
+                    {
+                        return new ErrorResponseException(JsonConvert.DeserializeObject<ErrorResponse>(ResponseBody), "FindTextV2 request failed.");
+                    }
+                    else if (Response.StatusCode == HttpStatusCode.NotFound)
+                    {
+                        return new GroupNotFoundException(group);
+                    }
+                    else
+                    {
+                        return new UnrecognizedResponseException(Response.StatusCode, ResponseBody, "FindTextV2 request failed.");
                     }
                 }
             }

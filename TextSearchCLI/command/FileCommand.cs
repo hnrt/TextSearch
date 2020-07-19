@@ -96,10 +96,6 @@ namespace com.hideakin.textsearch.command
                 })
                 .AddHandler("-index-files", (e) =>
                 {
-                    if (!e.MoveNext())
-                    {
-                        throw new Exception("Group name is not specified.");
-                    }
                     var forceIndexing = false;
                     var commandLine2 = new CommandLine();
                     commandLine2
