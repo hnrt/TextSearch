@@ -194,6 +194,10 @@ namespace com.hideakin.textsearch.service
                         return new HitRowColumns[0];
                     }
                 }
+                else
+                {
+                    return new HitRowColumns[0];
+                }
                 var list = new List<HitRowColumns>();
                 var tasks = new Task<HitRowColumns>[rangesList.Count < 4 ? rangesList.Count : 4];
                 int taskCount = 0;
