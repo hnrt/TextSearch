@@ -6,24 +6,24 @@ namespace com.hideakin.textsearch.utility
 {
     internal static class HitRangesListExtension
     {
-        public static List<HitRanges> ToList(TextDistribution[] array)
+        public static List<HitRanges> ToList(IEnumerable<TextDistribution> collection)
         {
-            var list = new List<HitRanges>(array.Length);
-            foreach (var td in array)
+            var list = new List<HitRanges>(collection.Count());
+            foreach (var entry in collection)
             {
-                list.Add(new HitRanges(td));
+                list.Add(new HitRanges(entry));
             }
             return list;
         }
 
-        public static List<HitRanges> Add(this List<HitRanges> list, TextDistribution[] array)
+        public static List<HitRanges> Merge(this List<HitRanges> list, IEnumerable<TextDistribution> collection)
         {
-            foreach (var entry in array)
+            foreach (var entry in collection)
             {
-                var y = list.Where(x => x.Fid == entry.Fid).FirstOrDefault();
-                if (y != null)
+                var found = list.Where(x => x.Fid == entry.Fid).FirstOrDefault();
+                if (found != null)
                 {
-                    y.Add(entry);
+                    found.Merge(entry);
                 }
                 else
                 {
@@ -33,16 +33,15 @@ namespace com.hideakin.textsearch.utility
             return list;
         }
 
-        public static List<HitRanges> Merge(this List<HitRanges> list, TextDistribution[] array)
+        public static List<HitRanges> AddNext(this List<HitRanges> list, IEnumerable<TextDistribution> collection)
         {
             int index = 0;
             while(index < list.Count)
             {
-                var found = array.Where(x => x.Fid == list[index].Fid).FirstOrDefault();
+                var found = collection.Where(x => x.Fid == list[index].Fid).FirstOrDefault();
                 if (found != null)
                 {
-                    list[index].Merge(found);
-                    index++;
+                    list[index++].AddNext(found);
                 }
                 else
                 {

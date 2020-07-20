@@ -1,13 +1,12 @@
 ﻿using com.hideakin.textsearch.net;
 using System.Collections.Generic;
 using System;
-using System.Net;
 using System.Threading;
 using com.hideakin.textsearch.utility;
 
 namespace com.hideakin.textsearch.service
 {
-    public class PreferenceService : ServiceBase
+    public class PreferenceService
     {
         private const int MAX_LEN = 8192;
 
@@ -15,71 +14,64 @@ namespace com.hideakin.textsearch.service
 
         private static readonly string SKIPDIRS = "skipdirs";
 
+        private readonly IndexApiClient client;
+
         public PreferenceService(CancellationToken ct)
-            : base(ct)
         {
+            client = IndexApiClient.Create(ct);
         }
 
         public string GetPreference(string name)
         {
-            using(var client = IndexApiClient.Create(ct))
+            var task = client.GetPreference(name);
+            task.Wait();
+            if (task.Result is string value)
             {
-                var task = client.GetPreference(name);
-                task.Wait();
-                if (task.Result is string value)
-                {
-                    return value;
-                }
-                else if (task.Result is Exception e)
-                {
-                    throw e;
-                }
-                else
-                {
-                    throw new NotImplementedException();
-                }
+                return value;
+            }
+            else if (task.Result is Exception e)
+            {
+                throw e;
+            }
+            else
+            {
+                throw new NotImplementedException();
             }
         }
 
         public string SetPreference(string name, string value)
         {
-            using(var client = IndexApiClient.Create(ct))
+            var task = client.SetPreference(name, value);
+            task.Wait();
+            if (task.Result is int statusCode)
             {
-                var task = client.SetPreference(name, value);
-                task.Wait();
-                if (task.Result is int statusCode)
-                {
-                    return statusCode == 201 ? "Created." : "Updated.";
-                }
-                else if (task.Result is Exception e)
-                {
-                    throw e;
-                }
-                else
-                {
-                    throw new NotImplementedException();
-                }
+                return statusCode == 201 ? "Created." : "Updated.";
+            }
+            else if (task.Result is Exception e)
+            {
+                throw e;
+            }
+            else
+            {
+                throw new NotImplementedException();
             }
         }
 
         public void DeletePreference(string name)
         {
-            using(var client = IndexApiClient.Create(ct))
+            var task = client.DeletePreference(name);
+            task.Wait();
+            if (task.Result is int)
             {
-                var task = client.DeletePreference(name);
-                task.Wait();
-                if (task.Result is int)
-                {
-                    return;
-                }
-                else if (task.Result is Exception e)
-                {
-                    throw e;
-                }
-                else
-                {
-                    throw new NotImplementedException();
-                }
+                return;
+            }
+            else if (task.Result is Exception e)
+            {
+                throw e;
+            }
+            else
+            {
+                throw new NotImplementedException();
             }
         }
 

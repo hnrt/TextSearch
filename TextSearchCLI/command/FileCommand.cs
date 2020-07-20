@@ -278,7 +278,7 @@ namespace com.hideakin.textsearch.command
                         return false;
                     }
                 }
-                file.UploadFileAsync(group, path);
+                file.UploadFileAsync(group, path, cts.Token);
             }
             return true;
         }

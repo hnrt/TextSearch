@@ -22,11 +22,17 @@ namespace com.hideakin.textsearch.view
 {
     public partial class MainWindow : Window
     {
+        #region FIELDS
+
         private static readonly string STATE_PATH = System.IO.Path.Combine(AppData.DirectoryPath, "state.json");
 
         private readonly TextSearchClient client = new TextSearchClient();
 
         private bool CanStartQuery => GroupComboBox.SelectedItem != null && QueryTextBox.Text.Trim().Length > 0;
+
+        #endregion
+
+        #region CONSTRUCTOR
 
         public MainWindow()
         {
@@ -34,17 +40,21 @@ namespace com.hideakin.textsearch.view
             DataContext = client;
             QueryButton.IsEnabled = CanStartQuery;
             StatusBarLabel.Content = " ";
-            Activated += OnFirstActivate;
+            Loaded += OnLoaded;
             Closed += OnClosed;
         }
 
-        private async void OnFirstActivate(object sender, EventArgs e)
+        #endregion
+
+        #region CALLBACKS - WINDOW
+
+        private async void OnLoaded(object sender, RoutedEventArgs e)
         {
-            Activated -= OnFirstActivate;
             (new GridViewColumnWidthAdjuster(HitListView, HitListViewTextColumn, HitListViewNameColumn, HitListViewLineColumn)).Adjust();
             (new GridViewColumnWidthAdjuster(FileListView, FileListViewPathColumn, FileListViewSizeColumn)).Adjust();
             (new GridViewColumnWidthAdjuster(ContentListView, ContentListViewTextColumn, ContentListViewLineColumn)).Adjust();
             SwitchToFileList();
+            UpdateUpperViewSwitchButton();
             using (var wip = WorkInProgress.Create()
                 .DisableControl(FileAuthMenuItem)
                 .DisableControl(EditReloadGroupsMenuItem)
@@ -107,6 +117,10 @@ namespace com.hideakin.textsearch.view
         {
         }
 
+        #endregion
+
+        #region CALLBACKS - MENU
+
         private void OnFileExit(object sender, RoutedEventArgs e)
         {
             Close();
@@ -157,13 +171,20 @@ namespace com.hideakin.textsearch.view
                     {
                         GroupComboBox.SelectedItem = last;
                     }
-                    QueryButton.IsEnabled = CanStartQuery;
+                    wip.SetFinalContent(null);
+                    UpdateStatusBar();
                 }
                 else
                 {
                     wip.SetFinalContent(Properties.Resources.UpdateGroupsFailure);
                 }
+                QueryButton.IsEnabled = CanStartQuery;
             }
+        }
+
+        private void OnEditCancelSearch(object sender, RoutedEventArgs e)
+        {
+            client.Cancel();
         }
 
         private void OnViewClear(object sender, RoutedEventArgs e)
@@ -189,30 +210,18 @@ namespace com.hideakin.textsearch.view
             MessageBox.Show(sb.ToString(), Properties.Resources.AboutCaption, MessageBoxButton.OK);
         }
 
+        #endregion
+
+        #region CALLBACKS - GROUP COMBOBOX
+
         private async void OnGroupComboBoxSelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             await client.UpdateFiles();
         }
 
-        private async void OnQueryStart(object sender, RoutedEventArgs e)
-        {
-            using (var wip = WorkInProgress.Create()
-                .DisableControl(QueryButton)
-                .SetContentControl(StatusBarLabel)
-                .SetContent(Properties.Resources.WaitingForResponse))
-            {
-                SwitchToHitList();
-                var message = await client.Execute();
-                if (message == null)
-                {
-                    wip.SetFinalContent(Properties.Resources.HitFormat, client.HitItems.Count);
-                }
-                else
-                {
-                    MessageBox.Show(message, Properties.Resources.AppCaption, MessageBoxButton.OK, MessageBoxImage.Warning);
-                }
-            }
-        }
+        #endregion 
+
+        #region CALLBACKS - QUERY TEXTBOX
 
         private void OnQueryTextBoxTextChanged(object sender, TextChangedEventArgs e)
         {
@@ -228,6 +237,34 @@ namespace com.hideakin.textsearch.view
             }
         }
 
+        #endregion 
+
+        #region CALLBACKS - QUERY BUTTON
+
+        private async void OnQueryStart(object sender, RoutedEventArgs e)
+        {
+            using (var wip = WorkInProgress.Create()
+                .DisableControl(QueryButton)
+                .SetContentControl(StatusBarLabel)
+                .SetContent(Properties.Resources.WaitingForResponse))
+            {
+                SwitchToHitList();
+                var message = await client.Execute();
+                if (message == null)
+                {
+                    wip.SetFinalContent(Properties.Resources.HitFormat, client.HitItems.Count);
+                }
+                else if (message.Length > 0)
+                {
+                    MessageBox.Show(message, Properties.Resources.AppCaption, MessageBoxButton.OK, MessageBoxImage.Warning);
+                }
+            }
+        }
+
+        #endregion
+
+        #region CALLBACKS - HIT LISTVIEW
+
         private async void OnHitListViewSelectionChanged(object sender, SelectionChangedEventArgs e)
         {
             if (HitListView.SelectedItem is HitItem h)
@@ -242,6 +279,10 @@ namespace com.hideakin.textsearch.view
                 ContentListView.SelectedIndex = -1;
             }
         }
+
+        #endregion
+
+        #region CALLBACKS - FILE LISTVIEW
 
         private async void OnFileListViewSelectionChanged(object sender, SelectionChangedEventArgs e)
         {
@@ -268,6 +309,10 @@ namespace com.hideakin.textsearch.view
             }
         }
 
+        #endregion
+
+        #region CALLBACKS - LISTVIEW SWITCH BUTTON
+
         private void OnUpperViewSwitchButtonClick(object sender, RoutedEventArgs e)
         {
             if (HitListView.Visibility == Visibility.Visible)
@@ -277,6 +322,22 @@ namespace com.hideakin.textsearch.view
             else if (FileListView.Visibility == Visibility.Visible)
             {
                 SwitchToHitList();
+            }
+            UpdateStatusBar();
+            UpdateUpperViewSwitchButton();
+        }
+
+        private void UpdateUpperViewSwitchButton()
+        {
+            if (HitListView.Visibility == Visibility.Visible)
+            {
+                UpperViewSwitchButton.Content = Properties.Resources.SwitchToFileList;
+                UpperViewSwitchButton.ToolTip = Properties.Resources.SwitchToFileListTooltip;
+            }
+            else if (FileListView.Visibility == Visibility.Visible)
+            {
+                UpperViewSwitchButton.Content = Properties.Resources.SwitchToHitList;
+                UpperViewSwitchButton.ToolTip = Properties.Resources.SwitchToHitListTooltip;
             }
         }
 
@@ -300,8 +361,6 @@ namespace com.hideakin.textsearch.view
                 {
                     HitListView.ScrollIntoView(HitListView.SelectedItem);
                 }
-                UpperViewSwitchButton.Content = Properties.Resources.SwitchToFileList;
-                UpperViewSwitchButton.ToolTip = Properties.Resources.SwitchToFileListTooltip;
             }
         }
 
@@ -309,8 +368,8 @@ namespace com.hideakin.textsearch.view
         {
             if (FileListView.Visibility == Visibility.Hidden)
             {
-                HitListView.Visibility = Visibility.Hidden;
                 FileListView.Visibility = Visibility.Visible;
+                HitListView.Visibility = Visibility.Hidden;
                 CollectionViewSource.GetDefaultView(FileListView.ItemsSource).Refresh();
                 if (FileListView.ItemsSource is ObservableCollection<FileItem> ff)
                 {
@@ -323,9 +382,43 @@ namespace com.hideakin.textsearch.view
                 {
                     FileListView.ScrollIntoView(FileListView.SelectedItem);
                 }
-                UpperViewSwitchButton.Content = Properties.Resources.SwitchToHitList;
-                UpperViewSwitchButton.ToolTip = Properties.Resources.SwitchToHitListTooltip;
             }
         }
+
+        #endregion
+
+        #region STATUS BAR
+
+        private void UpdateStatusBar(string message = null)
+        {
+            if (message != null)
+            {
+                StatusBarLabel.Content = message;
+            }
+            else if (HitListView.Visibility == Visibility.Visible)
+            {
+                if (HitListView.ItemsSource is ObservableCollection<HitItem> hh && hh.Count > 0)
+                {
+                    StatusBarLabel.Content = string.Format(Properties.Resources.HitFormat, hh.Count);
+                }
+                else
+                {
+                    StatusBarLabel.Content = " ";
+                }
+            }
+            else if (FileListView.Visibility == Visibility.Visible)
+            {
+                if (FileListView.ItemsSource is ObservableCollection<FileItem> ff && ff.Count > 0)
+                {
+                    StatusBarLabel.Content = string.Format(Properties.Resources.FileFormat, ff.Count);
+                }
+                else
+                {
+                    StatusBarLabel.Content = " ";
+                }
+            }
+        }
+
+        #endregion
     }
 }

@@ -160,6 +160,15 @@ namespace com.hideakin.textsearch.Properties {
         }
         
         /// <summary>
+        ///   Files: {0} に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        public static string FileFormat {
+            get {
+                return ResourceManager.GetString("FileFormat", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   _File に類似しているローカライズされた文字列を検索します。
         /// </summary>
         public static string FileMenuItemHeader {

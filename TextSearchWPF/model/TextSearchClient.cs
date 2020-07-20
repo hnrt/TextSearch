@@ -31,18 +31,17 @@ namespace com.hideakin.textsearch.model
 
         public ObservableCollection<LineText> Contents { get; } = new ObservableCollection<LineText>();
 
-        private IndexService IndexSvc { get; }
-
-        private readonly CancellationTokenSource cts = new CancellationTokenSource();
+        private CancellationTokenSource cts;
 
         public TextSearchClient()
         {
-            IndexSvc = new IndexService(cts.Token);
+            cts = new CancellationTokenSource();
         }
 
         public void Cancel()
         {
             cts.Cancel();
+            cts = new CancellationTokenSource();
         }
 
         public async Task<bool> Initialize()
@@ -132,7 +131,8 @@ namespace com.hideakin.textsearch.model
                 Path = string.Empty;
                 NotifyOfChange("Path");
                 Contents.Clear();
-                var hits = await IndexSvc.FindTextAsync(Group, QueryText);
+                var svc = new IndexService(cts.Token);
+                var hits = await svc.FindTextAsync(Group, QueryText);
                 var m = new List<(HitRowColumns Hit, FileContents Contents)>();
                 foreach (var hit in hits)
                 {
@@ -172,6 +172,10 @@ namespace com.hideakin.textsearch.model
                     }
                 }
                 return null;
+            }
+            catch (AggregateException ae) when(ae.InnerExceptions[0] is TaskCanceledException)
+            {
+                return string.Empty;
             }
             catch (AggregateException ae)
             {

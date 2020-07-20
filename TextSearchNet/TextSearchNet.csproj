@@ -121,17 +121,18 @@
     <Compile Include="net\IndexApiClient.cs" />
     <Compile Include="net\IndexApiClientSpinLock.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="service\AuthenticationService.cs" />
     <Compile Include="service\FileGroupService.cs" />
     <Compile Include="service\FileService.cs" />
     <Compile Include="service\IndexService.cs" />
     <Compile Include="service\PreferenceService.cs" />
-    <Compile Include="service\ServiceBase.cs" />
     <Compile Include="service\UserService.cs" />
     <Compile Include="utility\AppData.cs" />
     <Compile Include="utility\Debug.cs" />
     <Compile Include="utility\HitRangesListExtension.cs" />
     <Compile Include="utility\StringExtension.cs" />
     <Compile Include="utility\StringListExtension.cs" />
+    <Compile Include="utility\TextDistributionListExtension.cs" />
     <Compile Include="utility\TextTokenizer.cs" />
     <Compile Include="utility\UnicodeClassifier.cs" />
   </ItemGroup>

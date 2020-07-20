@@ -32,7 +32,7 @@ namespace com.hideakin.textsearch.model
             }
         }
 
-        public HitRanges Add(TextDistribution td)
+        public HitRanges Merge(TextDistribution td)
         {
             if (td.Positions.Length == 0)
             {
@@ -68,8 +68,7 @@ namespace com.hideakin.textsearch.model
                             b = td.Positions[j++];
                             r.Add((b, b));
                         }
-                        Ranges = r;
-                        return this;
+                        break;
                     }
                 }
                 else if (a > b)
@@ -87,18 +86,19 @@ namespace com.hideakin.textsearch.model
                             a = Ranges[i++].Start;
                             r.Add((a, a));
                         }
-                        Ranges = r;
-                        return this;
+                        break;
                     }
                 }
                 else
                 {
-                    throw new Exception("HitRanges.Add: Detected duplicate positions.");
+                    throw new Exception("HitRanges.Merge: Duplicate position.");
                 }
             }
+            Ranges = r;
+            return this;
         }
 
-        public HitRanges Merge(TextDistribution td)
+        public HitRanges AddNext(TextDistribution td)
         {
             int index = 0;
             while (index < Ranges.Count)

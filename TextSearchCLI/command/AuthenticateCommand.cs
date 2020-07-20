@@ -11,12 +11,12 @@ namespace com.hideakin.textsearch.command
         private static readonly string AUTHENTICATE = "-authenticate";
 
         private readonly CancellationTokenSource cts;
-        private readonly UserService usr;
+        private readonly AuthenticationService svc;
 
         public AuthenticateCommand()
         {
             cts = new CancellationTokenSource();
-            usr = new UserService(cts.Token);
+            svc = new AuthenticationService(cts.Token);
         }
 
         public void Register(CommandLine commandLine, CommandQueue commandQueue)
@@ -49,7 +49,7 @@ namespace com.hideakin.textsearch.command
                     }
                     commandQueue.Add(() =>
                     {
-                        var response = usr.Authenticate(username, password);
+                        var response = svc.Authenticate(username, password);
                         Console.WriteLine("OK. {0}", response.AccessToken);
                     });
                 })

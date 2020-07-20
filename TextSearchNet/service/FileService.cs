@@ -10,125 +10,112 @@ using com.hideakin.textsearch.net;
 
 namespace com.hideakin.textsearch.service
 {
-    public class FileService : ServiceBase
+    public class FileService
     {
+        private readonly IndexApiClient client;
+
         private List<(string Path, IndexApiClient Client, Task<object> UploadFileTask)> UploadFileTasks { get; } = new List<(string Path, IndexApiClient Client, Task<object> UploadFileTask)>();
 
         public int Uploading => UploadFileTasks.Count;
 
         public FileService(CancellationToken ct)
-            : base(ct)
         {
+            client = IndexApiClient.Create(ct);
         }
 
         public FileInfo[] GetFiles(string group)
         {
-            using(var client = IndexApiClient.Create(ct))
+            var task = client.GetFiles(group);
+            task.Wait();
+            if (task.Result is FileInfo[] array)
             {
-                var task = client.GetFiles(group);
-                task.Wait();
-                if (task.Result is FileInfo[] array)
-                {
-                    return array;
-                }
-                else if (task.Result is Exception e)
-                {
-                    throw e;
-                }
-                else
-                {
-                    throw new NotImplementedException();
-                }
+                return array;
+            }
+            else if (task.Result is Exception e)
+            {
+                throw e;
+            }
+            else
+            {
+                throw new NotImplementedException();
             }
         }
 
         public FileInfo GetFile(string group, string path)
         {
-            using(var client = IndexApiClient.Create(ct))
+            var task = client.GetFile(group, path);
+            task.Wait();
+            if (task.Result is FileInfo info)
             {
-                var task = client.GetFile(group, path);
-                task.Wait();
-                if (task.Result is FileInfo info)
-                {
-                    return info;
-                }
-                else if (task.Result is Exception e)
-                {
-                    throw e;
-                }
-                else
-                {
-                    throw new NotImplementedException();
-                }
+                return info;
+            }
+            else if (task.Result is Exception e)
+            {
+                throw e;
+            }
+            else
+            {
+                throw new NotImplementedException();
             }
         }
 
         public FileStats GetFileStats(string group)
         {
-            using(var client = IndexApiClient.Create(ct))
+            var task = client.GetFileStats(group);
+            task.Wait();
+            if (task.Result is FileStats stats)
             {
-                var task = client.GetFileStats(group);
-                task.Wait();
-                if (task.Result is FileStats stats)
-                {
-                    return stats;
-                }
-                else if (task.Result is Exception e)
-                {
-                    throw e;
-                }
-                else
-                {
-                    throw new NotImplementedException();
-                }
+                return stats;
+            }
+            else if (task.Result is Exception e)
+            {
+                throw e;
+            }
+            else
+            {
+                throw new NotImplementedException();
             }
         }
 
         public FileContents DownloadFile(int fid)
         {
-            using(var client = IndexApiClient.Create(ct))
+            var task = client.DownloadFile(fid);
+            task.Wait();
+            if (task.Result is FileContents contents)
             {
-                var task = client.DownloadFile(fid);
-                task.Wait();
-                if (task.Result is FileContents contents)
-                {
-                    return contents;
-                }
-                else if (task.Result is Exception e)
-                {
-                    throw e;
-                }
-                else
-                {
-                    throw new NotImplementedException();
-                }
+                return contents;
+            }
+            else if (task.Result is Exception e)
+            {
+                throw e;
+            }
+            else
+            {
+                throw new NotImplementedException();
             }
         }
 
         public FileInfo UploadFile(string group, string path, out UploadFileStatus result)
         {
             result = UploadFileStatus.Failure;
-            using(var client = IndexApiClient.Create(ct))
+            var task = client.UploadFile(group, path);
+            task.Wait();
+            if (task.Result is FileInfo info)
             {
-                var task = client.UploadFile(group, path);
-                task.Wait();
-                if (task.Result is FileInfo info)
-                {
-                    result = client.Response.StatusCode == HttpStatusCode.Created ? UploadFileStatus.Created : UploadFileStatus.Updated;
-                    return info;
-                }
-                else if (task.Result is Exception e)
-                {
-                    throw new UploadFileException(path, e);
-                }
-                else
-                {
-                    throw new NotImplementedException();
-                }
+                result = client.StatusCode == HttpStatusCode.Created ? UploadFileStatus.Created : UploadFileStatus.Updated;
+                return info;
+            }
+            else if (task.Result is Exception e)
+            {
+                throw new UploadFileException(path, e);
+            }
+            else
+            {
+                throw new NotImplementedException();
             }
         }
 
-        public void UploadFileAsync(string group, string path)
+        public void UploadFileAsync(string group, string path, CancellationToken ct)
         {
             var client = IndexApiClient.Create(ct);
             var task = client.UploadFile(group, path);
@@ -138,71 +125,61 @@ namespace com.hideakin.textsearch.service
         public FileInfo WaitForUploadFileCompletion(out UploadFileStatus result)
         {
             var tasks = new Task<object>[UploadFileTasks.Count];
-            int index;
-            for (index = 0; index < UploadFileTasks.Count; index++)
+            for (int index = 0; index < UploadFileTasks.Count; index++)
             {
                 tasks[index] = UploadFileTasks[index].UploadFileTask;
             }
-            index = Task.WaitAny(tasks);
-            var (path, client, ufTask) = UploadFileTasks[index];
-            UploadFileTasks.RemoveAt(index);
-            using (client)
+            var completed = Task.WaitAny(tasks);
+            var (path, client, task) = UploadFileTasks[completed];
+            UploadFileTasks.RemoveAt(completed);
+            if (task.Result is FileInfo info)
             {
-                if (ufTask.Result is FileInfo info)
-                {
-                    result = client.Response.StatusCode == HttpStatusCode.Created ? UploadFileStatus.Created : UploadFileStatus.Updated;
-                    return info;
-                }
-                else if (ufTask.Result is Exception e)
-                {
-                    throw new UploadFileException(path, e);
-                }
-                else
-                {
-                    throw new NotImplementedException();
-                }
+                result = client.StatusCode == HttpStatusCode.Created ? UploadFileStatus.Created : UploadFileStatus.Updated;
+                return info;
+            }
+            else if (task.Result is Exception e)
+            {
+                throw new UploadFileException(path, e);
+            }
+            else
+            {
+                throw new NotImplementedException();
             }
         }
 
         public FileInfo[] DeleteFiles(string group)
         {
-            using(var client = IndexApiClient.Create(ct))
+            var task = client.DeleteFiles(group);
+            task.Wait();
+            if (task.Result is FileInfo[] array)
             {
-                var task = client.DeleteFiles(group);
-                task.Wait();
-                if (task.Result is FileInfo[] array)
-                {
-                    return array;
-                }
-                else if (task.Result is Exception e)
-                {
-                    throw e;
-                }
-                else
-                {
-                    throw new NotImplementedException();
-                }
+                return array;
+            }
+            else if (task.Result is Exception e)
+            {
+                throw e;
+            }
+            else
+            {
+                throw new NotImplementedException();
             }
         }
 
         public void DeleteStaleFiles(string group)
         {
-            using(var client = IndexApiClient.Create(ct))
+            var task = client.DeleteStaleFiles(group);
+            task.Wait();
+            if (task.Result is int)
             {
-                var task = client.DeleteStaleFiles(group);
-                task.Wait();
-                if (task.Result is int)
-                {
-                    return;
-                }
-                else if (task.Result is Exception e)
-                {
-                    throw e;
-                }
-                else
-                {
-                    throw new NotImplementedException();
-                }
+                return;
+            }
+            else if (task.Result is Exception e)
+            {
+                throw e;
+            }
+            else
+            {
+                throw new NotImplementedException();
             }
         }
     }
