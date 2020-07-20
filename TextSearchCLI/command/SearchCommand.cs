@@ -67,7 +67,7 @@ namespace com.hideakin.textsearch.command
 
         private void Query(string group, string expression, bool formatHTML)
         {
-            var rsp = idx.FindText(group, expression);
+            var rsp = idx.FindTextV2(group, expression);
             if (formatHTML)
             {
                 FormatQueryResultsInHtml(rsp);
