@@ -99,6 +99,7 @@ namespace com.hideakin.textsearch.view
                             FileListView.ScrollIntoView(f);
                         }
                     }
+                    UpdateStatusBar();
                 }
             }
         }

@@ -160,7 +160,7 @@ namespace com.hideakin.textsearch.Properties {
         }
         
         /// <summary>
-        ///   Files: {0} に類似しているローカライズされた文字列を検索します。
+        ///   Files: {0:#,0} に類似しているローカライズされた文字列を検索します。
         /// </summary>
         public static string FileFormat {
             get {
@@ -214,7 +214,7 @@ namespace com.hideakin.textsearch.Properties {
         }
         
         /// <summary>
-        ///   Hit: {0} に類似しているローカライズされた文字列を検索します。
+        ///   Hit: {0:#,0} に類似しているローカライズされた文字列を検索します。
         /// </summary>
         public static string HitFormat {
             get {

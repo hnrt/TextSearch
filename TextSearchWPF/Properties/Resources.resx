@@ -151,7 +151,7 @@
     <value>E_xit</value>
   </data>
   <data name="FileFormat" xml:space="preserve">
-    <value>Files: {0}</value>
+    <value>Files: {0:#,0}</value>
   </data>
   <data name="FileMenuItemHeader" xml:space="preserve">
     <value>_File</value>
@@ -169,7 +169,7 @@
     <value>_Help</value>
   </data>
   <data name="HitFormat" xml:space="preserve">
-    <value>Hit: {0}</value>
+    <value>Hit: {0:#,0}</value>
   </data>
   <data name="InitializationFailure" xml:space="preserve">
     <value>Failed to initialize.</value>
