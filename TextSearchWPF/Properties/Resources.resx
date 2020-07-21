@@ -213,6 +213,9 @@
   <data name="TextColumnHeader" xml:space="preserve">
     <value>Text</value>
   </data>
+  <data name="UpdateFilesFailure" xml:space="preserve">
+    <value>Failed to retrieve files.</value>
+  </data>
   <data name="UpdateGroupsFailure" xml:space="preserve">
     <value>Failed to update groups.</value>
   </data>

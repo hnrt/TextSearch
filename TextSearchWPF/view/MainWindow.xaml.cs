@@ -159,18 +159,14 @@ namespace com.hideakin.textsearch.view
 
         private async void OnReloadGroups(object sender, RoutedEventArgs e)
         {
+            var last = GroupComboBox.SelectedItem;
             using (var wip = WorkInProgress.Create()
                 .DisableControl(EditReloadGroupsMenuItem)
                 .SetContentControl(StatusBarLabel)
                 .SetContent(Properties.Resources.WaitingForResponse))
             {
-                var last = GroupComboBox.SelectedItem;
                 if (await client.UpdateGroups())
                 {
-                    if (last != null && GroupComboBox.HasItems && GroupComboBox.Items.Contains(last))
-                    {
-                        GroupComboBox.SelectedItem = last;
-                    }
                     wip.SetFinalContent(null);
                     UpdateStatusBar();
                 }
@@ -179,6 +175,10 @@ namespace com.hideakin.textsearch.view
                     wip.SetFinalContent(Properties.Resources.UpdateGroupsFailure);
                 }
                 QueryButton.IsEnabled = CanStartQuery;
+            }
+            if (last != null && GroupComboBox.HasItems && GroupComboBox.Items.Contains(last))
+            {
+                GroupComboBox.SelectedItem = last;
             }
         }
 
@@ -216,7 +216,22 @@ namespace com.hideakin.textsearch.view
 
         private async void OnGroupComboBoxSelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            await client.UpdateFiles();
+            using (var wip = WorkInProgress.Create()
+                .DisableControl(FileAuthMenuItem)
+                .DisableControl(EditReloadGroupsMenuItem)
+                .SetContentControl(StatusBarLabel)
+                .SetContent(Properties.Resources.WaitingForResponse))
+            {
+                if (await client.UpdateFiles())
+                {
+                    wip.SetFinalContent(null);
+                    UpdateStatusBar();
+                }
+                else
+                {
+                    wip.SetFinalContent(Properties.Resources.UpdateFilesFailure);
+                }
+            }
         }
 
         #endregion 

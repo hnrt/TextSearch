@@ -349,6 +349,15 @@ namespace com.hideakin.textsearch.Properties {
         }
         
         /// <summary>
+        ///   Failed to retrieve files. に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        public static string UpdateFilesFailure {
+            get {
+                return ResourceManager.GetString("UpdateFilesFailure", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Failed to update groups. に類似しているローカライズされた文字列を検索します。
         /// </summary>
         public static string UpdateGroupsFailure {
