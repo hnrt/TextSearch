@@ -50,20 +50,19 @@ namespace com.hideakin.textsearch.view
 
         private async void OnLoaded(object sender, RoutedEventArgs e)
         {
+            EditCancelRequestMenuItem.IsEnabled = false;
             (new GridViewColumnWidthAdjuster(HitListView, HitListViewTextColumn, HitListViewNameColumn, HitListViewLineColumn)).Adjust();
             (new GridViewColumnWidthAdjuster(FileListView, FileListViewPathColumn, FileListViewSizeColumn)).Adjust();
             (new GridViewColumnWidthAdjuster(ContentListView, ContentListViewTextColumn, ContentListViewLineColumn)).Adjust();
             SwitchToFileList();
             UpdateUpperViewSwitchButton();
-            using (var wip = WorkInProgress.Create()
-                .DisableControl(FileAuthMenuItem)
-                .DisableControl(EditReloadGroupsMenuItem)
-                .SetContentControl(StatusBarLabel)
-                .SetContent(Properties.Resources.Initializing))
+            using (var wip = RequestInProgress(Properties.Resources.Initializing))
             {
                 if (await client.Initialize())
                 {
                     QueryButton.IsEnabled = CanStartQuery;
+                    wip.SetFinalContent(null);
+                    UpdateStatusBar();
                 }
                 else
                 {
@@ -88,18 +87,26 @@ namespace com.hideakin.textsearch.view
                 {
                     GroupComboBox.SelectedItem = state.Group;
                 }
-                if (await client.UpdateFiles())
+                using (var wip = RequestInProgress(Properties.Resources.Initializing))
                 {
-                    if (state.Path != null && FileListView.ItemsSource is ObservableCollection<FileItem> ff)
+                    if (await client.UpdateFiles())
                     {
-                        var f = ff.Where(x => x.Path == state.Path).FirstOrDefault();
-                        if (f != null)
+                        if (state.Path != null && FileListView.ItemsSource is ObservableCollection<FileItem> ff)
                         {
-                            FileListView.SelectedItem = f;
-                            FileListView.ScrollIntoView(f);
+                            var f = ff.Where(x => x.Path == state.Path).FirstOrDefault();
+                            if (f != null)
+                            {
+                                FileListView.SelectedItem = f;
+                                FileListView.ScrollIntoView(f);
+                            }
                         }
+                        wip.SetFinalContent(null);
+                        UpdateStatusBar();
                     }
-                    UpdateStatusBar();
+                    else
+                    {
+                        wip.SetFinalContent(Properties.Resources.InitializationFailure);
+                    }
                 }
             }
         }
@@ -139,10 +146,7 @@ namespace com.hideakin.textsearch.view
             if (result == true)
             {
                 bool authenticated;
-                using (var wip = WorkInProgress.Create()
-                    .DisableControl(FileAuthMenuItem)
-                    .SetContentControl(StatusBarLabel)
-                    .SetContent(Properties.Resources.WaitingForResponse))
+                using (var wip = RequestInProgress())
                 {
                     authenticated = await client.Authenticate(dialogBox.Username, dialogBox.Password);
                 }
@@ -160,13 +164,9 @@ namespace com.hideakin.textsearch.view
 
         private async void OnReloadGroups(object sender, RoutedEventArgs e)
         {
-            var last = GroupComboBox.SelectedItem;
-            using (var wip = WorkInProgress.Create()
-                .DisableControl(EditReloadGroupsMenuItem)
-                .SetContentControl(StatusBarLabel)
-                .SetContent(Properties.Resources.WaitingForResponse))
+            using (var wip = RequestInProgress())
             {
-                if (await client.UpdateGroups())
+                if (await client.UpdateGroups()) // may fire OnGroupComboBoxSelectionChanged if group selection is changed
                 {
                     wip.SetFinalContent(null);
                     UpdateStatusBar();
@@ -177,13 +177,9 @@ namespace com.hideakin.textsearch.view
                 }
                 QueryButton.IsEnabled = CanStartQuery;
             }
-            if (last != null && GroupComboBox.HasItems && GroupComboBox.Items.Contains(last))
-            {
-                GroupComboBox.SelectedItem = last;
-            }
         }
 
-        private void OnEditCancelSearch(object sender, RoutedEventArgs e)
+        private void OnEditCancelRequest(object sender, RoutedEventArgs e)
         {
             client.Cancel();
         }
@@ -217,11 +213,7 @@ namespace com.hideakin.textsearch.view
 
         private async void OnGroupComboBoxSelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            using (var wip = WorkInProgress.Create()
-                .DisableControl(FileAuthMenuItem)
-                .DisableControl(EditReloadGroupsMenuItem)
-                .SetContentControl(StatusBarLabel)
-                .SetContent(Properties.Resources.WaitingForResponse))
+            using (var wip = RequestInProgress())
             {
                 if (await client.UpdateFiles())
                 {
@@ -259,12 +251,10 @@ namespace com.hideakin.textsearch.view
 
         private async void OnQueryStart(object sender, RoutedEventArgs e)
         {
-            using (var wip = WorkInProgress.Create()
-                .DisableControl(QueryButton)
-                .SetContentControl(StatusBarLabel)
-                .SetContent(Properties.Resources.WaitingForResponse))
+            using (var wip = RequestInProgress())
             {
                 SwitchToHitList();
+                UpdateUpperViewSwitchButton();
                 var message = await client.Execute();
                 if (message == null)
                 {
@@ -339,8 +329,8 @@ namespace com.hideakin.textsearch.view
             {
                 SwitchToHitList();
             }
-            UpdateStatusBar();
             UpdateUpperViewSwitchButton();
+            UpdateStatusBar();
         }
 
         private void UpdateUpperViewSwitchButton()
@@ -433,6 +423,22 @@ namespace com.hideakin.textsearch.view
                     StatusBarLabel.Content = " ";
                 }
             }
+        }
+
+        #endregion
+
+        #region HELPERS
+
+        private WorkInProgress RequestInProgress(string message = null)
+        {
+            return WorkInProgress.Create()
+                    .DisableControl(FileAuthMenuItem)
+                    .DisableControl(EditReloadGroupsMenuItem)
+                    .EnableControl(EditCancelRequestMenuItem)
+                    .DisableControl(QueryTextBox)
+                    .DisableControl(QueryButton)
+                    .SetContentControl(StatusBarLabel)
+                    .SetContent(message ?? Properties.Resources.WaitingForResponse);
         }
 
         #endregion

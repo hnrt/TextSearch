@@ -138,6 +138,9 @@
   <data name="CancelButtonContent" xml:space="preserve">
     <value>_Cancel</value>
   </data>
+  <data name="EditCancelRequestMenuItemHeader" xml:space="preserve">
+    <value>_Cancel request</value>
+  </data>
   <data name="EditMenuItemHeader" xml:space="preserve">
     <value>_Edit</value>
   </data>

@@ -173,30 +173,34 @@ namespace com.hideakin.textsearch.model
                 }
                 return null;
             }
-            catch (AggregateException ae) when(ae.InnerExceptions[0] is TaskCanceledException)
+            catch (TaskCanceledException)
             {
                 return string.Empty;
             }
-            catch (AggregateException ae)
+            catch (AggregateException e) when(e.InnerExceptions[0] is TaskCanceledException)
+            {
+                return string.Empty;
+            }
+            catch (AggregateException e)
             {
                 var sb = new StringBuilder();
-                foreach (var e in ae.InnerExceptions)
+                foreach (var x in e.InnerExceptions)
                 {
                     if (sb.Length > 0)
                     {
                         sb.AppendLine();
                     }
-                    sb.Append(e.Message);
-                    Exception x = e;
-                    while ((x = x.InnerException) != null)
+                    sb.Append(x.Message);
+                    Exception y = x;
+                    while ((y = y.InnerException) != null)
                     {
                         sb.AppendLine();
-                        sb.Append(x.Message);
+                        sb.Append(y.Message);
 #if DEBUG
-                        sb.AppendFormat(" {0}", x.GetType().FullName);
-                        if (x is System.Net.Sockets.SocketException sx)
+                        sb.AppendFormat(" {0}", y.GetType().FullName);
+                        if (y is System.Net.Sockets.SocketException s)
                         {
-                            sb.AppendFormat(" SocketErrorCode={0}", sx.SocketErrorCode.ToString());
+                            sb.AppendFormat(" SocketErrorCode={0}", s.SocketErrorCode.ToString());
                         }
 #endif
                     }

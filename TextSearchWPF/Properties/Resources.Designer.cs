@@ -124,6 +124,15 @@ namespace com.hideakin.textsearch.Properties {
         }
         
         /// <summary>
+        ///   _Cancel request に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        public static string EditCancelRequestMenuItemHeader {
+            get {
+                return ResourceManager.GetString("EditCancelRequestMenuItemHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   _Edit に類似しているローカライズされた文字列を検索します。
         /// </summary>
         public static string EditMenuItemHeader {

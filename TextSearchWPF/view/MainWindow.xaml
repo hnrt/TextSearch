@@ -61,7 +61,7 @@
             <MenuItem Name="EditMenuItem" Header="{x:Static p:Resources.EditMenuItemHeader}">
                 <MenuItem Name="EditReloadGroupsMenuItem" Header="{x:Static p:Resources.EditReloadGroupsMenuItemHeader}" Click="OnReloadGroups"/>
                 <Separator/>
-                <MenuItem Name="EditCancelSearchMenuItem" Header="_Cancel search" Click="OnEditCancelSearch"/>
+                <MenuItem Name="EditCancelRequestMenuItem" Header="{x:Static p:Resources.EditCancelRequestMenuItemHeader}" Click="OnEditCancelRequest"/>
             </MenuItem>
             <MenuItem Name="ViewMenuItem" Header="{x:Static p:Resources.ViewMenuItemHeader}">
                 <MenuItem Name="ViewClearMenuItem" Header="{x:Static p:Resources.ViewClearMenuItemHeader}" Click="OnViewClear"/>
