@@ -23,6 +23,10 @@ namespace com.hideakin.textsearch.model
 
         public ObservableCollection<HitItem> HitItems { get; } = new ObservableCollection<HitItem>();
 
+        private HitRowColumns[] QueryResults { get; set; }
+
+        private ISet<int> Unchecked { get; } = new HashSet<int>();
+
         public ObservableCollection<FileItem> FileItems { get; } = new ObservableCollection<FileItem>();
 
         private int Fid { get; set; } = -1;
@@ -99,6 +103,8 @@ namespace com.hideakin.textsearch.model
 
         public async Task<bool> UpdateFiles()
         {
+            QueryResults = null;
+            HitItems.Clear();
             FileItems.Clear();
             if (Group != null)
             {
@@ -108,7 +114,7 @@ namespace com.hideakin.textsearch.model
                 {
                     foreach (var entry in entries.OrderBy(x => x.Path.ToUpperInvariant()))
                     {
-                        FileItems.Add(new FileItem(entry.Fid, entry.Path, entry.Size));
+                        FileItems.Add(new FileItem(entry.Fid, entry.Path, entry.Size, !Unchecked.Contains(entry.Fid)));
                     }
                     return true;
                 }
@@ -127,50 +133,14 @@ namespace com.hideakin.textsearch.model
         {
             try
             {
+                QueryResults = null;
                 HitItems.Clear();
                 Path = string.Empty;
                 NotifyOfChange("Path");
                 Contents.Clear();
                 var svc = new IndexService(cts.Token);
-                var hits = await svc.FindTextAsync(Group, QueryText);
-                var m = new List<(HitRowColumns Hit, FileContents Contents)>();
-                foreach (var hit in hits)
-                {
-                    var contents = await DownloadFile(hit.Fid);
-                    m.Add((hit, contents));
-                }
-                m.Sort((a, b) =>
-                {
-                    return a.Contents.Path.ToUpperInvariant().CompareTo(b.Contents.Path.ToUpperInvariant());
-                });
-                var d = new Dictionary<int, int>();
-                foreach (var (hit, contents) in m)
-                {
-                    foreach (var entry in hit.Rows)
-                    {
-                        var item = new HitItem(contents.Fid, contents.Path, entry.Row + 1, contents.Lines[entry.Row], entry.Columns);
-                        HitItems.Add(item);
-                        if (d.TryGetValue(item.Fid, out var hitRows))
-                        {
-                            d[item.Fid] = hitRows + 1;
-                        }
-                        else
-                        {
-                            d.Add(item.Fid, 1);
-                        }
-                    }
-                }
-                foreach (var f in FileItems)
-                {
-                    if (d.TryGetValue(f.Fid, out var hitRows))
-                    {
-                        f.HitRows = hitRows;
-                    }
-                    else
-                    {
-                        f.HitRows = 0;
-                    }
-                }
+                QueryResults = await svc.FindTextAsync(Group, QueryText);
+                ProcessQueryResults();
                 return null;
             }
             catch (TaskCanceledException)
@@ -210,6 +180,52 @@ namespace com.hideakin.textsearch.model
             catch (Exception e)
             {
                 return e.Message;
+            }
+        }
+
+        private async void ProcessQueryResults()
+        {
+            var m = new List<(HitRowColumns Hit, FileContents Contents)>();
+            foreach (var hit in QueryResults)
+            {
+                var f = FileItems.Where(x => x.Fid == hit.Fid).FirstOrDefault();
+                if (f != null && f.Check)
+                {
+                    var contents = await DownloadFile(hit.Fid);
+                    m.Add((hit, contents));
+                }
+            }
+            m.Sort((a, b) =>
+            {
+                return a.Contents.Path.ToUpperInvariant().CompareTo(b.Contents.Path.ToUpperInvariant());
+            });
+            var d = new Dictionary<int, int>();
+            foreach (var (hit, contents) in m)
+            {
+                foreach (var entry in hit.Rows)
+                {
+                    var item = new HitItem(contents.Fid, contents.Path, entry.Row + 1, contents.Lines[entry.Row], entry.Columns);
+                    HitItems.Add(item);
+                    if (d.TryGetValue(item.Fid, out var hitRows))
+                    {
+                        d[item.Fid] = hitRows + 1;
+                    }
+                    else
+                    {
+                        d.Add(item.Fid, 1);
+                    }
+                }
+            }
+            foreach (var f in FileItems)
+            {
+                if (d.TryGetValue(f.Fid, out var hitRows))
+                {
+                    f.HitRows = hitRows;
+                }
+                else
+                {
+                    f.HitRows = 0;
+                }
             }
         }
 
@@ -287,10 +303,98 @@ namespace com.hideakin.textsearch.model
             return contents;
         }
 
+        public void OnFileCheckChanged()
+        {
+            foreach (var f in FileItems)
+            {
+                if (f.Check)
+                {
+                    if (Unchecked.Contains(f.Fid))
+                    {
+                        Unchecked.Remove(f.Fid);
+                    }
+                }
+                else if (!Unchecked.Contains(f.Fid))
+                {
+                    Unchecked.Add(f.Fid);
+                }
+            }
+            if (QueryResults == null || QueryResults.Length == 0)
+            {
+                return;
+            }
+            HitItems.Clear();
+            ProcessQueryResults();
+        }
+
+        public int ChangeFileCheck(bool value)
+        {
+            int changed = 0;
+            foreach (var f in FileItems)
+            {
+                if (f.Check ^ value)
+                {
+                    changed++;
+                }
+                f.Check = value;
+            }
+            if (changed > 0)
+            {
+                OnFileCheckChanged();
+            }
+            return changed;
+        }
+
+        public int ChangeFileCheckByExt(string ext, bool value)
+        {
+            int changed = 0;
+            foreach (var f in FileItems)
+            {
+                if (f.Path.ToLowerInvariant().EndsWith(ext))
+                {
+                    if (f.Check ^ value)
+                    {
+                        changed++;
+                    }
+                    f.Check = value;
+                }
+            }
+            if (changed > 0)
+            {
+                OnFileCheckChanged();
+            }
+            return changed;
+        }
+
+        public string[] GetExtensions()
+        {
+            var exts = new List<string>();
+            foreach (var f in FileItems)
+            {
+                int pos = f.Path.LastIndexOf(".");
+                if (pos < 0)
+                {
+                    continue;
+                }
+                if (f.Path.IndexOfAny(new char[] { '\\', '/' }, pos) > pos)
+                {
+                    continue;
+                }
+                var ext = f.Path.Substring(pos).ToLowerInvariant();
+                if (!exts.Contains(ext))
+                {
+                    exts.Add(ext);
+                }
+            }
+            exts.Sort((x, y) => x.CompareTo(y));
+            return exts.ToArray();
+        }
+
         public void Clear()
         {
             QueryText = string.Empty;
             NotifyOfChange("QueryText");
+            QueryResults = null;
             HitItems.Clear();
             Fid = -1;
             Path = " ";

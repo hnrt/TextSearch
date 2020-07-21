@@ -42,6 +42,7 @@ namespace com.hideakin.textsearch.view
             StatusBarLabel.Content = " ";
             Loaded += OnLoaded;
             Closed += OnClosed;
+            SizeChanged += OnWindowSizeChanged;
         }
 
         #endregion
@@ -52,7 +53,7 @@ namespace com.hideakin.textsearch.view
         {
             EditCancelRequestMenuItem.IsEnabled = false;
             (new GridViewColumnWidthAdjuster(HitListView, HitListViewTextColumn, HitListViewNameColumn, HitListViewLineColumn)).Adjust();
-            (new GridViewColumnWidthAdjuster(FileListView, FileListViewPathColumn, FileListViewSizeColumn)).Adjust();
+            (new GridViewColumnWidthAdjuster(FileListView, FileListViewPathColumn, FileListViewCheckColumn, FileListViewSizeColumn)).Adjust();
             (new GridViewColumnWidthAdjuster(ContentListView, ContentListViewTextColumn, ContentListViewLineColumn)).Adjust();
             SwitchToFileList();
             UpdateUpperViewSwitchButton();
@@ -100,6 +101,7 @@ namespace com.hideakin.textsearch.view
                                 FileListView.ScrollIntoView(f);
                             }
                         }
+                        UpdateViewMenus();
                         wip.SetFinalContent(null);
                         UpdateStatusBar();
                     }
@@ -127,7 +129,7 @@ namespace com.hideakin.textsearch.view
 
         #endregion
 
-        #region CALLBACKS - MENU
+        #region CALLBACKS - MENU - FILE
 
         private void OnFileExit(object sender, RoutedEventArgs e)
         {
@@ -162,6 +164,10 @@ namespace com.hideakin.textsearch.view
             }
         }
 
+        #endregion
+
+        #region CALLBACKS - MENU - EDIT
+
         private async void OnReloadGroups(object sender, RoutedEventArgs e)
         {
             using (var wip = RequestInProgress())
@@ -184,16 +190,128 @@ namespace com.hideakin.textsearch.view
             client.Cancel();
         }
 
+        #endregion
+
+        #region CALLBACKS - MENU - VIEW
+
+        private void UpdateViewMenus()
+        {
+            ViewCheckMenuItem.Items.Clear();
+            ViewUncheckMenuItem.Items.Clear();
+            var menu = new MenuItem()
+            {
+                Header = Properties.Resources.AllFiles,
+            };
+            menu.Click += OnViewCheckClick;
+            ViewCheckMenuItem.Items.Add(menu);
+            menu = new MenuItem()
+            {
+                Header = Properties.Resources.AllFiles
+            };
+            menu.Click += OnViewUncheckClick;
+            ViewUncheckMenuItem.Items.Add(menu);
+            var exts = client.GetExtensions();
+            foreach (var ext in exts)
+            {
+                menu = new MenuItem()
+                {
+                    Header = string.Format(Properties.Resources.FileExtFormat, ext)
+                };
+                menu.Click += OnViewCheckClick;
+                ViewCheckMenuItem.Items.Add(menu);
+                menu = new MenuItem()
+                {
+                    Header = string.Format(Properties.Resources.FileExtFormat, ext)
+                };
+                menu.Click += OnViewUncheckClick;
+                ViewUncheckMenuItem.Items.Add(menu);
+            }
+        }
+
+        private void OnViewCheckClick(object sender, RoutedEventArgs e)
+        {
+            using (var wip = RequestInProgress(Properties.Resources.Processing))
+            {
+                if (sender is MenuItem menu)
+                {
+                    if (menu.Header is string h)
+                    {
+                        if (h == Properties.Resources.AllFiles)
+                        {
+                            if (client.ChangeFileCheck(true) > 0)
+                            {
+                                CollectionViewSource.GetDefaultView(FileListView.ItemsSource).Refresh();
+                            }
+                        }
+                        else
+                        {
+                            var ext = ParseExtension(h);
+                            if (client.ChangeFileCheckByExt(ext, true) > 0)
+                            {
+                                CollectionViewSource.GetDefaultView(FileListView.ItemsSource).Refresh();
+                            }
+                        }
+                    }
+                }
+                wip.SetFinalContent(null);
+                UpdateStatusBar();
+            }
+        }
+
+        private void OnViewUncheckClick(object sender, RoutedEventArgs e)
+        {
+            using (var wip = RequestInProgress(Properties.Resources.Processing))
+            {
+                if (sender is MenuItem menu)
+                {
+                    if (menu.Header is string h)
+                    {
+                        if (h == Properties.Resources.AllFiles)
+                        {
+                            if (client.ChangeFileCheck(false) > 0)
+                            {
+                                CollectionViewSource.GetDefaultView(FileListView.ItemsSource).Refresh();
+                            }
+                        }
+                        else
+                        {
+                            var ext = ParseExtension(h);
+                            if (client.ChangeFileCheckByExt(ext, false) > 0)
+                            {
+                                CollectionViewSource.GetDefaultView(FileListView.ItemsSource).Refresh();
+                            }
+                        }
+                    }
+                }
+                wip.SetFinalContent(null);
+                UpdateStatusBar();
+            }
+        }
+
+        private static string ParseExtension(string header)
+        {
+            var ph = "{0}";
+            var fmt = Properties.Resources.FileExtFormat;
+            var off = fmt.IndexOf(ph);
+            return header.Substring(off, header.Length - (fmt.Length - ph.Length));
+        }
+
         private void OnViewClear(object sender, RoutedEventArgs e)
         {
-            client.Clear();
-            FileListView.SelectedItem = null;
-            if (FileListView.Visibility == Visibility.Visible)
+            using (var wip = RequestInProgress(Properties.Resources.Processing))
             {
-                CollectionViewSource.GetDefaultView(FileListView.ItemsSource).Refresh();
+                client.Clear();
+                FileListView.SelectedItem = null;
+                if (FileListView.Visibility == Visibility.Visible)
+                {
+                    CollectionViewSource.GetDefaultView(FileListView.ItemsSource).Refresh();
+                }
             }
-            StatusBarLabel.Content = " ";
         }
+
+        #endregion
+
+        #region CALLBACKS - MENU - HELP
 
         private void OnHelpAbout(object sender, RoutedEventArgs e)
         {
@@ -217,6 +335,7 @@ namespace com.hideakin.textsearch.view
             {
                 if (await client.UpdateFiles())
                 {
+                    UpdateViewMenus();
                     wip.SetFinalContent(null);
                     UpdateStatusBar();
                 }
@@ -227,7 +346,7 @@ namespace com.hideakin.textsearch.view
             }
         }
 
-        #endregion 
+        #endregion
 
         #region CALLBACKS - QUERY TEXTBOX
 
@@ -313,6 +432,12 @@ namespace com.hideakin.textsearch.view
                     }
                 }
             }
+        }
+
+        private void OnFileCheckBoxChanged(object sender, RoutedEventArgs e)
+        {
+            client.OnFileCheckChanged();
+            CollectionViewSource.GetDefaultView(FileListView.ItemsSource).Refresh();
         }
 
         #endregion
@@ -435,6 +560,9 @@ namespace com.hideakin.textsearch.view
                     .DisableControl(FileAuthMenuItem)
                     .DisableControl(EditReloadGroupsMenuItem)
                     .EnableControl(EditCancelRequestMenuItem)
+                    .DisableControl(ViewCheckMenuItem)
+                    .DisableControl(ViewUncheckMenuItem)
+                    .DisableControl(ViewClearMenuItem)
                     .DisableControl(QueryTextBox)
                     .DisableControl(QueryButton)
                     .SetContentControl(StatusBarLabel)

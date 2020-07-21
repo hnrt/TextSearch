@@ -120,6 +120,9 @@
   <data name="AboutCaption" xml:space="preserve">
     <value>TextSearch - About</value>
   </data>
+  <data name="AllFiles" xml:space="preserve">
+    <value>All files</value>
+  </data>
   <data name="AppCaption" xml:space="preserve">
     <value>TextSearch</value>
   </data>
@@ -138,6 +141,9 @@
   <data name="CancelButtonContent" xml:space="preserve">
     <value>_Cancel</value>
   </data>
+  <data name="CheckColumnHeader" xml:space="preserve">
+    <value>☑</value>
+  </data>
   <data name="EditCancelRequestMenuItemHeader" xml:space="preserve">
     <value>_Cancel request</value>
   </data>
@@ -152,6 +158,9 @@
   </data>
   <data name="FileExitMenuItemHeader" xml:space="preserve">
     <value>E_xit</value>
+  </data>
+  <data name="FileExtFormat" xml:space="preserve">
+    <value>{0} file</value>
   </data>
   <data name="FileFormat" xml:space="preserve">
     <value>Files: {0:#,0}</value>
@@ -191,6 +200,9 @@
   </data>
   <data name="PathColumnHeader" xml:space="preserve">
     <value>Path</value>
+  </data>
+  <data name="Processing" xml:space="preserve">
+    <value>Processing...</value>
   </data>
   <data name="QueryButtonContent" xml:space="preserve">
     <value>_Find</value>

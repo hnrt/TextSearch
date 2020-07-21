@@ -102,6 +102,7 @@
     </Compile>
     <Compile Include="view\GridViewColumnWidthAdjuster.cs" />
     <Compile Include="view\ListViewExtension.cs" />
+    <Compile Include="view\SizeNumberDecoration.cs" />
     <Compile Include="view\TextBlockDecoration.cs" />
     <Compile Include="view\VisualExtension.cs" />
     <Compile Include="view\WorkInProgress.cs" />

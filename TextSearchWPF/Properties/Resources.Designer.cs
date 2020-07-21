@@ -70,6 +70,15 @@ namespace com.hideakin.textsearch.Properties {
         }
         
         /// <summary>
+        ///   All files に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        public static string AllFiles {
+            get {
+                return ResourceManager.GetString("AllFiles", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   TextSearch に類似しているローカライズされた文字列を検索します。
         /// </summary>
         public static string AppCaption {
@@ -124,6 +133,15 @@ namespace com.hideakin.textsearch.Properties {
         }
         
         /// <summary>
+        ///   ☑ に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        public static string CheckColumnHeader {
+            get {
+                return ResourceManager.GetString("CheckColumnHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   _Cancel request に類似しているローカライズされた文字列を検索します。
         /// </summary>
         public static string EditCancelRequestMenuItemHeader {
@@ -165,6 +183,15 @@ namespace com.hideakin.textsearch.Properties {
         public static string FileExitMenuItemHeader {
             get {
                 return ResourceManager.GetString("FileExitMenuItemHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   {0} file に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        public static string FileExtFormat {
+            get {
+                return ResourceManager.GetString("FileExtFormat", resourceCulture);
             }
         }
         
@@ -282,6 +309,15 @@ namespace com.hideakin.textsearch.Properties {
         public static string PathColumnHeader {
             get {
                 return ResourceManager.GetString("PathColumnHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Processing... に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        public static string Processing {
+            get {
+                return ResourceManager.GetString("Processing", resourceCulture);
             }
         }
         

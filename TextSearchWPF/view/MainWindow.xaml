@@ -7,11 +7,12 @@
         xmlns:v="clr-namespace:com.hideakin.textsearch.view"
         xmlns:p="clr-namespace:com.hideakin.textsearch.Properties"
         mc:Ignorable="d"
-        Title="{x:Static p:Resources.MainWindowTitle}" Height="450" Width="800"
-        Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}"
-        SizeChanged="OnWindowSizeChanged">
+        Height="450" Width="800"
+        Title="{x:Static p:Resources.MainWindowTitle}"
+        Background="{DynamicResource {x:Static SystemColors.ControlBrushKey}}">
     <Window.Resources>
         <v:TextBlockDecoration x:Key="TbDecoConv"/>
+        <v:SizeNumberDecoration x:Key="SizeNumConv"/>
         <Style TargetType="ListViewItem">
             <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
         </Style>
@@ -39,7 +40,10 @@
             </TextBlock>
         </DataTemplate>
         <DataTemplate x:Key="SizeItemTemplate">
-            <TextBlock HorizontalAlignment="Right" Text="{Binding Path=Size}"/>
+            <TextBlock HorizontalAlignment="Right" Text="{Binding Path=Size, Converter={StaticResource SizeNumConv}}"/>
+        </DataTemplate>
+        <DataTemplate x:Key="CheckItemTemplate">
+            <CheckBox IsChecked="{Binding Path=Check}" Checked="OnFileCheckBoxChanged" Unchecked="OnFileCheckBoxChanged"/>
         </DataTemplate>
     </Window.Resources>
     <Grid>
@@ -64,6 +68,9 @@
                 <MenuItem Name="EditCancelRequestMenuItem" Header="{x:Static p:Resources.EditCancelRequestMenuItemHeader}" Click="OnEditCancelRequest"/>
             </MenuItem>
             <MenuItem Name="ViewMenuItem" Header="{x:Static p:Resources.ViewMenuItemHeader}">
+                <MenuItem Name="ViewCheckMenuItem" Header="Check"/>
+                <MenuItem Name="ViewUncheckMenuItem" Header="Uncheck"/>
+                <Separator/>
                 <MenuItem Name="ViewClearMenuItem" Header="{x:Static p:Resources.ViewClearMenuItemHeader}" Click="OnViewClear"/>
             </MenuItem>
             <MenuItem Name="HelpMenuItem" Header="{x:Static p:Resources.HelpMenuItemHeader}">
@@ -104,6 +111,7 @@
             <ListView Name="FileListView" Visibility="Hidden" ItemsSource="{Binding Path=FileItems,Mode=OneWay,UpdateSourceTrigger=PropertyChanged}" SelectionChanged="OnFileListViewSelectionChanged">
                 <ListView.View>
                     <GridView>
+                        <GridViewColumn x:Name="FileListViewCheckColumn" Header="{x:Static p:Resources.CheckColumnHeader}" Width="Auto" CellTemplate="{StaticResource CheckItemTemplate}"/>
                         <GridViewColumn x:Name="FileListViewPathColumn" Header="{x:Static p:Resources.PathColumnHeader}" Width="Auto" CellTemplate="{StaticResource PathItemTemplate}"/>
                         <GridViewColumn x:Name="FileListViewSizeColumn" Header="{x:Static p:Resources.SizeColumnHeader}" Width="100"  CellTemplate="{StaticResource SizeItemTemplate}"/>
                     </GridView>

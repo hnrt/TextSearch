@@ -8,13 +8,16 @@
 
         public int Size { get; set; }
 
+        public bool Check { get; set; }
+
         public int HitRows { get; set; }
 
-        public FileItem(int fid, string path, int size, int hitRows = 0)
+        public FileItem(int fid, string path, int size, bool check = true, int hitRows = 0)
         {
             Fid = fid;
             Path = path;
             Size = size;
+            Check = check;
             HitRows = hitRows;
         }
     }
