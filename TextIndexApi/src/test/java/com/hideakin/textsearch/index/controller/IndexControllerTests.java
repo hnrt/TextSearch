@@ -37,13 +37,15 @@ public class IndexControllerTests {
 
 	@Test
 	public void findTextByGroup_successful() throws Exception {
-		when(indexService.findText("corge", "XYZZY", SearchOptions.Exact)).thenReturn(
+		when(indexService.findText("corge", "XYZZY", SearchOptions.Exact, 1, 0)).thenReturn(
 				new TextDistribution[] {
 						new TextDistribution(7, new int[] { 55 })
 				});
 		mockMvc.perform(MockMvcRequestBuilders.get("/v1/index/corge")
 				.param("text", "XYZZY")
-				.param("option", "Exact"))
+				.param("option", "Exact")
+				.param("limit", "1")
+				.param("offset", "0"))
 	    	.andExpect(status().isOk())
 	    	.andExpect(jsonPath("$[0].fid").value(7))
 	    	.andExpect(jsonPath("$[0].positions[0]").value(55));

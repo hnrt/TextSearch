@@ -20,20 +20,7 @@ public class IndexController {
 	private IndexService service;
 	
 	@RequestMapping(value="/v1/index/{group:[^0-9].*}",method=RequestMethod.GET)
-	public ResponseEntity<?> findTextV1(
-			@PathVariable String group,
-			@RequestParam(name="text") String text,
-			@RequestParam(name="option") SearchOptions option) {
-		TextDistribution[] results = service.findText(group, text, option);
-		if (results != null) {
-			return new ResponseEntity<>(results, HttpStatus.OK);
-		} else {
-			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
-		}
-	}
-
-	@RequestMapping(value="/v2/index/{group:[^0-9].*}",method=RequestMethod.GET)
-	public ResponseEntity<?> findTextV2(
+	public ResponseEntity<?> findText(
 			@PathVariable String group,
 			@RequestParam(name="text") String text,
 			@RequestParam(name="option") SearchOptions option,

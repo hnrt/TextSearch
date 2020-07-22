@@ -33,49 +33,13 @@ public class IndexServiceImpl implements IndexService {
 	private TextRepository textRepository;
 
 	@Override
-	public TextDistribution[] findText(String group, String text, SearchOptions option) {
-		FileGroupEntity fileGroupEntity = fileGroupRepository.findByName(group);
-		if (fileGroupEntity == null) {
-			return null;
-		}
-		int gid = fileGroupEntity.getGid();
-		Map<Integer,TextDistribution> map = new HashMap<Integer,TextDistribution>();
-		if (option == SearchOptions.Exact) {
-			TextEntity textEntity = textRepository.findByTextAndGid(text, gid);
-			if (textEntity == null) {
-				return new TextDistribution[0];
-			}
-			populateHitMap(map, textEntity);
-		} else {
-			List<TextEntity> textEntities;
-			if (option == SearchOptions.Contains) {
-				textEntities = textRepository.findAllByTextContainingAndGid(text, gid);
-			} else if (option == SearchOptions.StartsWith) {
-				textEntities = textRepository.findAllByTextStartingWithAndGid(text, gid);
-			} else if (option == SearchOptions.EndsWith) {
-				textEntities = textRepository.findAllByTextEndingWithAndGid(text, gid);
-			} else {
-				return new TextDistribution[0]; // never reach here
-			}
-			populateHitMap(map, textEntities);
-		}
-		return map.values().toArray(new TextDistribution[map.size()]);
-	}
-
-	@Override
 	public TextDistribution[] findText(String group, String text, SearchOptions option, int limit, int offset) {
-		if (limit <= 0) {
-			throw new InvalidParameterException("invalid_limit", "limit needs to be greater than 0.");
-		}
-		if (offset < 0) {
-			throw new InvalidParameterException("invalid_offset", "offset needs to be equal to or greater than 0.");
-		}
 		FileGroupEntity fileGroupEntity = fileGroupRepository.findByName(group);
 		if (fileGroupEntity == null) {
 			return null;
 		}
 		int gid = fileGroupEntity.getGid();
-		Map<Integer,TextDistribution> map = new HashMap<Integer,TextDistribution>();
+		Map<Integer, TextDistribution> map = new HashMap<Integer, TextDistribution>();
 		if (option == SearchOptions.Exact) {
 			TextEntity textEntity = textRepository.findByTextAndGid(text, gid);
 			if (textEntity == null) {
@@ -83,6 +47,12 @@ public class IndexServiceImpl implements IndexService {
 			}
 			populateHitMap(map, textEntity);
 		} else {
+			if (limit <= 0) {
+				throw new InvalidParameterException("invalid_limit", "limit needs to be greater than 0.");
+			}
+			if (offset < 0) {
+				throw new InvalidParameterException("invalid_offset", "offset needs to be equal to or greater than 0.");
+			}
 			List<TextEntity> textEntities;
 			if (option == SearchOptions.Contains) {
 				textEntities = findPartialByTextContainingAndGid(text, gid, limit, offset);
@@ -98,13 +68,13 @@ public class IndexServiceImpl implements IndexService {
 		return map.values().toArray(new TextDistribution[map.size()]);
 	}
 
-	private void populateHitMap(Map<Integer,TextDistribution> map, List<TextEntity> entities) {
+	private void populateHitMap(Map<Integer, TextDistribution> map, List<TextEntity> entities) {
 		for (TextEntity entity : entities) {
 			populateHitMap(map, entity);
 		}
 	}
 
-	private void populateHitMap(Map<Integer,TextDistribution> map, TextEntity textEntity) {
+	private void populateHitMap(Map<Integer, TextDistribution> map, TextEntity textEntity) {
 		TextDistribution.PackedSequence sequence = TextDistribution.sequence(textEntity.getDist());
 		for (TextDistribution dist = sequence.get(); dist != null; dist = sequence.get()) {
 			int fid = dist.getFid();

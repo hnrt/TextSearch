@@ -1036,50 +1036,12 @@ namespace com.hideakin.textsearch.net
 
         #region INDEX
 
-        public async Task<object> FindText(string group, string text, SearchOptions option)
+        public async Task<object> FindText(string group, string text, SearchOptions option, int limit = 1, int offset = 0)
         {
             try
             {
                 await Initialize();
-                var uri = string.Format("{0}/v1/index/{1}?text={2}&option={3}", Url, group, text, Enum.GetName(option.GetType(), option));
-                using (var request = new HttpRequestMessage(HttpMethod.Get, uri))
-                {
-                    request.Headers.Add(AUTHORIZATION, BearerToken);
-                    using (var response = await httpClient.SendAsync(request, ct))
-                    {
-                        StatusCode = response.StatusCode;
-                        var responseBody = await response.Content.ReadAsStringAsync();
-                        if (response.StatusCode == HttpStatusCode.OK)
-                        {
-                            return JsonConvert.DeserializeObject<TextDistribution[]>(responseBody);
-                        }
-                        else if (response.StatusCode == HttpStatusCode.BadRequest)
-                        {
-                            return new ErrorResponseException(JsonConvert.DeserializeObject<ErrorResponse>(responseBody), "FindText request failed.");
-                        }
-                        else if (response.StatusCode == HttpStatusCode.NotFound)
-                        {
-                            return new GroupNotFoundException(group);
-                        }
-                        else
-                        {
-                            return new UnrecognizedResponseException(response.StatusCode, responseBody, "FindText request failed.");
-                        }
-                    }
-                }
-            }
-            catch (Exception e)
-            {
-                return e;
-            }
-        }
-
-        public async Task<object> FindText(string group, string text, SearchOptions option, int limit, int offset)
-        {
-            try
-            {
-                await Initialize();
-                var uri = string.Format("{0}/v2/index/{1}?text={2}&option={3}&limit={4}&offset={5}", Url, group, text, Enum.GetName(option.GetType(), option), limit, offset);
+                var uri = string.Format("{0}/v1/index/{1}?text={2}&option={3}&limit={4}&offset={5}", Url, group, text, Enum.GetName(option.GetType(), option), limit, offset);
                 using (var request = new HttpRequestMessage(HttpMethod.Get, uri))
                 {
                     request.Headers.Add(AUTHORIZATION, BearerToken);

@@ -14,22 +14,16 @@ import javax.persistence.TemporalType;
 
 public class PseudoQuery implements Query {
 	
-	private int value;
+	private Object value;
 	
-	private List<String> list;
-
-	public PseudoQuery(int value) {
+	public PseudoQuery(Object value) {
 		this.value = value;
-	}
-
-	public PseudoQuery(List<String> list) {
-		this.list = list;
 	}
 
 	@SuppressWarnings("rawtypes")
 	@Override
 	public List getResultList() {
-		return list;
+		return (List)value;
 	}
 
 	@Override
@@ -44,7 +38,7 @@ public class PseudoQuery implements Query {
 
 	@Override
 	public Query setMaxResults(int maxResult) {
-		return null;
+		return this;
 	}
 
 	@Override
@@ -54,7 +48,7 @@ public class PseudoQuery implements Query {
 
 	@Override
 	public Query setFirstResult(int startPosition) {
-		return null;
+		return this;
 	}
 
 	@Override

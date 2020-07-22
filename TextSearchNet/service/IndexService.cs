@@ -43,7 +43,7 @@ namespace com.hideakin.textsearch.service
                 if (tokenizer.Tokens.Count == 1)
                 {
                     {
-                        var task = client.FindText(group, tokenizer.Tokens[0].Text, SearchOptions.Contains, LIMIT, 0);
+                        var task = client.FindText(group, tokenizer.Tokens[0].Text, SearchOptions.Contains, LIMIT);
                         task.Wait();
                         if (task.Result is TextDistribution[] hits)
                         {
@@ -87,7 +87,7 @@ namespace com.hideakin.textsearch.service
                 else if (tokenizer.Tokens.Count > 1)
                 {
                     {
-                        var task = client.FindText(group, tokenizer.Tokens[0].Text, SearchOptions.EndsWith, LIMIT, 0);
+                        var task = client.FindText(group, tokenizer.Tokens[0].Text, SearchOptions.EndsWith, LIMIT);
                         task.Wait();
                         if (task.Result is TextDistribution[] hits)
                         {
@@ -149,7 +149,7 @@ namespace com.hideakin.textsearch.service
                     }
                     var last = new List<TextDistribution>();
                     {
-                        var task = client.FindText(group, tokenizer.Tokens[tokenizer.Tokens.Count - 1].Text, SearchOptions.StartsWith, LIMIT, 0);
+                        var task = client.FindText(group, tokenizer.Tokens[tokenizer.Tokens.Count - 1].Text, SearchOptions.StartsWith, LIMIT);
                         task.Wait();
                         if (task.Result is TextDistribution[] hits)
                         {
