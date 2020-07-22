@@ -293,61 +293,63 @@ public class TextDistribution {
 		}
 
 		private int read() {
-			byte b0 = src[index++];
-			if ((b0 & 0x80) == 0) {
-				return (int)b0;
-			} else if ((b0 & 0xE0) == 0xC0) {
-				if (index + 1 <= src.length) {
-					byte b1 = src[index++];
-					return (((int)(b0 & 0x1F)) << (6 * 1))
-					     | (((int)(b1 & 0x3F)) << (6 * 0));
+			if (index < src.length) {
+				byte b0 = src[index++];
+				if ((b0 & 0x80) == 0) {
+					return (int)b0;
+				} else if ((b0 & 0xE0) == 0xC0) {
+					if (index + 1 <= src.length) {
+						byte b1 = src[index++];
+						return (((int)(b0 & 0x1F)) << (6 * 1))
+						     | (((int)(b1 & 0x3F)) << (6 * 0));
+					}
+				} else if ((b0 & 0xF0) == 0xE0) {
+					if (index + 2 <= src.length) {
+						byte b1 = src[index++];
+						byte b2 = src[index++];
+						return (((int)(b0 & 0x0F)) << (6 * 2))
+						     | (((int)(b1 & 0x3F)) << (6 * 1))
+						     | (((int)(b2 & 0x3F)) << (6 * 0));
+					}
+				} else if ((b0 & 0xF8) == 0xF0) {
+					if (index + 3 <= src.length) {
+						byte b1 = src[index++];
+						byte b2 = src[index++];
+						byte b3 = src[index++];
+						return (((int)(b0 & 0x07)) << (6 * 3))
+						     | (((int)(b1 & 0x3F)) << (6 * 2))
+						     | (((int)(b2 & 0x3F)) << (6 * 1))
+						     | (((int)(b3 & 0x3F)) << (6 * 0));
+					}
+				} else if ((b0 & 0xFC) == 0xF8) {
+					if (index + 4 <= src.length) {
+						byte b1 = src[index++];
+						byte b2 = src[index++];
+						byte b3 = src[index++];
+						byte b4 = src[index++];
+						return (((int)(b0 & 0x03)) << (6 * 4))
+						     | (((int)(b1 & 0x3F)) << (6 * 3))
+						     | (((int)(b2 & 0x3F)) << (6 * 2))
+						     | (((int)(b3 & 0x3F)) << (6 * 1))
+						     | (((int)(b4 & 0x3F)) << (6 * 0));
+					}
+				} else if ((b0 & 0xFE) == 0xFC) {
+					if (index + 5 <= src.length) {
+						byte b1 = src[index++];
+						byte b2 = src[index++];
+						byte b3 = src[index++];
+						byte b4 = src[index++];
+						byte b5 = src[index++];
+						return (((int)(b0 & 0x01)) << (6 * 5))
+						     | (((int)(b1 & 0x3F)) << (6 * 4))
+						     | (((int)(b2 & 0x3F)) << (6 * 3))
+						     | (((int)(b3 & 0x3F)) << (6 * 2))
+						     | (((int)(b4 & 0x3F)) << (6 * 1))
+						     | (((int)(b5 & 0x3F)) << (6 * 0));
+					}
+				} else {
+					throw new RuntimeException("TextDistribution.PackedSequence: Invalid data.");
 				}
-			} else if ((b0 & 0xF0) == 0xE0) {
-				if (index + 2 <= src.length) {
-					byte b1 = src[index++];
-					byte b2 = src[index++];
-					return (((int)(b0 & 0x0F)) << (6 * 2))
-					     | (((int)(b1 & 0x3F)) << (6 * 1))
-					     | (((int)(b2 & 0x3F)) << (6 * 0));
-				}
-			} else if ((b0 & 0xF8) == 0xF0) {
-				if (index + 3 <= src.length) {
-					byte b1 = src[index++];
-					byte b2 = src[index++];
-					byte b3 = src[index++];
-					return (((int)(b0 & 0x07)) << (6 * 3))
-					     | (((int)(b1 & 0x3F)) << (6 * 2))
-					     | (((int)(b2 & 0x3F)) << (6 * 1))
-					     | (((int)(b3 & 0x3F)) << (6 * 0));
-				}
-			} else if ((b0 & 0xFC) == 0xF8) {
-				if (index + 4 <= src.length) {
-					byte b1 = src[index++];
-					byte b2 = src[index++];
-					byte b3 = src[index++];
-					byte b4 = src[index++];
-					return (((int)(b0 & 0x03)) << (6 * 4))
-					     | (((int)(b1 & 0x3F)) << (6 * 3))
-					     | (((int)(b2 & 0x3F)) << (6 * 2))
-					     | (((int)(b3 & 0x3F)) << (6 * 1))
-					     | (((int)(b4 & 0x3F)) << (6 * 0));
-				}
-			} else if ((b0 & 0xFE) == 0xFC) {
-				if (index + 5 <= src.length) {
-					byte b1 = src[index++];
-					byte b2 = src[index++];
-					byte b3 = src[index++];
-					byte b4 = src[index++];
-					byte b5 = src[index++];
-					return (((int)(b0 & 0x01)) << (6 * 5))
-					     | (((int)(b1 & 0x3F)) << (6 * 4))
-					     | (((int)(b2 & 0x3F)) << (6 * 3))
-					     | (((int)(b3 & 0x3F)) << (6 * 2))
-					     | (((int)(b4 & 0x3F)) << (6 * 1))
-					     | (((int)(b5 & 0x3F)) << (6 * 0));
-				}
-			} else {
-				throw new RuntimeException("TextDistribution.PackedSequence: Invalid data.");
 			}
 			throw new RuntimeException("TextDistribution.PackedSequence: Unexpected end of data.");
 		}
@@ -355,16 +357,16 @@ public class TextDistribution {
 	}
 	
 	private static class Range {
-		
+
 		private int start;
-		
+
 		private int end;
 
 		public Range(int start, int end) {
 			this.start = start;
 			this.end = end;
 		}
-		
+
 		public int index() {
 			return start;
 		}
