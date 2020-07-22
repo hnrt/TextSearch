@@ -44,28 +44,29 @@ public class TextDistribution {
 		int[] dst = new int[src1.length + src2.length];
 		int val1 = src1[0];
 		int val2 = src2[0];
-		int idx1 = 0;
-		int idx2 = 0;
+		int idx1 = 1;
+		int idx2 = 1;
+		int idx3 = 0;
 		while (true) {
 			if (val1 < val2) {
-				dst[idx1 + idx2] = val1;
-				if (++idx1 < src1.length) {
-					val1 = src1[idx1];
+				dst[idx3++] = val1;
+				if (idx1 < src1.length) {
+					val1 = src1[idx1++];
 				} else {
-					dst[idx1 + idx2] = val2;
-					if (++idx2 < src2.length) {
-						System.arraycopy(src2, idx2, dst, idx1 + idx2, src2.length - idx2);
+					dst[idx3++] = val2;
+					if (idx2 < src2.length) {
+						System.arraycopy(src2, idx2, dst, idx3, src2.length - idx2);
 					}
 					break;
 				}
 			} else if (val1 > val2) {
-				dst[idx1 + idx2] = val2;
-				if (++idx2 < src2.length) {
-					val2 = src2[idx2];
+				dst[idx3++] = val2;
+				if (idx2 < src2.length) {
+					val2 = src2[idx2++];
 				} else {
-					dst[idx1 + idx2] = val1;
-					if (++idx1 < src1.length) {
-						System.arraycopy(src1, idx1, dst, idx1 + idx2, src1.length - idx1);
+					dst[idx3++] = val1;
+					if (idx1 < src1.length) {
+						System.arraycopy(src1, idx1, dst, idx3, src1.length - idx1);
 					}
 					break;
 				}
