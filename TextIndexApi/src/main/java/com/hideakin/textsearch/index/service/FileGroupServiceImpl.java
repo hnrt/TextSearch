@@ -48,6 +48,15 @@ public class FileGroupServiceImpl implements FileGroupService {
 	}
 
 	@Override
+	public FileGroupInfo getGroup(String name) {
+		FileGroupEntity entity = fileGroupRepository.findByName(name);
+		if (entity == null) {
+			return null;
+		}
+		return new FileGroupInfo(entity);
+	}
+
+	@Override
 	public FileGroupInfo getGroup(int gid) {
 		FileGroupEntity entity = fileGroupRepository.findByGid(gid);
 		if (entity == null) {

@@ -17,8 +17,8 @@ public interface FileService {
 	byte[] getContents(int fid);
 	FileInfo addFile(String group, String path, int length, byte[] data, Map<String, List<Integer>> textMap, ObjectDisposition disp);
 	FileInfo updateFile(int fid, String path, int length, byte[] data, Map<String, List<Integer>> textMap);
-	FileInfo[] deleteFiles(String group);
-	boolean deleteStaleFiles(String group);
+	FileInfo[] deleteFiles(int gid);
+	FileInfo[] deleteStaleFiles(int gid);
 	FileInfo deleteFile(int fid);
 
 }

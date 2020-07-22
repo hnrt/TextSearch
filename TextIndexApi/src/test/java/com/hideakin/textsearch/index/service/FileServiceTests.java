@@ -1,5 +1,7 @@
 package com.hideakin.textsearch.index.service;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.times;
@@ -22,7 +24,6 @@ import com.hideakin.textsearch.index.entity.FileContentEntity;
 import com.hideakin.textsearch.index.entity.FileEntity;
 import com.hideakin.textsearch.index.entity.FileGroupEntity;
 import com.hideakin.textsearch.index.entity.PreferenceEntity;
-import com.hideakin.textsearch.index.entity.TextEntity;
 import com.hideakin.textsearch.index.model.FileInfo;
 import com.hideakin.textsearch.index.model.FileStats;
 import com.hideakin.textsearch.index.model.ObjectDisposition;
@@ -367,7 +368,7 @@ public class FileServiceTests {
 	@SuppressWarnings("serial")
 	@Test
 	public void deleteFiles_successful() {
-		when(fileGroupRepository.findByNameForUpdate("xyzzy")).thenReturn(new FileGroupEntity(111, "xyzzy"));
+		when(fileGroupRepository.findByGidForUpdate(111)).thenReturn(new FileGroupEntity(111, "xyzzy"));
 		when(fileRepository.findAllByGid(111)).thenReturn(new ArrayList<FileEntity>() {{
 			add(new FileEntity(801, "/home/src/quux/foo.java", 100, 111));
 			add(new FileEntity(802, "/home/src/quux/bar.java", 200, 111));
@@ -377,8 +378,8 @@ public class FileServiceTests {
 		doNothing().when(fileContentRepository).deleteByFid(802);
 		doNothing().when(fileContentRepository).deleteByFid(803);
 		doNothing().when(fileRepository).deleteByGid(111);
-		doNothing().when(textRepository).deleteByGid(111);
-		FileInfo[] fi = fileService.deleteFiles("xyzzy");
+		FileInfo[] fi = fileService.deleteFiles(111);
+		Assertions.assertEquals(3, fi.length);
 		Assertions.assertEquals(801, fi[0].getFid());
 		Assertions.assertEquals(802, fi[1].getFid());
 		Assertions.assertEquals(803, fi[2].getFid());
@@ -386,21 +387,20 @@ public class FileServiceTests {
 		verify(fileContentRepository, times(1)).deleteByFid(802);
 		verify(fileContentRepository, times(1)).deleteByFid(803);
 		verify(fileRepository, times(1)).deleteByGid(111);
-		verify(textRepository, times(1)).deleteByGid(111);
 		verify(fileGroupRepository, times(1)).save(argThat(x -> x.getGid() == 111));
 	}
 
 	@Test
 	public void deleteFiles_notFound() {
-		when(fileGroupRepository.findByNameForUpdate("xyzzy")).thenReturn(null);
-		FileInfo[] fi = fileService.deleteFiles("xyzzy");
-		Assertions.assertEquals(null, fi);
+		when(fileGroupRepository.findByGidForUpdate(111)).thenReturn(null);
+		FileInfo[] fi = fileService.deleteFiles(111);
+		Assertions.assertEquals(0, fi.length);
 	}
 
 	@SuppressWarnings("serial")
 	@Test
 	public void deleteStaleFiles_successful() {
-		when(fileGroupRepository.findByNameForUpdate("xyzzy")).thenReturn(new FileGroupEntity(111, "xyzzy"));
+		when(fileGroupRepository.findByGidForUpdate(111)).thenReturn(new FileGroupEntity(111, "xyzzy"));
 		when(fileRepository.findAllByGidAndStaleTrue(111)).thenReturn(new ArrayList<FileEntity>() {{
 			add(new FileEntity(81, "/home/src/quux/foo.java", 100, 111));
 			add(new FileEntity(82, "/home/src/quux/bar.java", 200, 111));
@@ -412,28 +412,56 @@ public class FileServiceTests {
 		doNothing().when(fileRepository).deleteByFid(81);
 		doNothing().when(fileRepository).deleteByFid(82);
 		doNothing().when(fileRepository).deleteByFid(83);
-		when(em.createQuery("SELECT text FROM texts WHERE gid=:gid")).thenReturn(
-			new PseudoQuery(new ArrayList<String>() {{
-				add("CAT");
-				add("DOG");
-			}}));
-		when(textRepository.findByTextAndGid("CAT", 111)).thenReturn(new TextEntity("CAT", 111, new byte[] { 81, 1, 1 }));
-		when(textRepository.findByTextAndGid("DOG", 111)).thenReturn(new TextEntity("DOG", 111, new byte[] { 82, 1, 1, 84, 1, 1 }));
-		doNothing().when(textRepository).delete(argThat(x -> x.getText().equals("CAT")));
-		doNothing().when(textRepository).delete(argThat(x -> x.getText().equals("DOG")));
-		boolean result = fileService.deleteStaleFiles("xyzzy");
-		Assertions.assertEquals(true, result);
+		FileInfo[] fi = fileService.deleteStaleFiles(111);
+		Assertions.assertEquals(3, fi.length);
+		Assertions.assertEquals(81, fi[0].getFid());
+		Assertions.assertEquals(82, fi[1].getFid());
+		Assertions.assertEquals(83, fi[2].getFid());
 		verify(fileContentRepository, times(1)).deleteByFid(81);
 		verify(fileContentRepository, times(1)).deleteByFid(82);
 		verify(fileContentRepository, times(1)).deleteByFid(83);
 		verify(fileRepository, times(1)).deleteByFid(81);
 		verify(fileRepository, times(1)).deleteByFid(82);
 		verify(fileRepository, times(1)).deleteByFid(83);
-		verify(textRepository, times(0)).save(argThat(x -> x.getText().equals("CAT")));
-		verify(textRepository, times(1)).delete(argThat(x -> x.getText().equals("CAT")));
-		verify(textRepository, times(1)).save(argThat(x -> x.getText().equals("DOG")));
-		verify(textRepository, times(0)).delete(argThat(x -> x.getText().equals("DOG")));
 		verify(fileGroupRepository, times(1)).save(argThat(x -> x.getGid() == 111));
+	}
+
+	@Test
+	public void deleteFile_successful() {
+		when(fileRepository.findByFid(777)).thenReturn(new FileEntity(777, "/home/src/quux/foo.java", 100, 111));
+		when(fileGroupRepository.findByGidForUpdate(111)).thenReturn(new FileGroupEntity(111, "xyzzy"));
+		doNothing().when(fileContentRepository).deleteByFid(777);
+		doNothing().when(fileRepository).deleteByFid(777);
+		FileInfo fi = fileService.deleteFile(777);
+		Assertions.assertEquals(777, fi.getFid());
+		verify(fileContentRepository, times(1)).deleteByFid(777);
+		verify(fileRepository, times(1)).deleteByFid(777);
+		verify(fileGroupRepository, times(1)).save(argThat(x -> x.getGid() == 111));
+	}
+
+	@Test
+	public void deleteFile_notFound() {
+		when(fileRepository.findByFid(777)).thenReturn(null);
+		doNothing().when(fileContentRepository).deleteByFid(anyInt());
+		doNothing().when(fileRepository).deleteByFid(anyInt());
+		FileInfo fi = fileService.deleteFile(777);
+		Assertions.assertEquals(null, fi);
+		verify(fileContentRepository, times(0)).deleteByFid(anyInt());
+		verify(fileRepository, times(0)).deleteByFid(anyInt());
+		verify(fileGroupRepository, times(0)).save(any(FileGroupEntity.class));
+	}
+
+	@Test
+	public void deleteFile_notFound2() {
+		when(fileRepository.findByFid(777)).thenReturn(new FileEntity(777, "/home/src/quux/foo.java", 100, 111));
+		when(fileGroupRepository.findByGidForUpdate(111)).thenReturn(null);
+		doNothing().when(fileContentRepository).deleteByFid(anyInt());
+		doNothing().when(fileRepository).deleteByFid(anyInt());
+		FileInfo fi = fileService.deleteFile(777);
+		Assertions.assertEquals(null, fi);
+		verify(fileContentRepository, times(0)).deleteByFid(anyInt());
+		verify(fileRepository, times(0)).deleteByFid(anyInt());
+		verify(fileGroupRepository, times(0)).save(any(FileGroupEntity.class));
 	}
 
 }

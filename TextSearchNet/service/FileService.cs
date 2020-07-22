@@ -165,13 +165,13 @@ namespace com.hideakin.textsearch.service
             }
         }
 
-        public void DeleteStaleFiles(string group)
+        public FileInfo[] DeleteStaleFiles(string group)
         {
             var task = client.DeleteStaleFiles(group);
             task.Wait();
-            if (task.Result is int)
+            if (task.Result is FileInfo[] array)
             {
-                return;
+                return array;
             }
             else if (task.Result is Exception e)
             {

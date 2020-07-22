@@ -3,6 +3,7 @@ package com.hideakin.textsearch.index.service;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
@@ -68,6 +69,22 @@ public class IndexServiceImpl implements IndexService {
 		return map.values().toArray(new TextDistribution[map.size()]);
 	}
 
+	@Override
+	public void delete(int gid) {
+		textRepository.deleteByGid(gid);
+	}
+
+	@Override
+	public int removeDist(Set<Integer> fids, int gid, int limit, int offset) {
+		List<String> texts = findTexts(gid, limit, offset);
+		for (String text : texts) {
+			TextEntity entity = textRepository.findByTextAndGid(text, gid);
+			entity.removeDist(fids);
+			textRepository.save(entity);
+		}
+		return texts.size();
+	}
+
 	private void populateHitMap(Map<Integer, TextDistribution> map, List<TextEntity> entities) {
 		for (TextEntity entity : entities) {
 			populateHitMap(map, entity);
@@ -103,6 +120,15 @@ public class IndexServiceImpl implements IndexService {
 	private List<TextEntity> findPartialByLike(String expr, int gid, int limit, int offset) {
 		return (List<TextEntity>)em.createQuery("SELECT t FROM texts t WHERE t.text LIKE :expr AND t.gid = :gid ORDER BY t.text")
 				.setParameter("expr", expr)
+				.setParameter("gid", gid)
+				.setMaxResults(limit)
+				.setFirstResult(offset)
+				.getResultList();
+	}
+
+	@SuppressWarnings("unchecked")
+	private List<String> findTexts(int gid, int limit, int offset) {
+		return (List<String>)em.createQuery("SELECT t.text FROM texts t WHERE t.gid = :gid ORDER BY t.text")
 				.setParameter("gid", gid)
 				.setMaxResults(limit)
 				.setFirstResult(offset)

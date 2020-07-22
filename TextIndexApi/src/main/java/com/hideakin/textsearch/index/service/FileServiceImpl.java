@@ -1,12 +1,9 @@
 package com.hideakin.textsearch.index.service;
 
 import java.time.ZonedDateTime;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.Set;
-
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 
@@ -191,12 +188,11 @@ public class FileServiceImpl implements FileService {
 	}
 	
 	@Override
-	public FileInfo[] deleteFiles(String group) {
-		FileGroupEntity fileGroupEntity = fileGroupRepository.findByNameForUpdate(group);
+	public FileInfo[] deleteFiles(int gid) {
+		FileGroupEntity fileGroupEntity = fileGroupRepository.findByGidForUpdate(gid);
 		if (fileGroupEntity == null) {
-			return null;
+			return new FileInfo[0];
 		}
-		int gid = fileGroupEntity.getGid();
 		List<FileEntity> entities = fileRepository.findAllByGid(gid);
 		int count = entities.size();
 		if (count == 0) {
@@ -209,50 +205,49 @@ public class FileServiceImpl implements FileService {
 			fileContentRepository.deleteByFid(entity.getFid());
 		}
 		fileRepository.deleteByGid(gid);
-		textRepository.deleteByGid(gid);
 		fileGroupEntity.setUpdatedAt(ZonedDateTime.now());
 		fileGroupRepository.save(fileGroupEntity);
 		return values;
 	}
 
 	@Override
-	public boolean deleteStaleFiles(String group) {
-		FileGroupEntity fileGroupEntity = fileGroupRepository.findByNameForUpdate(group);
+	public FileInfo[] deleteStaleFiles(int gid) {
+		FileGroupEntity fileGroupEntity = fileGroupRepository.findByGidForUpdate(gid);
 		if (fileGroupEntity == null) {
-			return false;
+			return new FileInfo[0];
 		}
-		int gid = fileGroupEntity.getGid();
 		List<FileEntity> entities = fileRepository.findAllByGidAndStaleTrue(gid);
-		if (entities.size() == 0) {
-			return true;
+		int count = entities.size();
+		if (count == 0) {
+			return new FileInfo[0];
 		}
-		Set<Integer> fids = new HashSet<>(entities.size());
-		for (FileEntity e : entities) {
-			int fid = e.getFid();
-			fids.add(fid);
-			fileContentRepository.deleteByFid(fid);
-			fileRepository.deleteByFid(fid);
+		FileInfo[] values = new FileInfo[count];
+		for (int index = 0; index < count; index++) {
+			FileEntity entity = entities.get(index);
+			values[index] = new FileInfo(entity, fileGroupEntity);
+			fileContentRepository.deleteByFid(entity.getFid());
+			fileRepository.deleteByFid(entity.getFid());
 		}
-		removeDistribution(fids, gid);
 		fileGroupEntity.setUpdatedAt(ZonedDateTime.now());
 		fileGroupRepository.save(fileGroupEntity);
-		return true;
+		return values;
 	}
 
 	@Override
 	public FileInfo deleteFile(int fid) {
 		FileEntity entity = fileRepository.findByFid(fid);
-		if (entity != null) {
-			FileGroupEntity fileGroupEntity = fileGroupRepository.findByGidForUpdate(entity.getGid());
-			fileContentRepository.deleteByFid(fid);
-			fileRepository.deleteByFid(fid);
-			removeDistribution(fid, entity.getGid());
-			fileGroupEntity.setUpdatedAt(ZonedDateTime.now());
-			fileGroupRepository.save(fileGroupEntity);
-			return new FileInfo(entity, fileGroupEntity);
-		} else {
+		if (entity == null) {
 			return null;
 		}
+		FileGroupEntity fileGroupEntity = fileGroupRepository.findByGidForUpdate(entity.getGid());
+		if (fileGroupEntity == null) {
+			return null;
+		}
+		fileContentRepository.deleteByFid(fid);
+		fileRepository.deleteByFid(fid);
+		fileGroupEntity.setUpdatedAt(ZonedDateTime.now());
+		fileGroupRepository.save(fileGroupEntity);
+		return new FileInfo(entity, fileGroupEntity);
 	}
 
 	private FileEntity saveFile(FileGroupEntity fgEntity, String path, int length, byte[] data, Map<String, List<Integer>> textMap) {
@@ -280,32 +275,6 @@ public class FileServiceImpl implements FileService {
 		entity.setValue(nextId + 1);
 		preferenceRepository.save(entity);
 		return nextId;
-	}
-
-	private void removeDistribution(int fid, int gid) {
-		Set<Integer> fids = new HashSet<>(1);
-		fids.add(fid);
-		removeDistribution(fids, gid);
-	}
-
-	private void removeDistribution(Set<Integer> fids, int gid) {
-		List<String> texts = getAllTexts(gid);
-		for (String text : texts) {
-			TextEntity entity = textRepository.findByTextAndGid(text, gid);
-			entity.removeDist(fids);
-			if (entity.hasDist()) {
-				textRepository.save(entity);
-			} else {
-				textRepository.delete(entity);
-			}
-		}
-	}
-
-	@SuppressWarnings("unchecked")
-	private List<String> getAllTexts(int gid) {
-		return (List<String>)em.createQuery("SELECT text FROM texts WHERE gid=:gid")
-				.setParameter("gid", gid)
-				.getResultList();
 	}
 
 	private void applyTextMap(int fid, int gid, Map<String,List<Integer>> textMap) {

@@ -975,7 +975,7 @@ namespace com.hideakin.textsearch.net
                         }
                         else if (response.StatusCode == HttpStatusCode.Forbidden)
                         {
-                            return new ErrorResponseException(JsonConvert.DeserializeObject<ErrorResponse>(responseBody), "DeleteStaleFiles request failed.");
+                            return new ErrorResponseException(JsonConvert.DeserializeObject<ErrorResponse>(responseBody), "DeleteFiles request failed.");
                         }
                         else if (response.StatusCode == HttpStatusCode.NotFound)
                         {
@@ -1009,7 +1009,7 @@ namespace com.hideakin.textsearch.net
                         var responseBody = await response.Content.ReadAsStringAsync();
                         if (response.StatusCode == HttpStatusCode.OK)
                         {
-                            return (int)StatusCode;
+                            return JsonConvert.DeserializeObject<model.FileInfo[]>(responseBody);
                         }
                         else if (response.StatusCode == HttpStatusCode.Forbidden)
                         {
