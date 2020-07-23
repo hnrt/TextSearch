@@ -14,12 +14,16 @@ import com.hideakin.textsearch.index.model.ErrorResponse;
 import com.hideakin.textsearch.index.model.FileGroupInfo;
 import com.hideakin.textsearch.index.model.FileGroupRequest;
 import com.hideakin.textsearch.index.service.FileGroupService;
+import com.hideakin.textsearch.index.service.IndexService;
 
 @RestController
 public class FileGroupController {
 
 	@Autowired
 	private FileGroupService service;
+
+	@Autowired
+	private IndexService indexService;
 
 	@RequestMapping(value="/v1/groups",method=RequestMethod.GET)
 	public FileGroupInfo[] getGroups() {
@@ -42,6 +46,7 @@ public class FileGroupController {
 			@RequestBody FileGroupRequest req) {
 		try {
 			FileGroupInfo body = service.createGroup(req.getName());
+			indexService.initialize(body.getGid());
 			return new ResponseEntity<>(body, HttpStatus.CREATED);
 		} catch (DataAccessException e) {
 			ErrorResponse body;

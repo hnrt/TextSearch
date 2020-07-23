@@ -9,6 +9,7 @@ import com.hideakin.textsearch.index.model.TextDistribution;
 
 public interface IndexService {
 
+	void initialize(int gid);
 	TextDistribution[] find(int gid, String text, SearchOptions option, int limit, int offset);
 	void add(int gid, int fid, Map<String, List<Integer>> textMap);
 	void delete(int gid);

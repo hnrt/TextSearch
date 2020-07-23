@@ -29,14 +29,23 @@ public class IndexServiceImpl implements IndexService {
 	private TextExRepository textExRepository;
 
 	@Override
+	public void initialize(int gid) {
+		TextEntity entity = textRepository.findByTextAndGid("*", gid);
+		if (entity == null) {
+			entity = new TextEntity("*", gid, null);
+			textRepository.saveAndFlush(entity);
+		}
+	}
+
+	@Override
 	public TextDistribution[] find(int gid, String text, SearchOptions option, int limit, int offset) {
 		Map<Integer, TextDistribution> map = new HashMap<Integer, TextDistribution>();
 		if (option == SearchOptions.Exact) {
-			TextEntity textEntity = textRepository.findByTextAndGid(text, gid);
-			if (textEntity == null) {
+			TextEntity entity = textRepository.findByTextAndGid(text, gid);
+			if (entity == null) {
 				return new TextDistribution[0];
 			}
-			populateHitMap(map, textEntity);
+			populateHitMap(map, entity);
 		} else {
 			if (limit <= 0) {
 				throw new InvalidParameterException("invalid_limit", "limit needs to be greater than 0.");
@@ -44,17 +53,17 @@ public class IndexServiceImpl implements IndexService {
 			if (offset < 0) {
 				throw new InvalidParameterException("invalid_offset", "offset needs to be equal to or greater than 0.");
 			}
-			List<TextEntity> textEntities;
+			List<TextEntity> entities;
 			if (option == SearchOptions.Contains) {
-				textEntities = textExRepository.findByTextContainingAndGid(text, gid, limit, offset);
+				entities = textExRepository.findByTextContainingAndGid(text, gid, limit, offset);
 			} else if (option == SearchOptions.StartsWith) {
-				textEntities = textExRepository.findByTextStartingWithAndGid(text, gid, limit, offset);
+				entities = textExRepository.findByTextStartingWithAndGid(text, gid, limit, offset);
 			} else if (option == SearchOptions.EndsWith) {
-				textEntities = textExRepository.findByTextEndingWithAndGid(text, gid, limit, offset);
+				entities = textExRepository.findByTextEndingWithAndGid(text, gid, limit, offset);
 			} else {
 				return new TextDistribution[0]; // never reach here
 			}
-			populateHitMap(map, textEntities);
+			populateHitMap(map, entities);
 		}
 		return map.values().toArray(new TextDistribution[map.size()]);
 	}
@@ -63,9 +72,10 @@ public class IndexServiceImpl implements IndexService {
 	public void add(int gid, int fid, Map<String, List<Integer>> textMap) {
 		TextEntity entity0 = textRepository.findByTextAndGidForUpdate("*", gid);
 		if (entity0 == null) {
-			entity0 = new TextEntity("*", gid, null);
-			textRepository.saveAndFlush(entity0);
-			entity0 = textRepository.findByTextAndGidForUpdate("*", gid);
+			// This part works around the issue for old configurations that don't create the star entry.
+			// Simultaneous indexing operations will fail due to the constraint error, which is expected, though.
+			// Once the star entry is saved and committed, operations will succeed.
+			textRepository.saveAndFlush(new TextEntity("*", gid, null));
 		}
 		for (Entry<String, List<Integer>> entry : textMap.entrySet()) {
 			TextEntity entity = textRepository.findByTextAndGid(entry.getKey(), gid);
@@ -80,6 +90,7 @@ public class IndexServiceImpl implements IndexService {
 	@Override
 	public void delete(int gid) {
 		textRepository.deleteByGid(gid);
+		initialize(gid);
 	}
 
 	@Override
