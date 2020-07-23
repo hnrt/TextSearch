@@ -9,11 +9,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-
-import javax.persistence.EntityManager;
-
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -31,14 +26,10 @@ import com.hideakin.textsearch.index.repository.FileContentRepository;
 import com.hideakin.textsearch.index.repository.FileGroupRepository;
 import com.hideakin.textsearch.index.repository.FileRepository;
 import com.hideakin.textsearch.index.repository.PreferenceRepository;
-import com.hideakin.textsearch.index.repository.TextRepository;
 import com.hideakin.textsearch.index.utility.GZipHelper;
 
 @SpringBootTest
 public class FileServiceTests {
-
-	@Mock
-	private EntityManager em;
 
 	@Mock
 	private FileRepository fileRepository;
@@ -48,9 +39,6 @@ public class FileServiceTests {
 
 	@Mock
 	private FileContentRepository fileContentRepository;
-
-	@Mock
-	private TextRepository textRepository;
 
 	@Mock
 	private PreferenceRepository preferenceRepository;
@@ -218,27 +206,15 @@ public class FileServiceTests {
 		Assertions.assertEquals(null, data);
 	}
 
-	@SuppressWarnings("serial")
 	@Test
 	public void addFile_successful1() {
 		when(fileGroupRepository.findByNameForUpdate("xyzzy")).thenReturn(new FileGroupEntity(6, "xyzzy"));
 		when(fileRepository.findAllByGidAndPathAndStaleFalse(6, "quux.cs")).thenReturn(new ArrayList<FileEntity>());
 		when(preferenceRepository.findByName("FID.next")).thenReturn(new PreferenceEntity("FID.next", "23"));
 		when(fileRepository.save(argThat(x -> x != null && x.getFid() == 23))).thenReturn(new FileEntity(23, "quux.cs", 3, 6));
-		when(textRepository.findByTextAndGid("DOG", 6)).thenReturn(null);
-		when(textRepository.findByTextAndGid("CAT", 6)).thenReturn(null);
 		ObjectDisposition disp = new ObjectDisposition();
 		FileInfo info = fileService.addFile("xyzzy", "quux.cs", 3,
 				GZipHelper.compress(new byte[] { 101, 103, 107 }),
-				new HashMap<String,List<Integer>>() {{
-					put("DOG", new ArrayList<Integer>() {{
-						add(11);
-						add(19);
-					}});
-					put("CAT", new ArrayList<Integer>() {{
-						add(17);
-					}});
-				}},
 				disp);
 		Assertions.assertEquals(23, info.getFid());
 		Assertions.assertEquals("quux.cs", info.getPath());
@@ -249,8 +225,6 @@ public class FileServiceTests {
 		verify(preferenceRepository, times(1)).save(argThat(x -> x.getName().equals("FID.next") && x.getValue().equals("24")));
 		verify(fileRepository, times(1)).save(argThat(x -> x.getFid() == 23));
 		verify(fileContentRepository, times(1)).save(argThat(x -> x.getFid() == 23));
-		verify(textRepository, times(1)).save(argThat(x -> x.getText().equals("DOG")));
-		verify(textRepository, times(1)).save(argThat(x -> x.getText().equals("CAT")));
 		verify(fileGroupRepository, times(1)).save(argThat(x -> x.getGid() == 6));
 	}
 
@@ -263,21 +237,8 @@ public class FileServiceTests {
 		when(fileRepository.save(argThat(x -> x != null && x.getFid() == 1))).thenReturn(entity);
 		when(preferenceRepository.findByName("FID.next")).thenReturn(new PreferenceEntity("FID.next", "24"));
 		when(fileRepository.save(argThat(x -> x != null && x.getFid() == 24))).thenReturn(new FileEntity(24, "quux.cs", 3, 6));
-		when(textRepository.findByTextAndGid("DOG", 6)).thenReturn(null);
-		when(textRepository.findByTextAndGid("CAT", 6)).thenReturn(null);
 		ObjectDisposition disp = new ObjectDisposition();
-		FileInfo info = fileService.addFile("xyzzy", "quux.cs", 3,
-				GZipHelper.compress(new byte[] { 101, 103, 107 }),
-				new HashMap<String,List<Integer>>() {{
-					put("DOG", new ArrayList<Integer>() {{
-						add(11);
-						add(19);
-					}});
-					put("CAT", new ArrayList<Integer>() {{
-						add(17);
-					}});
-				}},
-				disp);
+		FileInfo info = fileService.addFile("xyzzy", "quux.cs", 3, GZipHelper.compress(new byte[] { 101, 103, 107 }), disp);
 		Assertions.assertEquals(24, info.getFid());
 		Assertions.assertEquals("quux.cs", info.getPath());
 		Assertions.assertEquals(3, info.getSize());
@@ -288,52 +249,25 @@ public class FileServiceTests {
 		verify(fileRepository, times(1)).save(argThat(x -> x.getFid() == 1));
 		verify(fileRepository, times(1)).save(argThat(x -> x.getFid() == 24));
 		verify(fileContentRepository, times(1)).save(argThat(x -> x.getFid() == 24));
-		verify(textRepository, times(1)).save(argThat(x -> x.getText().equals("DOG")));
-		verify(textRepository, times(1)).save(argThat(x -> x.getText().equals("CAT")));
 		verify(fileGroupRepository, times(1)).save(argThat(x -> x.getGid() == 6));
 	}
 
-	@SuppressWarnings("serial")
 	@Test
 	public void addFile_notFound() {
 		when(fileGroupRepository.findByNameForUpdate("xyzzy")).thenReturn(null);
 		ObjectDisposition disp = new ObjectDisposition();
-		FileInfo info = fileService.addFile("xyzzy", "quux.cs", 3,
-				GZipHelper.compress(new byte[] { 101, 103, 107 }),
-				new HashMap<String,List<Integer>>() {{
-					put("DOG", new ArrayList<Integer>() {{
-						add(11);
-						add(19);
-					}});
-					put("CAT", new ArrayList<Integer>() {{
-						add(17);
-					}});
-				}},
-				disp);
+		FileInfo info = fileService.addFile("xyzzy", "quux.cs", 3, GZipHelper.compress(new byte[] { 101, 103, 107 }), disp);
 		Assertions.assertEquals(null, info);
 		Assertions.assertEquals(ObjectDisposition.GROUP_NOT_FOUND, disp.getValue());
 	}
 
-	@SuppressWarnings("serial")
 	@Test
 	public void updateFile_successful() {
 		when(fileRepository.findByFid(24)).thenReturn(new FileEntity(24, "quux.cs", 3, 6));
 		when(fileGroupRepository.findByGidForUpdate(6)).thenReturn(new FileGroupEntity(6, "xyzzy"));
 		when(preferenceRepository.findByName("FID.next")).thenReturn(new PreferenceEntity("FID.next", "25"));
 		when(fileRepository.save(argThat(x -> x != null && x.getFid() == 25))).thenReturn(new FileEntity(25, "quux.cs", 3, 6));
-		when(textRepository.findByTextAndGid("DOG", 6)).thenReturn(null);
-		when(textRepository.findByTextAndGid("CAT", 6)).thenReturn(null);
-		FileInfo info = fileService.updateFile(24, "quux.cs", 3,
-				GZipHelper.compress(new byte[] { 101, 103, 107 }),
-				new HashMap<String,List<Integer>>() {{
-					put("DOG", new ArrayList<Integer>() {{
-						add(11);
-						add(19);
-					}});
-					put("CAT", new ArrayList<Integer>() {{
-						add(17);
-					}});
-				}});
+		FileInfo info = fileService.updateFile(24, "quux.cs", 3, GZipHelper.compress(new byte[] { 101, 103, 107 }));
 		Assertions.assertEquals(25, info.getFid());
 		Assertions.assertEquals("quux.cs", info.getPath());
 		Assertions.assertEquals(3, info.getSize());
@@ -342,26 +276,13 @@ public class FileServiceTests {
 		verify(fileRepository, times(1)).save(argThat(x -> x.getFid() == 24));
 		verify(fileRepository, times(1)).save(argThat(x -> x.getFid() == 25));
 		verify(fileContentRepository, times(1)).save(argThat(x -> x.getFid() == 25));
-		verify(textRepository, times(1)).save(argThat(x -> x.getText().equals("DOG")));
-		verify(textRepository, times(1)).save(argThat(x -> x.getText().equals("CAT")));
 		verify(fileGroupRepository, times(1)).save(argThat(x -> x.getGid() == 6));
 	}
 
-	@SuppressWarnings("serial")
 	@Test
 	public void updateFile_notFound() {
 		when(fileRepository.findByFid(14)).thenReturn(null);
-		FileInfo info = fileService.updateFile(14, "quux.cs", 3,
-				GZipHelper.compress(new byte[] { 101, 103, 107 }),
-				new HashMap<String,List<Integer>>() {{
-					put("DOG", new ArrayList<Integer>() {{
-						add(11);
-						add(19);
-					}});
-					put("CAT", new ArrayList<Integer>() {{
-						add(17);
-					}});
-				}});
+		FileInfo info = fileService.updateFile(14, "quux.cs", 3, GZipHelper.compress(new byte[] { 101, 103, 107 }));
 		Assertions.assertEquals(null, info);
 	}
 

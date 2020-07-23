@@ -114,10 +114,11 @@ public class FileController {
 			byte[] compressed = GZipHelper.compress(textUTF8);
 			TextTokenizer tokenizer = new TextTokenizer();
 			tokenizer.run(textUTF8, TextEncoding.UTF_8);
-			Map<String,List<Integer>> textMap = tokenizer.populateTextMap();
+			Map<String, List<Integer>> textMap = tokenizer.populateTextMap();
 			ObjectDisposition disp = new ObjectDisposition();
-			FileInfo added = fileService.addFile(group, file.getOriginalFilename(), textUTF8.length, compressed, textMap, disp);
+			FileInfo added = fileService.addFile(group, file.getOriginalFilename(), textUTF8.length, compressed, disp);
 			if (added != null) {
+				indexService.add(added.getGid(), added.getFid(), textMap);
 				return new ResponseEntity<>(added, disp.isCreated() ? HttpStatus.CREATED : HttpStatus.OK);
 			} else {
 				return new ResponseEntity<>(HttpStatus.NOT_FOUND);
@@ -138,8 +139,9 @@ public class FileController {
 			TextTokenizer tokenizer = new TextTokenizer();
 			tokenizer.run(textUTF8, TextEncoding.UTF_8);
 			Map<String,List<Integer>> textMap = tokenizer.populateTextMap();
-			FileInfo added = fileService.updateFile(fid, file.getOriginalFilename(), textUTF8.length, compressed, textMap);
+			FileInfo added = fileService.updateFile(fid, file.getOriginalFilename(), textUTF8.length, compressed);
 			if (added != null) {
+				indexService.add(added.getGid(), added.getFid(), textMap);
 				return new ResponseEntity<>(added, HttpStatus.OK);
 			} else {
 				return new ResponseEntity<>(HttpStatus.NOT_FOUND);
@@ -172,13 +174,10 @@ public class FileController {
 		}
 		final int gid = fileGroupInfo.getGid();
 		FileInfo[] deleted = fileService.deleteStaleFiles(gid);
-		Set<Integer> fids = new HashSet<>(deleted.length);
-		for (FileInfo entry : deleted) {
-			fids.add(entry.getFid());
-		}
+		Set<Integer> fids = createFidSet(deleted);
 		final int limit = 256;
 		for (int offset = 0; true; offset += limit) {
-			if (indexService.removeDist(fids, gid, limit, offset) == 0) {
+			if (indexService.delete(gid, fids, limit, offset) == 0) {
 				break;
 			}
 		}
@@ -193,15 +192,28 @@ public class FileController {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
 		final int gid = deleted.getGid();
-		Set<Integer> fids = new HashSet<>(1);
-		fids.add(fid);
+		Set<Integer> fids = createFidSet(fid);
 		final int limit = 256;
 		for (int offset = 0; true; offset += limit) {
-			if (indexService.removeDist(fids, gid, limit, offset) == 0) {
+			if (indexService.delete(gid, fids, limit, offset) == 0) {
 				break;
 			}
 		}
 		return new ResponseEntity<>(deleted, HttpStatus.OK);
+	}
+
+	private Set<Integer> createFidSet(FileInfo[] array) {
+		Set<Integer> fids = new HashSet<>(array.length);
+		for (FileInfo entry : array) {
+			fids.add(entry.getFid());
+		}
+		return fids;
+	}
+
+	private Set<Integer> createFidSet(int fid) {
+		Set<Integer> fids = new HashSet<>(1);
+		fids.add(fid);
+		return fids;
 	}
 
 }

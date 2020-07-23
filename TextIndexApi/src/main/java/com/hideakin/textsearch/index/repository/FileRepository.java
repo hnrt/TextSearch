@@ -2,6 +2,7 @@ package com.hideakin.textsearch.index.repository;
 
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import com.hideakin.textsearch.index.entity.FileEntity;
@@ -17,5 +18,8 @@ public interface FileRepository extends JpaRepository<FileEntity,Integer> {
 	List<FileEntity> findAllByGidAndStaleFalse(int gid);
 	void deleteByFid(int fid);
 	void deleteByGid(int gid);
+
+	@Query("SELECT MAX(f.fid) FROM files f")
+	Integer getMaxFid();
 
 }

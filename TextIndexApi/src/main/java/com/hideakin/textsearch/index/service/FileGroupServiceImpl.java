@@ -3,8 +3,6 @@ package com.hideakin.textsearch.index.service;
 import java.time.ZonedDateTime;
 import java.util.List;
 
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
 import javax.transaction.Transactional;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,9 +21,6 @@ import com.hideakin.textsearch.index.validator.FileGroupNameValidator;
 @Service
 @Transactional
 public class FileGroupServiceImpl implements FileGroupService {
-
-	@PersistenceContext
-	private EntityManager em;
 
 	@Autowired
 	private FileGroupRepository fileGroupRepository;
@@ -118,7 +113,7 @@ public class FileGroupServiceImpl implements FileGroupService {
 			nextId = entity.getIntValue();
 		} else {
 			entity = new PreferenceEntity(name);
-			Integer maxId = (Integer)em.createQuery("SELECT MAX(gid) FROM file_groups").getSingleResult();
+			Integer maxId = fileGroupRepository.getMaxGid();
 			nextId = (maxId != null ? maxId : 0) + 1;
 		}
 		entity.setValue(nextId + 1);

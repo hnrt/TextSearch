@@ -15,7 +15,9 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 import com.hideakin.textsearch.index.data.SearchOptions;
+import com.hideakin.textsearch.index.model.FileGroupInfo;
 import com.hideakin.textsearch.index.model.TextDistribution;
+import com.hideakin.textsearch.index.service.FileGroupService;
 import com.hideakin.textsearch.index.service.IndexService;
 
 @SpringBootTest
@@ -25,6 +27,9 @@ public class IndexControllerTests {
 
 	@Mock
 	private IndexService indexService;
+
+	@Mock
+	private FileGroupService fileGroupService;
 
 	@InjectMocks
 	private IndexController indexController;
@@ -37,7 +42,8 @@ public class IndexControllerTests {
 
 	@Test
 	public void findTextByGroup_successful() throws Exception {
-		when(indexService.findText("corge", "XYZZY", SearchOptions.Exact, 1, 0)).thenReturn(
+		when(fileGroupService.getGroup("corge")).thenReturn(new FileGroupInfo(1, "corge"));
+		when(indexService.find(1, "XYZZY", SearchOptions.Exact, 1, 0)).thenReturn(
 				new TextDistribution[] {
 						new TextDistribution(7, new int[] { 55 })
 				});
@@ -49,6 +55,17 @@ public class IndexControllerTests {
 	    	.andExpect(status().isOk())
 	    	.andExpect(jsonPath("$[0].fid").value(7))
 	    	.andExpect(jsonPath("$[0].positions[0]").value(55));
+	}
+
+	@Test
+	public void findTextByGroup_groupNotFound() throws Exception {
+		when(fileGroupService.getGroup("corge")).thenReturn(null);
+		mockMvc.perform(MockMvcRequestBuilders.get("/v1/index/corge")
+				.param("text", "XYZZY")
+				.param("option", "Exact")
+				.param("limit", "1")
+				.param("offset", "0"))
+	    	.andExpect(status().isNotFound());
 	}
 
 }

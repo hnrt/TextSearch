@@ -10,15 +10,20 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.hideakin.textsearch.index.data.SearchOptions;
+import com.hideakin.textsearch.index.model.FileGroupInfo;
 import com.hideakin.textsearch.index.model.TextDistribution;
+import com.hideakin.textsearch.index.service.FileGroupService;
 import com.hideakin.textsearch.index.service.IndexService;
 
 @RestController
 public class IndexController {
 
 	@Autowired
-	private IndexService service;
-	
+	private IndexService indexService;
+
+	@Autowired
+	private FileGroupService fileGroupService;
+
 	@RequestMapping(value="/v1/index/{group:[^0-9].*}",method=RequestMethod.GET)
 	public ResponseEntity<?> findText(
 			@PathVariable String group,
@@ -26,8 +31,9 @@ public class IndexController {
 			@RequestParam(name="option") SearchOptions option,
 			@RequestParam(name="limit") int limit,
 			@RequestParam(name="offset") int offset) {
-		TextDistribution[] results = service.findText(group, text, option, limit, offset);
-		if (results != null) {
+		FileGroupInfo info = fileGroupService.getGroup(group);
+		if (info != null) {
+			TextDistribution[] results = indexService.find(info.getGid(), text, option, limit, offset);
 			return new ResponseEntity<>(results, HttpStatus.OK);
 		} else {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);

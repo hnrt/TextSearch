@@ -5,8 +5,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
 
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
 import javax.transaction.Transactional;
 
 import org.slf4j.Logger;
@@ -32,9 +30,6 @@ import com.hideakin.textsearch.index.validator.UserNameValidator;
 public class UserServiceImpl implements UserService {
 
 	private static final Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
-	
-	@PersistenceContext
-	private EntityManager em;
 
 	@Value("${textsearch.access-token.expires-in:3600}")
     private int accessTokenExpiresIn = 3600; // seconds
@@ -182,7 +177,7 @@ public class UserServiceImpl implements UserService {
 			nextId = entity.getIntValue();
 		} else {
 			entity = new PreferenceEntity(name);
-			Integer maxId = (Integer)em.createQuery("SELECT MAX(uid) FROM users").getSingleResult();
+			Integer maxId = userRepository.getMaxUid();
 			nextId = (maxId != null ? maxId : 0) + 1;
 		}
 		entity.setValue(nextId + 1);

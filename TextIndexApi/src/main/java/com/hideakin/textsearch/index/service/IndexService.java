@@ -1,5 +1,7 @@
 package com.hideakin.textsearch.index.service;
 
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import com.hideakin.textsearch.index.data.SearchOptions;
@@ -7,8 +9,9 @@ import com.hideakin.textsearch.index.model.TextDistribution;
 
 public interface IndexService {
 
-	TextDistribution[] findText(String group, String text, SearchOptions option, int limit, int offset);
+	TextDistribution[] find(int gid, String text, SearchOptions option, int limit, int offset);
+	void add(int gid, int fid, Map<String, List<Integer>> textMap);
 	void delete(int gid);
-	int removeDist(Set<Integer> fids, int gid, int limit, int offset);
+	int delete(int gid, Set<Integer> fids, int limit, int offset);
 
 }

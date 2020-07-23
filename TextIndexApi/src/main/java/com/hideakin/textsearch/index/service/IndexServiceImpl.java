@@ -4,42 +4,32 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.Map.Entry;
 
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
 import javax.transaction.Transactional;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.hideakin.textsearch.index.data.SearchOptions;
-import com.hideakin.textsearch.index.entity.FileGroupEntity;
 import com.hideakin.textsearch.index.entity.TextEntity;
 import com.hideakin.textsearch.index.exception.InvalidParameterException;
 import com.hideakin.textsearch.index.model.TextDistribution;
-import com.hideakin.textsearch.index.repository.FileGroupRepository;
+import com.hideakin.textsearch.index.repository.TextExRepository;
 import com.hideakin.textsearch.index.repository.TextRepository;
 
 @Service
 @Transactional
 public class IndexServiceImpl implements IndexService {
 
-	@PersistenceContext
-	private EntityManager em;
-
-	@Autowired
-	private FileGroupRepository fileGroupRepository;
-
 	@Autowired
 	private TextRepository textRepository;
 
+	@Autowired
+	private TextExRepository textExRepository;
+
 	@Override
-	public TextDistribution[] findText(String group, String text, SearchOptions option, int limit, int offset) {
-		FileGroupEntity fileGroupEntity = fileGroupRepository.findByName(group);
-		if (fileGroupEntity == null) {
-			return null;
-		}
-		int gid = fileGroupEntity.getGid();
+	public TextDistribution[] find(int gid, String text, SearchOptions option, int limit, int offset) {
 		Map<Integer, TextDistribution> map = new HashMap<Integer, TextDistribution>();
 		if (option == SearchOptions.Exact) {
 			TextEntity textEntity = textRepository.findByTextAndGid(text, gid);
@@ -56,11 +46,11 @@ public class IndexServiceImpl implements IndexService {
 			}
 			List<TextEntity> textEntities;
 			if (option == SearchOptions.Contains) {
-				textEntities = findPartialByTextContainingAndGid(text, gid, limit, offset);
+				textEntities = textExRepository.findByTextContainingAndGid(text, gid, limit, offset);
 			} else if (option == SearchOptions.StartsWith) {
-				textEntities = findPartialByTextStartingWithAndGid(text, gid, limit, offset);
+				textEntities = textExRepository.findByTextStartingWithAndGid(text, gid, limit, offset);
 			} else if (option == SearchOptions.EndsWith) {
-				textEntities = findPartialByTextEndingWithAndGid(text, gid, limit, offset);
+				textEntities = textExRepository.findByTextEndingWithAndGid(text, gid, limit, offset);
 			} else {
 				return new TextDistribution[0]; // never reach here
 			}
@@ -70,13 +60,31 @@ public class IndexServiceImpl implements IndexService {
 	}
 
 	@Override
+	public void add(int gid, int fid, Map<String, List<Integer>> textMap) {
+		TextEntity entity0 = textRepository.findByTextAndGidForUpdate("*", gid);
+		if (entity0 == null) {
+			entity0 = new TextEntity("*", gid, null);
+			textRepository.saveAndFlush(entity0);
+			entity0 = textRepository.findByTextAndGidForUpdate("*", gid);
+		}
+		for (Entry<String, List<Integer>> entry : textMap.entrySet()) {
+			TextEntity entity = textRepository.findByTextAndGid(entry.getKey(), gid);
+			if (entity == null) {
+				entity = new TextEntity(entry.getKey(), gid, null);
+			}
+			entity.appendDist(TextDistribution.pack(fid, entry.getValue()));
+			textRepository.save(entity);
+		}
+	}
+
+	@Override
 	public void delete(int gid) {
 		textRepository.deleteByGid(gid);
 	}
 
 	@Override
-	public int removeDist(Set<Integer> fids, int gid, int limit, int offset) {
-		List<String> texts = findTexts(gid, limit, offset);
+	public int delete(int gid, Set<Integer> fids, int limit, int offset) {
+		List<String> texts = textExRepository.findTextByGid(gid, limit, offset);
 		for (String text : texts) {
 			TextEntity entity = textRepository.findByTextAndGid(text, gid);
 			entity.removeDist(fids);
@@ -102,37 +110,6 @@ public class IndexServiceImpl implements IndexService {
 				map.put(fid, dist);
 			}
 		}
-	}
-
-	private List<TextEntity> findPartialByTextContainingAndGid(String text, int gid, int limit, int offset) {
-		return findPartialByLike(String.format("%%%s%%", text), gid, limit, offset);
-	}
-
-	private List<TextEntity> findPartialByTextStartingWithAndGid(String text, int gid, int limit, int offset) {
-		return findPartialByLike(String.format("%s%%", text), gid, limit, offset);
-	}
-
-	private List<TextEntity> findPartialByTextEndingWithAndGid(String text, int gid, int limit, int offset) {
-		return findPartialByLike(String.format("%%%s", text), gid, limit, offset);
-	}
-
-	@SuppressWarnings("unchecked")
-	private List<TextEntity> findPartialByLike(String expr, int gid, int limit, int offset) {
-		return (List<TextEntity>)em.createQuery("SELECT t FROM texts t WHERE t.text LIKE :expr AND t.gid = :gid ORDER BY t.text")
-				.setParameter("expr", expr)
-				.setParameter("gid", gid)
-				.setMaxResults(limit)
-				.setFirstResult(offset)
-				.getResultList();
-	}
-
-	@SuppressWarnings("unchecked")
-	private List<String> findTexts(int gid, int limit, int offset) {
-		return (List<String>)em.createQuery("SELECT t.text FROM texts t WHERE t.gid = :gid ORDER BY t.text")
-				.setParameter("gid", gid)
-				.setMaxResults(limit)
-				.setFirstResult(offset)
-				.getResultList();
 	}
 
 }

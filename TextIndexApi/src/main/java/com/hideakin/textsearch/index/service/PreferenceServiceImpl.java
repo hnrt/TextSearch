@@ -1,7 +1,5 @@
 package com.hideakin.textsearch.index.service;
 
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
 import javax.transaction.Transactional;
 
 import org.slf4j.Logger;
@@ -19,9 +17,6 @@ import com.hideakin.textsearch.index.validator.PreferenceNameValidator;
 public class PreferenceServiceImpl implements PreferenceService {
 
 	private static final Logger logger = LoggerFactory.getLogger(PreferenceServiceImpl.class);
-
-	@PersistenceContext
-	private EntityManager em;
 
 	@Autowired
 	private PreferenceRepository preferenceRepository;

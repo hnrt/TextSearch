@@ -2,11 +2,6 @@ package com.hideakin.textsearch.index.service;
 
 import java.time.ZonedDateTime;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,16 +12,13 @@ import com.hideakin.textsearch.index.entity.FileContentEntity;
 import com.hideakin.textsearch.index.entity.FileEntity;
 import com.hideakin.textsearch.index.entity.FileGroupEntity;
 import com.hideakin.textsearch.index.entity.PreferenceEntity;
-import com.hideakin.textsearch.index.entity.TextEntity;
 import com.hideakin.textsearch.index.model.ObjectDisposition;
-import com.hideakin.textsearch.index.model.TextDistribution;
 import com.hideakin.textsearch.index.model.FileInfo;
 import com.hideakin.textsearch.index.model.FileStats;
 import com.hideakin.textsearch.index.repository.FileContentRepository;
 import com.hideakin.textsearch.index.repository.FileGroupRepository;
 import com.hideakin.textsearch.index.repository.FileRepository;
 import com.hideakin.textsearch.index.repository.PreferenceRepository;
-import com.hideakin.textsearch.index.repository.TextRepository;
 import com.hideakin.textsearch.index.utility.GZipHelper;
 
 @Service
@@ -34,9 +26,6 @@ import com.hideakin.textsearch.index.utility.GZipHelper;
 public class FileServiceImpl implements FileService {
 
 	private static final Logger logger = LoggerFactory.getLogger(FileServiceImpl.class);
-
-	@PersistenceContext
-	private EntityManager em;
 
 	@Autowired
 	private FileRepository fileRepository;
@@ -46,9 +35,6 @@ public class FileServiceImpl implements FileService {
 	
 	@Autowired
 	private FileContentRepository fileContentRepository;
-	
-	@Autowired
-	private TextRepository textRepository;
 	
 	@Autowired
 	private PreferenceRepository preferenceRepository;
@@ -150,7 +136,7 @@ public class FileServiceImpl implements FileService {
 	}
 	
 	@Override
-	public FileInfo addFile(String group, String path, int length, byte[] data, Map<String, List<Integer>> textMap, ObjectDisposition disp) {
+	public FileInfo addFile(String group, String path, int length, byte[] data, ObjectDisposition disp) {
 		FileGroupEntity fileGroupEntity = fileGroupRepository.findByNameForUpdate(group);
 		if (fileGroupEntity == null) {
 			disp.setValue(ObjectDisposition.GROUP_NOT_FOUND);
@@ -166,12 +152,11 @@ public class FileServiceImpl implements FileService {
 		} else {
 			disp.setValue(ObjectDisposition.UPDATED);
 		}
-		FileEntity entity = saveFile(fileGroupEntity, path, length, data, textMap);
-		return new FileInfo(entity, fileGroupEntity);
+		return saveFile(fileGroupEntity, path, length, data);
 	}
 
 	@Override
-	public FileInfo updateFile(int fid, String path, int length, byte[] data, Map<String, List<Integer>> textMap) {
+	public FileInfo updateFile(int fid, String path, int length, byte[] data) {
 		FileEntity entity = fileRepository.findByFid(fid);
 		if (entity == null) {
 			return null;
@@ -183,8 +168,7 @@ public class FileServiceImpl implements FileService {
 		}
 		entity.setStale(true);
 		fileRepository.save(entity);
-		entity = saveFile(fileGroupEntity, path, length, data, textMap);
-		return new FileInfo(entity, fileGroupEntity);
+		return saveFile(fileGroupEntity, path, length, data);
 	}
 	
 	@Override
@@ -250,15 +234,12 @@ public class FileServiceImpl implements FileService {
 		return new FileInfo(entity, fileGroupEntity);
 	}
 
-	private FileEntity saveFile(FileGroupEntity fgEntity, String path, int length, byte[] data, Map<String, List<Integer>> textMap) {
-		int gid = fgEntity.getGid();
-		FileEntity entity = fileRepository.save(new FileEntity(getNextFid(), path, length, gid));
-		int fid = entity.getFid();
-		fileContentRepository.save(new FileContentEntity(fid, data));
-		applyTextMap(fid, gid, textMap);
+	private FileInfo saveFile(FileGroupEntity fgEntity, String path, int length, byte[] data) {
+		FileEntity entity = fileRepository.save(new FileEntity(getNextFid(), path, length, fgEntity.getGid()));
+		fileContentRepository.save(new FileContentEntity(entity.getFid(), data));
 		fgEntity.setUpdatedAt(ZonedDateTime.now());
 		fileGroupRepository.save(fgEntity);
-		return entity;
+		return new FileInfo(entity, fgEntity);
 	}
 
 	private int getNextFid() {
@@ -269,25 +250,12 @@ public class FileServiceImpl implements FileService {
 			nextId = entity.getIntValue();
 		} else {
 			entity = new PreferenceEntity(name);
-			Integer maxId = (Integer)em.createQuery("SELECT MAX(fid) FROM files").getSingleResult();
+			Integer maxId = fileRepository.getMaxFid();
 			nextId = (maxId != null ? maxId : 0) + 1;
 		}
 		entity.setValue(nextId + 1);
 		preferenceRepository.save(entity);
 		return nextId;
-	}
-
-	private void applyTextMap(int fid, int gid, Map<String,List<Integer>> textMap) {
-		for (Entry<String,List<Integer>> entry : textMap.entrySet()) {
-			TextEntity entity = textRepository.findByTextAndGid(entry.getKey(), gid);
-			if (entity == null) {
-				entity = new TextEntity();
-				entity.setText(entry.getKey());
-				entity.setGid(gid);
-			}
-			entity.appendDist(TextDistribution.pack(fid, entry.getValue()));
-			textRepository.save(entity);
-		}
 	}
 	
 }

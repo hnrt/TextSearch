@@ -1,6 +1,7 @@
 package com.hideakin.textsearch.index.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import com.hideakin.textsearch.index.entity.UserEntity;
@@ -11,5 +12,8 @@ public interface UserRepository extends JpaRepository<UserEntity,Integer>  {
 	UserEntity findByUid(int uid);
 	UserEntity findByUsername(String username);
 	UserEntity findByAccessToken(String accessToken);
+
+	@Query("SELECT MAX(u.uid) FROM users u")
+	Integer getMaxUid();
 
 }

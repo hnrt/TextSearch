@@ -7,7 +7,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import java.util.ArrayList;
 import java.util.List;
-import javax.persistence.EntityManager;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -28,9 +27,6 @@ import com.hideakin.textsearch.index.repository.PreferenceRepository;
 
 @SpringBootTest
 public class FileGroupServiceTests {
-
-	@Mock
-	private EntityManager em;
 
 	@Mock
 	private FileGroupRepository fileGroupRepository;
@@ -71,12 +67,12 @@ public class FileGroupServiceTests {
 	public void createGroup_successful1() {
 		when(preferenceRepository.findByName("GID.next")).thenReturn(null);
 		when(preferenceRepository.save(argThat(x -> x.getName().equals("GID.next") && x.getValue().equals("791")))).thenReturn(new PreferenceEntity("GID.next", "791"));
-		when(em.createQuery("SELECT MAX(gid) FROM file_groups")).thenReturn(new PseudoQuery(789));
+		when(fileGroupRepository.getMaxGid()).thenReturn(new Integer(789));
 		when(fileGroupRepository.save(argThat(x -> x.getGid() == 790))).thenReturn(new FileGroupEntity(790, "def"));
 		FileGroupInfo groupInfo = fileGroupService.createGroup("def");
 		Assertions.assertEquals(790, groupInfo.getGid());
 		verify(preferenceRepository, times(1)).findByName("GID.next");
-		verify(em, times(1)).createQuery("SELECT MAX(gid) FROM file_groups");
+		verify(fileGroupRepository, times(1)).getMaxGid();
 		verify(preferenceRepository, times(1)).save(argThat(x -> x.getName().equals("GID.next") && x.getValue().equals("791")));
 		verify(fileGroupRepository, times(1)).save(argThat(x -> x.getGid() == 790));
 	}
@@ -84,13 +80,13 @@ public class FileGroupServiceTests {
 	@Test
 	public void createGroup_successful2() {
 		when(preferenceRepository.findByName("GID.next")).thenReturn(new PreferenceEntity("GID.next", "791"));
-		when(em.createQuery("SELECT MAX(gid) FROM file_groups")).thenReturn(new PseudoQuery(700));
+		when(fileGroupRepository.getMaxGid()).thenReturn(new Integer(700));
 		when(preferenceRepository.save(argThat(x -> x.getName().equals("GID.next") && x.getValue().equals("792")))).thenReturn(new PreferenceEntity("GID.next", "792"));
 		when(fileGroupRepository.save(argThat(x -> x.getGid() == 791))).thenReturn(new FileGroupEntity(791, "ghi"));
 		FileGroupInfo groupInfo = fileGroupService.createGroup("ghi");
 		Assertions.assertEquals(791, groupInfo.getGid());
 		verify(preferenceRepository, times(1)).findByName("GID.next");
-		verify(em, times(0)).createQuery("SELECT MAX(gid) FROM file_groups");
+		verify(fileGroupRepository, times(0)).getMaxGid();
 		verify(preferenceRepository, times(1)).save(argThat(x -> x.getName().equals("GID.next") && x.getValue().equals("792")));
 		verify(fileGroupRepository, times(1)).save(argThat(x -> x.getGid() == 791));
 	}
@@ -98,7 +94,7 @@ public class FileGroupServiceTests {
 	@Test
 	public void createGroup_invalidName() {
 		when(preferenceRepository.findByName("GID.next")).thenReturn(new PreferenceEntity("GID.next", "791"));
-		when(em.createQuery("SELECT MAX(gid) FROM file_groups")).thenReturn(new PseudoQuery(700));
+		when(fileGroupRepository.getMaxGid()).thenReturn(new Integer(700));
 		when(preferenceRepository.save(argThat(x -> x.getName().equals("GID.next") && x.getValue().equals("792")))).thenReturn(new PreferenceEntity("GID.next", "792"));
 		when(fileGroupRepository.save(argThat(x -> x.getGid() == 791))).thenReturn(new FileGroupEntity(791, "ghi"));
 		InvalidParameterException exception = Assertions.assertThrows(InvalidParameterException.class, () -> {
@@ -106,7 +102,7 @@ public class FileGroupServiceTests {
 		});
 		Assertions.assertEquals("Invalid group name.", exception.getMessage());
 		verify(preferenceRepository, times(0)).findByName("GID.next");
-		verify(em, times(0)).createQuery("SELECT MAX(gid) FROM file_groups");
+		verify(fileGroupRepository, times(0)).getMaxGid();
 		verify(preferenceRepository, times(0)).save(argThat(x -> x.getName().equals("GID.next") && x.getValue().equals("792")));
 		verify(fileGroupRepository, times(0)).save(argThat(x -> x.getGid() == 800));
 	}

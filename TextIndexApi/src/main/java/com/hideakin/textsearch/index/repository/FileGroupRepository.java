@@ -25,4 +25,7 @@ public interface FileGroupRepository extends JpaRepository<FileGroupEntity,Integ
 	@Query("SELECT g FROM file_groups g WHERE g.name = :name")
 	FileGroupEntity findByNameForUpdate(@Param("name") String name);
 
+	@Query("SELECT MAX(g.gid) FROM file_groups g")
+	Integer getMaxGid();
+
 }
