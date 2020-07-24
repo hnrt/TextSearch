@@ -16,6 +16,10 @@ namespace com.hideakin.textsearch.service
     {
         private CancellationToken ct;
 
+        private readonly Dictionary<string, Dictionary<int, List<int>>> textMap = new Dictionary<string, Dictionary<int, List<int>>>();
+
+        public int ConcurrencyLevel { get; set; } = 8;
+
         public IndexService(CancellationToken ct)
         {
             this.ct = ct;
@@ -25,11 +29,11 @@ namespace com.hideakin.textsearch.service
         {
             return await Task.Run(() =>
             {
-                return FindTextV2(group, text);
+                return FindText(group, text);
             });
         }
 
-        public HitRowColumns[] FindTextV2(string group, string text)
+        public HitRowColumns[] FindText(string group, string text)
         {
             const int LIMIT = 65536;
             using (var sr = new StringReader(text))
@@ -251,6 +255,98 @@ namespace com.hideakin.textsearch.service
                     }
                 }
                 return list.ToArray();
+            }
+        }
+
+        public void StartIndexing()
+        {
+            textMap.Clear();
+        }
+
+        public void PopulateIndex(string path, int fid)
+        {
+            using (var input = new StreamReader(path, true))
+            {
+                var tokenizer = new TextTokenizer();
+                tokenizer.Run(input);
+                var texts = tokenizer.Texts;
+                for (int index = 0; index < texts.Length; index++)
+                {
+                    var text = texts[index];
+                    if (!textMap.TryGetValue(text, out var entry))
+                    {
+                        textMap.Add(text, new Dictionary<int, List<int>>() { { fid, new List<int>() { index } } });
+                    }
+                    else if (!entry.TryGetValue(fid, out var positions))
+                    {
+                        entry.Add(fid, new List<int>() { index });
+                    }
+                    else
+                    {
+                        positions.Add(index);
+                    }
+                }
+            }
+        }
+
+        public void EndIndexing(string group, Action<string, int, int> callback = null)
+        {
+            var tasks = new List<(string Text, IndexApiClient Client, Task<object> IndexTask)>();
+            var count = textMap.Count;
+            var index = 0;
+            foreach (var kvp in textMap)
+            {
+                var list = new List<TextDistribution>();
+                foreach (var kvp2 in kvp.Value)
+                {
+                    list.Add(new TextDistribution()
+                    {
+                        Fid = kvp2.Key,
+                        Positions = kvp2.Value.ToArray()
+                    });
+                }
+                if (tasks.Count >= ConcurrencyLevel)
+                {
+                    var completed = Task.WaitAny(tasks.Select(x => x.IndexTask).ToArray());
+                    var (text, client, task) = tasks[completed];
+                    tasks.RemoveAt(completed);
+                    if (task.Result == null)
+                    {
+                        callback?.Invoke(text, ++index, count);
+                    }
+                    else if (task.Result is Exception e)
+                    {
+                        throw e;
+                    }
+                    else
+                    {
+                        throw new NotImplementedException();
+                    }
+                }
+                {
+                    var text = kvp.Key;
+                    var client = IndexApiClient.Create(ct);
+                    var task = client.PostText(group, text, list.ToArray());
+                    tasks.Add((text, client, task));
+                }
+            }
+            while (tasks.Count > 0)
+            {
+                var completed = Task.WaitAny(tasks.Select(x => x.IndexTask).ToArray());
+                var (text, client, task) = tasks[completed];
+                tasks.RemoveAt(completed);
+                if (task.Result == null)
+                {
+                    callback?.Invoke(text, ++index, count);
+                }
+                else if (task.Result is Exception e)
+                {
+                    throw e;
+                }
+                else
+                {
+                    throw new NotImplementedException();
+                }
             }
         }
 

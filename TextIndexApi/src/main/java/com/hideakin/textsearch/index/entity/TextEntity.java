@@ -68,6 +68,10 @@ public class TextEntity {
 		dist = TextDistribution.sequence(dist).append(packed).array();
 	}
 
+	public void appendDist(TextDistribution.Packed[] packed) {
+		dist = TextDistribution.sequence(dist).append(packed).array();
+	}
+
 	public void removeDist(Set<Integer> fids) {
 		dist = TextDistribution.sequence(dist).remove(fids).array();
 	}

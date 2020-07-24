@@ -9,7 +9,12 @@ public class TextDistribution {
 	private int fid;
 	
 	private int[] positions;
-	
+
+	public TextDistribution() {
+		fid = -1;
+		positions = null;
+	}
+
 	public TextDistribution(int fid, int[] positions) {
 		this.fid = fid;
 		this.positions = positions;
@@ -91,6 +96,10 @@ public class TextDistribution {
 	
 	public static PackedSequence sequence(byte[] data) {
 		return new PackedSequence(data);
+	}
+
+	public static PackedSequence sequence(Packed[] data) {
+		return (new PackedSequence(new byte[0])).append(data);
 	}
 
 	public static class Packed {
@@ -235,6 +244,26 @@ public class TextDistribution {
 				}
 				src = next;
 			}
+			return this;
+		}
+		
+		public PackedSequence append(Packed[] packedArray) {
+			int length = src != null ? src.length : 0;
+			for (Packed packed : packedArray) {
+				length += packed.length();
+			}
+			byte[] next = new byte[length];
+			if (src != null) {
+				System.arraycopy(src, 0, next, 0, src.length);
+				length = src.length;
+			} else {
+				length = 0;
+			}
+			for (Packed packed : packedArray) {
+				System.arraycopy(packed.array(), 0, next, length, packed.length());
+				length += packed.length();
+			}
+			src = next;
 			return this;
 		}
 		

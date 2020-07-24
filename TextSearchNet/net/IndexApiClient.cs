@@ -820,7 +820,7 @@ namespace com.hideakin.textsearch.net
             }
         }
 
-        public async Task<object> UploadFile(string group, string path)
+        public async Task<object> UploadFile(string group, string path, bool createIndex)
         {
             try
             {
@@ -830,6 +830,7 @@ namespace com.hideakin.textsearch.net
                 {
                     request.Headers.Add(AUTHORIZATION, BearerToken);
                     request.Headers.Add(CONNECTION, CLOSE);
+                    request.Headers.Add("TextIndex", createIndex ? "create" : "no");
                     var content = new MultipartFormDataContent();
                     var fileContent = new StreamContent(File.OpenRead(path));
                     fileContent.Headers.ContentDisposition = new ContentDispositionHeaderValue("form-data")
@@ -1041,7 +1042,7 @@ namespace com.hideakin.textsearch.net
             try
             {
                 await Initialize();
-                var uri = string.Format("{0}/v1/index/{1}?text={2}&option={3}&limit={4}&offset={5}", Url, group, text, Enum.GetName(option.GetType(), option), limit, offset);
+                var uri = string.Format("{0}/v1/index/{1}/{2}?option={3}&limit={4}&offset={5}", Url, group, text, Enum.GetName(option.GetType(), option), limit, offset);
                 using (var request = new HttpRequestMessage(HttpMethod.Get, uri))
                 {
                     request.Headers.Add(AUTHORIZATION, BearerToken);
@@ -1064,6 +1065,41 @@ namespace com.hideakin.textsearch.net
                         else
                         {
                             return new UnrecognizedResponseException(response.StatusCode, responseBody, "FindTextV2 request failed.");
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                return e;
+            }
+        }
+
+        public async Task<object> PostText(string group, string text, TextDistribution[] data)
+        {
+            try
+            {
+                await Initialize();
+                var uri = string.Format("{0}/v1/index/{1}/{2}", Url, group, text);
+                using (var request = new HttpRequestMessage(HttpMethod.Post, uri))
+                {
+                    request.Headers.Add(AUTHORIZATION, BearerToken);
+                    request.Content = new StringContent(JsonConvert.SerializeObject(data), Encoding.UTF8, APPLICATION_JSON);
+                    using (var response = await httpClient.SendAsync(request, ct))
+                    {
+                        StatusCode = response.StatusCode;
+                        var responseBody = await response.Content.ReadAsStringAsync();
+                        if (response.StatusCode == HttpStatusCode.OK)
+                        {
+                            return null;
+                        }
+                        else if (response.StatusCode == HttpStatusCode.NotFound)
+                        {
+                            return new GroupNotFoundException(group);
+                        }
+                        else
+                        {
+                            return new UnrecognizedResponseException(response.StatusCode, responseBody, "PostText request failed.");
                         }
                     }
                 }

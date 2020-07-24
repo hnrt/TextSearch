@@ -41,14 +41,13 @@ public class IndexControllerTests {
 	}
 
 	@Test
-	public void findTextByGroup_successful() throws Exception {
+	public void find_successful() throws Exception {
 		when(fileGroupService.getGroup("corge")).thenReturn(new FileGroupInfo(1, "corge"));
 		when(indexService.find(1, "XYZZY", SearchOptions.Exact, 1, 0)).thenReturn(
 				new TextDistribution[] {
 						new TextDistribution(7, new int[] { 55 })
 				});
-		mockMvc.perform(MockMvcRequestBuilders.get("/v1/index/corge")
-				.param("text", "XYZZY")
+		mockMvc.perform(MockMvcRequestBuilders.get("/v1/index/corge/XYZZY")
 				.param("option", "Exact")
 				.param("limit", "1")
 				.param("offset", "0"))
@@ -58,10 +57,9 @@ public class IndexControllerTests {
 	}
 
 	@Test
-	public void findTextByGroup_groupNotFound() throws Exception {
+	public void find_groupNotFound() throws Exception {
 		when(fileGroupService.getGroup("corge")).thenReturn(null);
-		mockMvc.perform(MockMvcRequestBuilders.get("/v1/index/corge")
-				.param("text", "XYZZY")
+		mockMvc.perform(MockMvcRequestBuilders.get("/v1/index/corge/XYZZY")
 				.param("option", "Exact")
 				.param("limit", "1")
 				.param("offset", "0"))

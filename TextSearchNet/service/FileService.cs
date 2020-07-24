@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
@@ -95,10 +96,10 @@ namespace com.hideakin.textsearch.service
             }
         }
 
-        public FileInfo UploadFile(string group, string path, out UploadFileStatus result)
+        public FileInfo UploadFile(string group, string path, bool createIndex, out UploadFileStatus result)
         {
             result = UploadFileStatus.Failure;
-            var task = client.UploadFile(group, path);
+            var task = client.UploadFile(group, path, createIndex);
             task.Wait();
             if (task.Result is FileInfo info)
             {
@@ -115,21 +116,16 @@ namespace com.hideakin.textsearch.service
             }
         }
 
-        public void UploadFileAsync(string group, string path, CancellationToken ct)
+        public void UploadFileAsync(string group, string path, bool createIndex, CancellationToken ct)
         {
             var client = IndexApiClient.Create(ct);
-            var task = client.UploadFile(group, path);
+            var task = client.UploadFile(group, path, createIndex);
             UploadFileTasks.Add((path, client, task));
         }
 
         public FileInfo WaitForUploadFileCompletion(out UploadFileStatus result)
         {
-            var tasks = new Task<object>[UploadFileTasks.Count];
-            for (int index = 0; index < UploadFileTasks.Count; index++)
-            {
-                tasks[index] = UploadFileTasks[index].UploadFileTask;
-            }
-            var completed = Task.WaitAny(tasks);
+            var completed = Task.WaitAny(UploadFileTasks.Select(x => x.UploadFileTask).ToArray());
             var (path, client, task) = UploadFileTasks[completed];
             UploadFileTasks.RemoveAt(completed);
             if (task.Result is FileInfo info)

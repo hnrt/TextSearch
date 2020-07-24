@@ -100,7 +100,6 @@ public class FileGroupServiceImpl implements FileGroupService {
 		if (fileEntities.size() > 0) {
 			throw new ForbiddenException("invalid_operation", "There is one or more files associated with the group.");
 		}
-		entity.setUpdatedAt(ZonedDateTime.now());
 		fileGroupRepository.delete(entity);
 		return new FileGroupInfo(entity);
 	}

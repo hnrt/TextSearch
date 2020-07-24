@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -108,17 +109,20 @@ public class FileController {
 	@RequestMapping(value="/v1/files/{group:[^0-9].*}",method=RequestMethod.POST,consumes=MediaType.MULTIPART_FORM_DATA_VALUE)
 	public ResponseEntity<?> addFile(
 			@PathVariable String group,
-			@RequestParam("file") MultipartFile file) {
+			@RequestParam("file") MultipartFile file,
+			@RequestHeader("TextIndex") String textIndexHeader) {
 		try {
 			byte[] textUTF8 = TextEncoding.convertToUTF8(file.getBytes(), ContentType.parse(file.getContentType()).getCharset(TextEncoding.UTF_8));
 			byte[] compressed = GZipHelper.compress(textUTF8);
-			TextTokenizer tokenizer = new TextTokenizer();
-			tokenizer.run(textUTF8, TextEncoding.UTF_8);
-			Map<String, List<Integer>> textMap = tokenizer.populateTextMap();
 			ObjectDisposition disp = new ObjectDisposition();
 			FileInfo added = fileService.addFile(group, file.getOriginalFilename(), textUTF8.length, compressed, disp);
 			if (added != null) {
-				indexService.add(added.getGid(), added.getFid(), textMap);
+				if (textIndexHeader.equals("create")) {
+					TextTokenizer tokenizer = new TextTokenizer();
+					tokenizer.run(textUTF8, TextEncoding.UTF_8);
+					Map<String, List<Integer>> textMap = tokenizer.populateTextMap();
+					indexService.add(added.getGid(), added.getFid(), textMap);
+				}
 				return new ResponseEntity<>(added, disp.isCreated() ? HttpStatus.CREATED : HttpStatus.OK);
 			} else {
 				return new ResponseEntity<>(HttpStatus.NOT_FOUND);
@@ -132,16 +136,19 @@ public class FileController {
 	@RequestMapping(value="/v1/files/{fid:[0-9]+}/contents",method=RequestMethod.PUT,consumes=MediaType.MULTIPART_FORM_DATA_VALUE)
 	public ResponseEntity<?> updateFile(
 			@PathVariable int fid,
-			@RequestParam("file") MultipartFile file) {
+			@RequestParam("file") MultipartFile file,
+			@RequestHeader("TextIndex") String textIndexHeader) {
 		try {
 			byte[] textUTF8 = TextEncoding.convertToUTF8(file.getBytes(), ContentType.parse(file.getContentType()).getCharset(TextEncoding.UTF_8));
 			byte[] compressed = GZipHelper.compress(textUTF8);
-			TextTokenizer tokenizer = new TextTokenizer();
-			tokenizer.run(textUTF8, TextEncoding.UTF_8);
-			Map<String,List<Integer>> textMap = tokenizer.populateTextMap();
 			FileInfo added = fileService.updateFile(fid, file.getOriginalFilename(), textUTF8.length, compressed);
 			if (added != null) {
-				indexService.add(added.getGid(), added.getFid(), textMap);
+				if (textIndexHeader.equals("create")) {
+					TextTokenizer tokenizer = new TextTokenizer();
+					tokenizer.run(textUTF8, TextEncoding.UTF_8);
+					Map<String, List<Integer>> textMap = tokenizer.populateTextMap();
+					indexService.add(added.getGid(), added.getFid(), textMap);
+				}
 				return new ResponseEntity<>(added, HttpStatus.OK);
 			} else {
 				return new ResponseEntity<>(HttpStatus.NOT_FOUND);

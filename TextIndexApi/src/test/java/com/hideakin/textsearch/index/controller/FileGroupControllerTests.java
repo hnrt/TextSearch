@@ -1,5 +1,7 @@
 package com.hideakin.textsearch.index.controller;
 
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -22,6 +24,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.hideakin.textsearch.index.model.FileGroupInfo;
 import com.hideakin.textsearch.index.model.FileGroupRequest;
 import com.hideakin.textsearch.index.service.FileGroupService;
+import com.hideakin.textsearch.index.service.IndexService;
 
 @SpringBootTest
 public class FileGroupControllerTests {
@@ -30,6 +33,9 @@ public class FileGroupControllerTests {
 
 	@Mock
 	private FileGroupService fileGroupService;
+
+	@Mock
+	private IndexService indexService;
 
 	@InjectMocks
 	private FileGroupController fileGroupController;
@@ -57,6 +63,7 @@ public class FileGroupControllerTests {
 	@Test
 	public void createGroup_successful() throws Exception {
 		when(fileGroupService.createGroup("xyzzy")).thenReturn(new FileGroupInfo(4, "xyzzy"));
+		doNothing().when(indexService).initialize(anyInt());
 		ObjectMapper om = new ObjectMapper();
 		String json = om.writeValueAsString(new FileGroupRequest("xyzzy"));
 		mockMvc.perform(MockMvcRequestBuilders
@@ -67,6 +74,7 @@ public class FileGroupControllerTests {
 			.andExpect(jsonPath("$.gid").value(4))
 			.andExpect(jsonPath("$.name").value("xyzzy"));
 		verify(fileGroupService, times(1)).createGroup("xyzzy");
+		verify(indexService, times(1)).initialize(4);
 	}
 
 	private class CustomException extends DataAccessException {
@@ -82,6 +90,7 @@ public class FileGroupControllerTests {
 	@Test
 	public void createGroup_constraintViolation() throws Exception {
 		when(fileGroupService.createGroup("xyzzy")).thenThrow(new CustomException("constraint [file_groups_name_key]"));
+		doNothing().when(indexService).initialize(anyInt());
 		ObjectMapper om = new ObjectMapper();
 		String json = om.writeValueAsString(new FileGroupRequest("xyzzy"));
 		mockMvc.perform(MockMvcRequestBuilders
@@ -92,11 +101,13 @@ public class FileGroupControllerTests {
 			.andExpect(jsonPath("$.error").value("constraint_violation"))
 			.andExpect(jsonPath("$.error_description").value("Group name already exists."));
 		verify(fileGroupService, times(1)).createGroup("xyzzy");
+		verify(indexService, times(0)).initialize(anyInt());
 	}
 
 	@Test
 	public void createGroup_otherError() throws Exception {
 		when(fileGroupService.createGroup("xyzzy")).thenThrow(new CustomException("Something wrong happened."));
+		doNothing().when(indexService).initialize(anyInt());
 		ObjectMapper om = new ObjectMapper();
 		String json = om.writeValueAsString(new FileGroupRequest("xyzzy"));
 		mockMvc.perform(MockMvcRequestBuilders
@@ -107,6 +118,7 @@ public class FileGroupControllerTests {
 			.andExpect(jsonPath("$.error").value("invalid_data_access"))
 			.andExpect(jsonPath("$.error_description").value("Something wrong happened."));
 		verify(fileGroupService, times(1)).createGroup("xyzzy");
+		verify(indexService, times(0)).initialize(anyInt());
 	}
 
 	@Test
@@ -170,21 +182,25 @@ public class FileGroupControllerTests {
 	@Test
 	public void deleteGroup_successful() throws Exception {
 		when(fileGroupService.deleteGroup(4)).thenReturn(new FileGroupInfo(4, "waldo"));
+		doNothing().when(indexService).cleanup(anyInt());
 		mockMvc.perform(MockMvcRequestBuilders
 				.delete("/v1/groups/4"))
 			.andExpect(status().isOk())
 			.andExpect(jsonPath("$.gid").value(4))
 			.andExpect(jsonPath("$.name").value("waldo"));
 		verify(fileGroupService, times(1)).deleteGroup(4);
+		verify(indexService, times(1)).cleanup(4);
 	}
 
 	@Test
 	public void deleteGroup_notFound() throws Exception {
 		when(fileGroupService.deleteGroup(4)).thenReturn(null);
+		doNothing().when(indexService).cleanup(anyInt());
 		mockMvc.perform(MockMvcRequestBuilders
 				.delete("/v1/groups/4"))
 			.andExpect(status().isNotFound());
 		verify(fileGroupService, times(1)).deleteGroup(4);
+		verify(indexService, times(0)).cleanup(anyInt());
 	}
 
 }

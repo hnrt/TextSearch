@@ -38,6 +38,11 @@ public class IndexServiceImpl implements IndexService {
 	}
 
 	@Override
+	public void cleanup(int gid) {
+		textRepository.deleteByGid(gid);
+	}
+
+	@Override
 	public TextDistribution[] find(int gid, String text, SearchOptions option, int limit, int offset) {
 		Map<Integer, TextDistribution> map = new HashMap<Integer, TextDistribution>();
 		if (option == SearchOptions.Exact) {
@@ -66,6 +71,21 @@ public class IndexServiceImpl implements IndexService {
 			populateHitMap(map, entities);
 		}
 		return map.values().toArray(new TextDistribution[map.size()]);
+	}
+
+	@Override
+	public void add(String text, int gid, TextDistribution[] data) {
+		TextDistribution.Packed[] packedArray = new TextDistribution.Packed[data.length];
+		for (int index = 0; index < data.length; index++) {
+			packedArray[index] = data[index].pack();
+		}
+		TextEntity entity = textRepository.findByTextAndGidForUpdate(text, gid);
+		if (entity != null) {
+			entity.appendDist(packedArray);
+		} else {
+			entity = new TextEntity(text, gid, TextDistribution.sequence(packedArray).array());
+		}
+		textRepository.save(entity);
 	}
 
 	@Override

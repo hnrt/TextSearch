@@ -13,12 +13,21 @@ namespace com.hideakin.textsearch.command
 {
     internal class FileCommand : ICommand
     {
+        private enum IndexMode
+        {
+            None,
+            Immediate,
+            Deferred
+        };
+
         private static readonly string DEFAULT_GROUP = "default";
 
         private readonly CancellationTokenSource cts;
         private readonly FileService file;
         private readonly PreferenceService pref;
+        private readonly IndexService idx;
         private model.FileInfo[] alreadyUploaded;
+        private IndexMode indexMode = IndexMode.Deferred;
         private int concurrencyLevel = 8;
 
         public FileCommand()
@@ -26,6 +35,7 @@ namespace com.hideakin.textsearch.command
             cts = new CancellationTokenSource();
             file = new FileService(cts.Token);
             pref = new PreferenceService(cts.Token);
+            idx = new IndexService(cts.Token);
         }
 
         public void Register(CommandLine commandLine, CommandQueue commandQueue)
@@ -103,7 +113,7 @@ namespace com.hideakin.textsearch.command
                         {
                             forceIndexing = true;
                         })
-                        .AddHandler("-concurrency", (ee) => 
+                        .AddHandler("-concurrency", (ee) =>
                         {
                             if (!e.MoveNext())
                             {
@@ -115,8 +125,13 @@ namespace com.hideakin.textsearch.command
                                 throw new Exception("Concurrency level number is out of the valid range.");
                             }
                         })
+                        .AddHandler("-immediate", (ee) =>
+                        {
+                            indexMode = IndexMode.Immediate;
+                        })
                         .AddTranslation("-f", "-force")
-                        .AddTranslation("-c", "-concurrency");
+                        .AddTranslation("-c", "-concurrency")
+                        .AddTranslation("-i", "-immediate");
                     e = commandLine2.Parse(e);
                     if (e == null)
                     {
@@ -152,8 +167,10 @@ namespace com.hideakin.textsearch.command
                     commandQueue.Add(() =>
                     {
                         Console.WriteLine("Started deleting files...");
+                        var t1 = DateTime.Now;
                         file.DeleteFiles(group);
-                        Console.WriteLine("Done.");
+                        var t2 = DateTime.Now;
+                        Console.WriteLine("Done. Elapsed time: {0}", t2 - t1);
                     });
                 })
                 .AddHandler("-delete-stale-files", (e) =>
@@ -170,8 +187,10 @@ namespace com.hideakin.textsearch.command
                     commandQueue.Add(() =>
                     {
                         Console.WriteLine("Started deleting stale files...");
+                        var t1 = DateTime.Now;
                         file.DeleteStaleFiles(group);
-                        Console.WriteLine("Done.");
+                        var t2 = DateTime.Now;
+                        Console.WriteLine("Done. Elapsed time: {0}", t2 - t1);
                     });
                 })
                 .AddTranslation("-pf", "-print-files")
@@ -182,15 +201,20 @@ namespace com.hideakin.textsearch.command
                 .AddUsage("{0} -print-files [GROUPNAME]", Program.Name)
                 .AddUsage("{0} -print-file-stats [GROUPNAME]", Program.Name)
                 .AddUsage("{0} -print-file GROUPNAME PATH", Program.Name)
-                .AddUsage("{0} -index-files [-force] [-concurrency NUMBER] GROUPNAME PATH...", Program.Name)
+                .AddUsage("{0} -index-files [-force] [-concurrency NUMBER] [-immediate] GROUPNAME PATH...", Program.Name)
                 .AddUsage("{0} -delete-files [GROUPNAME]", Program.Name)
                 .AddUsage("{0} -delete-stale-files [GROUPNAME]", Program.Name);
         }
 
         private void IndexFiles(string group, List<string> paths, bool forceIndexing)
         {
-            var t1 = DateTime.Now;
             Console.WriteLine("Started indexing...");
+            var t1 = DateTime.Now;
+            if (indexMode == IndexMode.Deferred)
+            {
+                idx.ConcurrencyLevel = concurrencyLevel;
+                idx.StartIndexing();
+            }
             alreadyUploaded = forceIndexing ? new model.FileInfo[0] : file.GetFiles(group);
             var extensions = pref.GetExtensions();
             var skipDirs = pref.GetSkipDirs();
@@ -225,7 +249,14 @@ namespace com.hideakin.textsearch.command
             }
             while (file.Uploading > 0)
             {
-                WaitForIndexFileCompletion();
+                WaitForUploadFileCompletion();
+            }
+            if (indexMode == IndexMode.Deferred)
+            {
+                idx.EndIndexing(group, (text, index, count) =>
+                {
+                    Console.WriteLine("Sent {0,3}% [{1}/{2}] {3}", (100 * index) / count, index, count, text);
+                });
             }
             var t2 = DateTime.Now;
             Console.WriteLine("Done. Elapsed time: {0}", t2 - t1);
@@ -273,23 +304,27 @@ namespace com.hideakin.textsearch.command
             {
                 if (file.Uploading >= concurrencyLevel)
                 {
-                    if (!WaitForIndexFileCompletion())
+                    if (!WaitForUploadFileCompletion())
                     {
                         return false;
                     }
                 }
-                file.UploadFileAsync(group, path, cts.Token);
+                file.UploadFileAsync(group, path, indexMode == IndexMode.Immediate, cts.Token);
             }
             return true;
         }
 
-        private bool WaitForIndexFileCompletion()
+        private bool WaitForUploadFileCompletion()
         {
             try
             {
                 var fileInfo = file.WaitForUploadFileCompletion(out var result);
                 Console.WriteLine("{0}", fileInfo.Path);
                 Console.WriteLine("    Uploaded. FID={0}{1}", fileInfo.Fid, result == UploadFileStatus.Created ? " (NEW)" : "");
+                if (indexMode == IndexMode.Deferred)
+                {
+                    idx.PopulateIndex(fileInfo.Path, fileInfo.Fid);
+                }
                 return true;
             }
             catch (UploadFileException e)

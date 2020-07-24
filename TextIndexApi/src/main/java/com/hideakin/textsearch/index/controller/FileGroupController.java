@@ -20,22 +20,22 @@ import com.hideakin.textsearch.index.service.IndexService;
 public class FileGroupController {
 
 	@Autowired
-	private FileGroupService service;
+	private FileGroupService fileGroupService;
 
 	@Autowired
 	private IndexService indexService;
 
 	@RequestMapping(value="/v1/groups",method=RequestMethod.GET)
 	public FileGroupInfo[] getGroups() {
-		return service.getGroups();
+		return fileGroupService.getGroups();
 	}
 
 	@RequestMapping(value="/v1/groups/{gid:[0-9]+}",method=RequestMethod.GET)
 	public ResponseEntity<?> getGroup(
 			@PathVariable int gid) {
-		FileGroupInfo body = service.getGroup(gid);
-		if (body != null) {
-			return new ResponseEntity<>(body, HttpStatus.OK);
+		FileGroupInfo info = fileGroupService.getGroup(gid);
+		if (info != null) {
+			return new ResponseEntity<>(info, HttpStatus.OK);
 		} else {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
@@ -45,9 +45,9 @@ public class FileGroupController {
 	public ResponseEntity<?> createGroup(
 			@RequestBody FileGroupRequest req) {
 		try {
-			FileGroupInfo body = service.createGroup(req.getName());
-			indexService.initialize(body.getGid());
-			return new ResponseEntity<>(body, HttpStatus.CREATED);
+			FileGroupInfo info = fileGroupService.createGroup(req.getName());
+			indexService.initialize(info.getGid());
+			return new ResponseEntity<>(info, HttpStatus.CREATED);
 		} catch (DataAccessException e) {
 			ErrorResponse body;
 			if (e.getMessage().contains("constraint [file_groups_name_key]")) {
@@ -64,9 +64,9 @@ public class FileGroupController {
 			@PathVariable int gid,
 			@RequestBody FileGroupRequest req) {
 		try {
-			FileGroupInfo body = service.updateGroup(gid, req.getName());
-			if (body != null) {
-				return new ResponseEntity<>(body, HttpStatus.OK);
+			FileGroupInfo info = fileGroupService.updateGroup(gid, req.getName());
+			if (info != null) {
+				return new ResponseEntity<>(info, HttpStatus.OK);
 			} else {
 				return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 			}
@@ -84,9 +84,10 @@ public class FileGroupController {
 	@RequestMapping(value="/v1/groups/{gid:[0-9]+}",method=RequestMethod.DELETE)
 	public ResponseEntity<?> deleteGroup(
 			@PathVariable int gid) {
-		FileGroupInfo body = service.deleteGroup(gid);
-		if (body != null) {
-			return new ResponseEntity<>(body, HttpStatus.OK);
+		FileGroupInfo info = fileGroupService.deleteGroup(gid);
+		if (info != null) {
+			indexService.cleanup(gid);
+			return new ResponseEntity<>(info, HttpStatus.OK);
 		} else {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
