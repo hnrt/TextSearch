@@ -1,5 +1,7 @@
 package com.hideakin.textsearch.index.service;
 
+import java.util.Collection;
+
 import com.hideakin.textsearch.index.model.FileInfo;
 import com.hideakin.textsearch.index.model.FileStats;
 import com.hideakin.textsearch.index.model.ObjectDisposition;
@@ -12,10 +14,13 @@ public interface FileService {
 	FileInfo getFile(String group, String path);
 	String getPath(int fid);
 	byte[] getContents(int fid);
-	FileInfo addFile(String group, String path, int length, byte[] data, ObjectDisposition disp);
-	FileInfo updateFile(int fid, String path, int length, byte[] data);
+	FileInfo addFile(String group, String path, int length, ObjectDisposition disp);
+	FileInfo updateFile(int fid, String path, int length);
 	FileInfo[] deleteFiles(int gid);
 	FileInfo[] deleteStaleFiles(int gid);
 	FileInfo deleteFile(int fid);
+	void addContents(int fid, byte[] data);
+	void deleteContents(int fid);
+	void deleteContents(Collection<Integer> fids);
 
 }

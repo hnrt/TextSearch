@@ -1,6 +1,7 @@
 package com.hideakin.textsearch.index.service;
 
 import java.time.ZonedDateTime;
+import java.util.Collection;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -136,13 +137,14 @@ public class FileServiceImpl implements FileService {
 	}
 	
 	@Override
-	public FileInfo addFile(String group, String path, int length, byte[] data, ObjectDisposition disp) {
+	public FileInfo addFile(String group, String path, int length, ObjectDisposition disp) {
 		FileGroupEntity fileGroupEntity = fileGroupRepository.findByNameForUpdate(group);
 		if (fileGroupEntity == null) {
 			disp.setValue(ObjectDisposition.GROUP_NOT_FOUND);
 			return null;
 		}
-		List<FileEntity> entities = fileRepository.findAllByGidAndPathAndStaleFalse(fileGroupEntity.getGid(), path);
+		final int gid = fileGroupEntity.getGid();
+		List<FileEntity> entities = fileRepository.findAllByGidAndPathAndStaleFalse(gid, path);
 		for (FileEntity e : entities) {
 			e.setStale(true);
 			fileRepository.save(e);
@@ -152,23 +154,30 @@ public class FileServiceImpl implements FileService {
 		} else {
 			disp.setValue(ObjectDisposition.UPDATED);
 		}
-		return saveFile(fileGroupEntity, path, length, data);
+		FileEntity entity = fileRepository.save(new FileEntity(getNextFid(), path, length, gid));
+		fileGroupEntity.setUpdatedAt(ZonedDateTime.now());
+		fileGroupRepository.save(fileGroupEntity);
+		return new FileInfo(entity, fileGroupEntity);
 	}
 
 	@Override
-	public FileInfo updateFile(int fid, String path, int length, byte[] data) {
+	public FileInfo updateFile(int fid, String path, int length) {
 		FileEntity entity = fileRepository.findByFid(fid);
 		if (entity == null) {
 			return null;
 		}
-		FileGroupEntity fileGroupEntity = fileGroupRepository.findByGidForUpdate(entity.getGid());
+		final int gid = entity.getGid();
+		FileGroupEntity fileGroupEntity = fileGroupRepository.findByGidForUpdate(gid);
 		if (fileGroupEntity == null) {
-			logger.error("Existing File entity {} has an invalid GID {}.", fid, entity.getGid());
+			logger.error("Existing File entity {} has an invalid GID {}.", fid, gid);
 			return null;
 		}
 		entity.setStale(true);
 		fileRepository.save(entity);
-		return saveFile(fileGroupEntity, path, length, data);
+		entity = fileRepository.save(new FileEntity(getNextFid(), path, length, gid));
+		fileGroupEntity.setUpdatedAt(ZonedDateTime.now());
+		fileGroupRepository.save(fileGroupEntity);
+		return new FileInfo(entity, fileGroupEntity);
 	}
 	
 	@Override
@@ -186,7 +195,6 @@ public class FileServiceImpl implements FileService {
 		for (int index = 0; index < count; index++) {
 			FileEntity entity = entities.get(index);
 			values[index] = new FileInfo(entity, fileGroupEntity);
-			fileContentRepository.deleteByFid(entity.getFid());
 		}
 		fileRepository.deleteByGid(gid);
 		fileGroupEntity.setUpdatedAt(ZonedDateTime.now());
@@ -209,7 +217,6 @@ public class FileServiceImpl implements FileService {
 		for (int index = 0; index < count; index++) {
 			FileEntity entity = entities.get(index);
 			values[index] = new FileInfo(entity, fileGroupEntity);
-			fileContentRepository.deleteByFid(entity.getFid());
 			fileRepository.deleteByFid(entity.getFid());
 		}
 		fileGroupEntity.setUpdatedAt(ZonedDateTime.now());
@@ -227,19 +234,25 @@ public class FileServiceImpl implements FileService {
 		if (fileGroupEntity == null) {
 			return null;
 		}
-		fileContentRepository.deleteByFid(fid);
 		fileRepository.deleteByFid(fid);
 		fileGroupEntity.setUpdatedAt(ZonedDateTime.now());
 		fileGroupRepository.save(fileGroupEntity);
 		return new FileInfo(entity, fileGroupEntity);
 	}
 
-	private FileInfo saveFile(FileGroupEntity fgEntity, String path, int length, byte[] data) {
-		FileEntity entity = fileRepository.save(new FileEntity(getNextFid(), path, length, fgEntity.getGid()));
-		fileContentRepository.save(new FileContentEntity(entity.getFid(), data));
-		fgEntity.setUpdatedAt(ZonedDateTime.now());
-		fileGroupRepository.save(fgEntity);
-		return new FileInfo(entity, fgEntity);
+	@Override
+	public void addContents(int fid, byte[] data) {
+		fileContentRepository.save(new FileContentEntity(fid, data));
+	}
+
+	@Override
+	public void deleteContents(int fid) {
+		fileContentRepository.deleteByFid(fid);
+	}
+
+	@Override
+	public void deleteContents(Collection<Integer> fids) {
+		fileContentRepository.deleteByFidIn(fids);
 	}
 
 	private int getNextFid() {

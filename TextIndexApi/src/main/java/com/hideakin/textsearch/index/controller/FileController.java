@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -35,6 +37,8 @@ import com.hideakin.textsearch.index.utility.TextTokenizer;
 
 @RestController
 public class FileController {
+
+	private static final Logger logger = LoggerFactory.getLogger(FileController.class);
 
 	@Autowired
 	private FileService fileService;
@@ -115,8 +119,9 @@ public class FileController {
 			byte[] textUTF8 = TextEncoding.convertToUTF8(file.getBytes(), ContentType.parse(file.getContentType()).getCharset(TextEncoding.UTF_8));
 			byte[] compressed = GZipHelper.compress(textUTF8);
 			ObjectDisposition disp = new ObjectDisposition();
-			FileInfo added = fileService.addFile(group, file.getOriginalFilename(), textUTF8.length, compressed, disp);
+			FileInfo added = fileService.addFile(group, file.getOriginalFilename(), textUTF8.length, disp);
 			if (added != null) {
+				fileService.addContents(added.getFid(), compressed);
 				if (textIndexHeader.equals("create")) {
 					TextTokenizer tokenizer = new TextTokenizer();
 					tokenizer.run(textUTF8, TextEncoding.UTF_8);
@@ -141,8 +146,9 @@ public class FileController {
 		try {
 			byte[] textUTF8 = TextEncoding.convertToUTF8(file.getBytes(), ContentType.parse(file.getContentType()).getCharset(TextEncoding.UTF_8));
 			byte[] compressed = GZipHelper.compress(textUTF8);
-			FileInfo added = fileService.updateFile(fid, file.getOriginalFilename(), textUTF8.length, compressed);
+			FileInfo added = fileService.updateFile(fid, file.getOriginalFilename(), textUTF8.length);
 			if (added != null) {
+				fileService.addContents(added.getFid(), compressed);
 				if (textIndexHeader.equals("create")) {
 					TextTokenizer tokenizer = new TextTokenizer();
 					tokenizer.run(textUTF8, TextEncoding.UTF_8);
@@ -167,8 +173,13 @@ public class FileController {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
 		final int gid = fileGroupInfo.getGid();
+		logger.info("Started deleting files.");
 		FileInfo[] deleted = fileService.deleteFiles(gid);
+		logger.info("Finished deleting files and started deleting contents.");
+		fileService.deleteContents(createFidSet(deleted));
+		logger.info("Finished deleting contents and started deleting index.");
 		indexService.delete(gid);
+		logger.info("Finished deleting index.");
 		return new ResponseEntity<>(deleted, HttpStatus.OK);
 	}
 
@@ -180,14 +191,20 @@ public class FileController {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
 		final int gid = fileGroupInfo.getGid();
+		logger.info("Started deleting stale files.");
 		FileInfo[] deleted = fileService.deleteStaleFiles(gid);
+		logger.info("Finished deleting stale files and started deleting stale contents.");
 		Set<Integer> fids = createFidSet(deleted);
+		fileService.deleteContents(fids);
+		logger.info("Finished deleting stale contents and started updating index.");
 		final int limit = 256;
 		for (int offset = 0; true; offset += limit) {
+			logger.info(String.format("Updating index: offset=%d", offset));
 			if (indexService.delete(gid, fids, limit, offset) == 0) {
 				break;
 			}
 		}
+		logger.info("Finished updating index.");
 		return new ResponseEntity<>(deleted, HttpStatus.OK);
 	}
 
@@ -198,6 +215,7 @@ public class FileController {
 		if (deleted == null) {
 			return new ResponseEntity<>(HttpStatus.NOT_FOUND);
 		}
+		fileService.deleteContents(fid);
 		final int gid = deleted.getGid();
 		Set<Integer> fids = createFidSet(fid);
 		final int limit = 256;

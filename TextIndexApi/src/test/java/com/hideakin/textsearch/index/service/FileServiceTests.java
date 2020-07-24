@@ -213,9 +213,7 @@ public class FileServiceTests {
 		when(preferenceRepository.findByName("FID.next")).thenReturn(new PreferenceEntity("FID.next", "23"));
 		when(fileRepository.save(argThat(x -> x != null && x.getFid() == 23))).thenReturn(new FileEntity(23, "quux.cs", 3, 6));
 		ObjectDisposition disp = new ObjectDisposition();
-		FileInfo info = fileService.addFile("xyzzy", "quux.cs", 3,
-				GZipHelper.compress(new byte[] { 101, 103, 107 }),
-				disp);
+		FileInfo info = fileService.addFile("xyzzy", "quux.cs", 3, disp);
 		Assertions.assertEquals(23, info.getFid());
 		Assertions.assertEquals("quux.cs", info.getPath());
 		Assertions.assertEquals(3, info.getSize());
@@ -224,7 +222,6 @@ public class FileServiceTests {
 		Assertions.assertEquals(ObjectDisposition.CREATED, disp.getValue());
 		verify(preferenceRepository, times(1)).save(argThat(x -> x.getName().equals("FID.next") && x.getValue().equals("24")));
 		verify(fileRepository, times(1)).save(argThat(x -> x.getFid() == 23));
-		verify(fileContentRepository, times(1)).save(argThat(x -> x.getFid() == 23));
 		verify(fileGroupRepository, times(1)).save(argThat(x -> x.getGid() == 6));
 	}
 
@@ -238,7 +235,7 @@ public class FileServiceTests {
 		when(preferenceRepository.findByName("FID.next")).thenReturn(new PreferenceEntity("FID.next", "24"));
 		when(fileRepository.save(argThat(x -> x != null && x.getFid() == 24))).thenReturn(new FileEntity(24, "quux.cs", 3, 6));
 		ObjectDisposition disp = new ObjectDisposition();
-		FileInfo info = fileService.addFile("xyzzy", "quux.cs", 3, GZipHelper.compress(new byte[] { 101, 103, 107 }), disp);
+		FileInfo info = fileService.addFile("xyzzy", "quux.cs", 3, disp);
 		Assertions.assertEquals(24, info.getFid());
 		Assertions.assertEquals("quux.cs", info.getPath());
 		Assertions.assertEquals(3, info.getSize());
@@ -248,7 +245,6 @@ public class FileServiceTests {
 		verify(preferenceRepository, times(1)).save(argThat(x -> x.getName().equals("FID.next") && x.getValue().equals("25")));
 		verify(fileRepository, times(1)).save(argThat(x -> x.getFid() == 1));
 		verify(fileRepository, times(1)).save(argThat(x -> x.getFid() == 24));
-		verify(fileContentRepository, times(1)).save(argThat(x -> x.getFid() == 24));
 		verify(fileGroupRepository, times(1)).save(argThat(x -> x.getGid() == 6));
 	}
 
@@ -256,7 +252,7 @@ public class FileServiceTests {
 	public void addFile_notFound() {
 		when(fileGroupRepository.findByNameForUpdate("xyzzy")).thenReturn(null);
 		ObjectDisposition disp = new ObjectDisposition();
-		FileInfo info = fileService.addFile("xyzzy", "quux.cs", 3, GZipHelper.compress(new byte[] { 101, 103, 107 }), disp);
+		FileInfo info = fileService.addFile("xyzzy", "quux.cs", 3, disp);
 		Assertions.assertEquals(null, info);
 		Assertions.assertEquals(ObjectDisposition.GROUP_NOT_FOUND, disp.getValue());
 	}
@@ -267,7 +263,7 @@ public class FileServiceTests {
 		when(fileGroupRepository.findByGidForUpdate(6)).thenReturn(new FileGroupEntity(6, "xyzzy"));
 		when(preferenceRepository.findByName("FID.next")).thenReturn(new PreferenceEntity("FID.next", "25"));
 		when(fileRepository.save(argThat(x -> x != null && x.getFid() == 25))).thenReturn(new FileEntity(25, "quux.cs", 3, 6));
-		FileInfo info = fileService.updateFile(24, "quux.cs", 3, GZipHelper.compress(new byte[] { 101, 103, 107 }));
+		FileInfo info = fileService.updateFile(24, "quux.cs", 3);
 		Assertions.assertEquals(25, info.getFid());
 		Assertions.assertEquals("quux.cs", info.getPath());
 		Assertions.assertEquals(3, info.getSize());
@@ -275,14 +271,13 @@ public class FileServiceTests {
 		Assertions.assertEquals("xyzzy", info.getGroup());
 		verify(fileRepository, times(1)).save(argThat(x -> x.getFid() == 24));
 		verify(fileRepository, times(1)).save(argThat(x -> x.getFid() == 25));
-		verify(fileContentRepository, times(1)).save(argThat(x -> x.getFid() == 25));
 		verify(fileGroupRepository, times(1)).save(argThat(x -> x.getGid() == 6));
 	}
 
 	@Test
 	public void updateFile_notFound() {
 		when(fileRepository.findByFid(14)).thenReturn(null);
-		FileInfo info = fileService.updateFile(14, "quux.cs", 3, GZipHelper.compress(new byte[] { 101, 103, 107 }));
+		FileInfo info = fileService.updateFile(14, "quux.cs", 3);
 		Assertions.assertEquals(null, info);
 	}
 
@@ -295,18 +290,12 @@ public class FileServiceTests {
 			add(new FileEntity(802, "/home/src/quux/bar.java", 200, 111));
 			add(new FileEntity(803, "/home/src/quux/baz.java", 300, 111));
 		}});
-		doNothing().when(fileContentRepository).deleteByFid(801);
-		doNothing().when(fileContentRepository).deleteByFid(802);
-		doNothing().when(fileContentRepository).deleteByFid(803);
 		doNothing().when(fileRepository).deleteByGid(111);
 		FileInfo[] fi = fileService.deleteFiles(111);
 		Assertions.assertEquals(3, fi.length);
 		Assertions.assertEquals(801, fi[0].getFid());
 		Assertions.assertEquals(802, fi[1].getFid());
 		Assertions.assertEquals(803, fi[2].getFid());
-		verify(fileContentRepository, times(1)).deleteByFid(801);
-		verify(fileContentRepository, times(1)).deleteByFid(802);
-		verify(fileContentRepository, times(1)).deleteByFid(803);
 		verify(fileRepository, times(1)).deleteByGid(111);
 		verify(fileGroupRepository, times(1)).save(argThat(x -> x.getGid() == 111));
 	}
@@ -327,9 +316,6 @@ public class FileServiceTests {
 			add(new FileEntity(82, "/home/src/quux/bar.java", 200, 111));
 			add(new FileEntity(83, "/home/src/quux/baz.java", 300, 111));
 		}});
-		doNothing().when(fileContentRepository).deleteByFid(81);
-		doNothing().when(fileContentRepository).deleteByFid(82);
-		doNothing().when(fileContentRepository).deleteByFid(83);
 		doNothing().when(fileRepository).deleteByFid(81);
 		doNothing().when(fileRepository).deleteByFid(82);
 		doNothing().when(fileRepository).deleteByFid(83);
@@ -338,9 +324,6 @@ public class FileServiceTests {
 		Assertions.assertEquals(81, fi[0].getFid());
 		Assertions.assertEquals(82, fi[1].getFid());
 		Assertions.assertEquals(83, fi[2].getFid());
-		verify(fileContentRepository, times(1)).deleteByFid(81);
-		verify(fileContentRepository, times(1)).deleteByFid(82);
-		verify(fileContentRepository, times(1)).deleteByFid(83);
 		verify(fileRepository, times(1)).deleteByFid(81);
 		verify(fileRepository, times(1)).deleteByFid(82);
 		verify(fileRepository, times(1)).deleteByFid(83);
@@ -351,11 +334,9 @@ public class FileServiceTests {
 	public void deleteFile_successful() {
 		when(fileRepository.findByFid(777)).thenReturn(new FileEntity(777, "/home/src/quux/foo.java", 100, 111));
 		when(fileGroupRepository.findByGidForUpdate(111)).thenReturn(new FileGroupEntity(111, "xyzzy"));
-		doNothing().when(fileContentRepository).deleteByFid(777);
 		doNothing().when(fileRepository).deleteByFid(777);
 		FileInfo fi = fileService.deleteFile(777);
 		Assertions.assertEquals(777, fi.getFid());
-		verify(fileContentRepository, times(1)).deleteByFid(777);
 		verify(fileRepository, times(1)).deleteByFid(777);
 		verify(fileGroupRepository, times(1)).save(argThat(x -> x.getGid() == 111));
 	}
@@ -363,11 +344,9 @@ public class FileServiceTests {
 	@Test
 	public void deleteFile_notFound() {
 		when(fileRepository.findByFid(777)).thenReturn(null);
-		doNothing().when(fileContentRepository).deleteByFid(anyInt());
 		doNothing().when(fileRepository).deleteByFid(anyInt());
 		FileInfo fi = fileService.deleteFile(777);
 		Assertions.assertEquals(null, fi);
-		verify(fileContentRepository, times(0)).deleteByFid(anyInt());
 		verify(fileRepository, times(0)).deleteByFid(anyInt());
 		verify(fileGroupRepository, times(0)).save(any(FileGroupEntity.class));
 	}
@@ -376,11 +355,9 @@ public class FileServiceTests {
 	public void deleteFile_notFound2() {
 		when(fileRepository.findByFid(777)).thenReturn(new FileEntity(777, "/home/src/quux/foo.java", 100, 111));
 		when(fileGroupRepository.findByGidForUpdate(111)).thenReturn(null);
-		doNothing().when(fileContentRepository).deleteByFid(anyInt());
 		doNothing().when(fileRepository).deleteByFid(anyInt());
 		FileInfo fi = fileService.deleteFile(777);
 		Assertions.assertEquals(null, fi);
-		verify(fileContentRepository, times(0)).deleteByFid(anyInt());
 		verify(fileRepository, times(0)).deleteByFid(anyInt());
 		verify(fileGroupRepository, times(0)).save(any(FileGroupEntity.class));
 	}

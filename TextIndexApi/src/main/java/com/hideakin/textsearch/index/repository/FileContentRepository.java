@@ -1,5 +1,7 @@
 package com.hideakin.textsearch.index.repository;
 
+import java.util.Collection;
+
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -10,5 +12,6 @@ public interface FileContentRepository extends JpaRepository<FileContentEntity,I
 
 	FileContentEntity findByFid(int fid);
 	void deleteByFid(int fid);
+	void deleteByFidIn(Collection<Integer> fids);
 
 }
