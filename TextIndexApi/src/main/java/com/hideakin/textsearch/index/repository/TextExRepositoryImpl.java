@@ -30,19 +30,26 @@ public class TextExRepositoryImpl implements TextExRepository {
 		return findPartialByLike(String.format("%%%s", text), gid, limit, offset);
 	}
 
-	@SuppressWarnings("unchecked")
 	@Override
 	public List<String> findTextByGid(int gid, int limit, int offset) {
-		return (List<String>)em.createQuery("SELECT t.text FROM texts t WHERE t.gid = :gid ORDER BY t.text")
+		return em.createQuery("SELECT t.text FROM texts t WHERE t.gid = :gid ORDER BY t.text", String.class)
 				.setParameter("gid", gid)
 				.setMaxResults(limit)
 				.setFirstResult(offset)
 				.getResultList();
 	}
 
-	@SuppressWarnings("unchecked")
+	@Override
+	public List<TextEntity> findByGid(int gid, int limit, int offset) {
+		return em.createQuery("SELECT t FROM texts t WHERE t.gid = :gid ORDER BY t.text", TextEntity.class)
+				.setParameter("gid", gid)
+				.setMaxResults(limit)
+				.setFirstResult(offset)
+				.getResultList();
+	}
+
 	private List<TextEntity> findPartialByLike(String expr, int gid, int limit, int offset) {
-		return (List<TextEntity>)em.createQuery("SELECT t FROM texts t WHERE t.text LIKE :expr AND t.gid = :gid ORDER BY t.text")
+		return em.createQuery("SELECT t FROM texts t WHERE t.text LIKE :expr AND t.gid = :gid ORDER BY t.text", TextEntity.class)
 				.setParameter("expr", expr)
 				.setParameter("gid", gid)
 				.setMaxResults(limit)

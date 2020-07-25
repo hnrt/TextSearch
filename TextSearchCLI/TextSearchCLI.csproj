@@ -92,6 +92,7 @@
     <Compile Include="command\CommandQueue.cs" />
     <Compile Include="command\ConfigurationCommand.cs" />
     <Compile Include="command\DebugCommand.cs" />
+    <Compile Include="command\DiagnosticsCommand.cs" />
     <Compile Include="command\FileCommand.cs" />
     <Compile Include="command\FileGroupCommand.cs" />
     <Compile Include="command\HelpCommand.cs" />

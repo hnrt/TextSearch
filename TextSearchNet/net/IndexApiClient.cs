@@ -240,6 +240,252 @@ namespace com.hideakin.textsearch.net
 
         #endregion
 
+        #region DIAGNOSTICS
+
+        public async Task<object> GetIds()
+        {
+            try
+            {
+                await Initialize();
+                var uri = string.Format("{0}/v1/diagnostics/ids", Url);
+                using (var request = new HttpRequestMessage(HttpMethod.Get, uri))
+                {
+                    request.Headers.Add(AUTHORIZATION, BearerToken);
+                    using (var response = await httpClient.SendAsync(request, ct))
+                    {
+                        StatusCode = response.StatusCode;
+                        var responseBody = await response.Content.ReadAsStringAsync();
+                        if (response.StatusCode == HttpStatusCode.OK)
+                        {
+                            return JsonConvert.DeserializeObject<IdStatus>(responseBody);
+                        }
+                        else if (response.StatusCode == HttpStatusCode.Forbidden)
+                        {
+                            return new ErrorResponseException(JsonConvert.DeserializeObject<ErrorResponse>(responseBody), "GetIds request failed.");
+                        }
+                        else
+                        {
+                            return new UnrecognizedResponseException(response.StatusCode, responseBody, "GetIds request failed.");
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                return e;
+            }
+        }
+
+        public async Task<object> ResetIds()
+        {
+            try
+            {
+                await Initialize();
+                var uri = string.Format("{0}/v1/diagnostics/ids/unused", Url);
+                using (var request = new HttpRequestMessage(HttpMethod.Delete, uri))
+                {
+                    request.Headers.Add(AUTHORIZATION, BearerToken);
+                    using (var response = await httpClient.SendAsync(request, ct))
+                    {
+                        StatusCode = response.StatusCode;
+                        var responseBody = await response.Content.ReadAsStringAsync();
+                        if (response.StatusCode == HttpStatusCode.OK)
+                        {
+                            return JsonConvert.DeserializeObject<IdStatus>(responseBody);
+                        }
+                        else if (response.StatusCode == HttpStatusCode.Forbidden)
+                        {
+                            return new ErrorResponseException(JsonConvert.DeserializeObject<ErrorResponse>(responseBody), "ResetIds request failed.");
+                        }
+                        else
+                        {
+                            return new UnrecognizedResponseException(response.StatusCode, responseBody, "ResetIds request failed.");
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                return e;
+            }
+        }
+
+        public async Task<object> GetUnusedFiles()
+        {
+            try
+            {
+                await Initialize();
+                var uri = string.Format("{0}/v1/diagnostics/files/unused", Url);
+                using (var request = new HttpRequestMessage(HttpMethod.Get, uri))
+                {
+                    request.Headers.Add(AUTHORIZATION, BearerToken);
+                    using (var response = await httpClient.SendAsync(request, ct))
+                    {
+                        StatusCode = response.StatusCode;
+                        var responseBody = await response.Content.ReadAsStringAsync();
+                        if (response.StatusCode == HttpStatusCode.OK)
+                        {
+                            return JsonConvert.DeserializeObject<model.FileInfo[]>(responseBody);
+                        }
+                        else if (response.StatusCode == HttpStatusCode.Forbidden)
+                        {
+                            return new ErrorResponseException(JsonConvert.DeserializeObject<ErrorResponse>(responseBody), "GetUnusedFiles request failed.");
+                        }
+                        else
+                        {
+                            return new UnrecognizedResponseException(response.StatusCode, responseBody, "GetUnusedFiles request failed.");
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                return e;
+            }
+        }
+
+        public async Task<object> DeleteUnusedFiles()
+        {
+            try
+            {
+                await Initialize();
+                var uri = string.Format("{0}/v1/diagnostics/files/unused", Url);
+                using (var request = new HttpRequestMessage(HttpMethod.Delete, uri))
+                {
+                    request.Headers.Add(AUTHORIZATION, BearerToken);
+                    using (var response = await httpClient.SendAsync(request, ct))
+                    {
+                        StatusCode = response.StatusCode;
+                        var responseBody = await response.Content.ReadAsStringAsync();
+                        if (response.StatusCode == HttpStatusCode.OK)
+                        {
+                            return JsonConvert.DeserializeObject<model.FileInfo[]>(responseBody);
+                        }
+                        else if (response.StatusCode == HttpStatusCode.Forbidden)
+                        {
+                            return new ErrorResponseException(JsonConvert.DeserializeObject<ErrorResponse>(responseBody), "GetUnusedFiles request failed.");
+                        }
+                        else
+                        {
+                            return new UnrecognizedResponseException(response.StatusCode, responseBody, "GetUnusedFiles request failed.");
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                return e;
+            }
+        }
+
+        public async Task<object> GetUnusedContents()
+        {
+            try
+            {
+                await Initialize();
+                var uri = string.Format("{0}/v1/diagnostics/contents/unused", Url);
+                using (var request = new HttpRequestMessage(HttpMethod.Get, uri))
+                {
+                    request.Headers.Add(AUTHORIZATION, BearerToken);
+                    using (var response = await httpClient.SendAsync(request, ct))
+                    {
+                        StatusCode = response.StatusCode;
+                        var responseBody = await response.Content.ReadAsStringAsync();
+                        if (response.StatusCode == HttpStatusCode.OK)
+                        {
+                            return JsonConvert.DeserializeObject<int[]>(responseBody);
+                        }
+                        else if (response.StatusCode == HttpStatusCode.Forbidden)
+                        {
+                            return new ErrorResponseException(JsonConvert.DeserializeObject<ErrorResponse>(responseBody), "GetUnusedContents request failed.");
+                        }
+                        else
+                        {
+                            return new UnrecognizedResponseException(response.StatusCode, responseBody, "GetUnusedContents request failed.");
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                return e;
+            }
+        }
+
+        public async Task<object> DeleteUnusedContents()
+        {
+            try
+            {
+                await Initialize();
+                var uri = string.Format("{0}/v1/diagnostics/contents/unused", Url);
+                using (var request = new HttpRequestMessage(HttpMethod.Delete, uri))
+                {
+                    request.Headers.Add(AUTHORIZATION, BearerToken);
+                    using (var response = await httpClient.SendAsync(request, ct))
+                    {
+                        StatusCode = response.StatusCode;
+                        var responseBody = await response.Content.ReadAsStringAsync();
+                        if (response.StatusCode == HttpStatusCode.OK)
+                        {
+                            return JsonConvert.DeserializeObject<int[]>(responseBody);
+                        }
+                        else if (response.StatusCode == HttpStatusCode.Forbidden)
+                        {
+                            return new ErrorResponseException(JsonConvert.DeserializeObject<ErrorResponse>(responseBody), "DeleteUnusedContents request failed.");
+                        }
+                        else
+                        {
+                            return new UnrecognizedResponseException(response.StatusCode, responseBody, "DeleteUnusedContents request failed.");
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                return e;
+            }
+        }
+
+        public async Task<object> GetIndexStats(string group)
+        {
+            try
+            {
+                await Initialize();
+                var uri = string.Format("{0}/v1/diagnostics/index/{1}/stats", Url, group);
+                using (var request = new HttpRequestMessage(HttpMethod.Get, uri))
+                {
+                    request.Headers.Add(AUTHORIZATION, BearerToken);
+                    using (var response = await httpClient.SendAsync(request, ct))
+                    {
+                        StatusCode = response.StatusCode;
+                        var responseBody = await response.Content.ReadAsStringAsync();
+                        if (response.StatusCode == HttpStatusCode.OK)
+                        {
+                            return JsonConvert.DeserializeObject<IndexStats>(responseBody);
+                        }
+                        else if (response.StatusCode == HttpStatusCode.NotFound)
+                        {
+                            return new GroupNotFoundException(group);
+                        }
+                        else if (response.StatusCode == HttpStatusCode.Forbidden)
+                        {
+                            return new ErrorResponseException(JsonConvert.DeserializeObject<ErrorResponse>(responseBody), "GetIndexStats request failed.");
+                        }
+                        else
+                        {
+                            return new UnrecognizedResponseException(response.StatusCode, responseBody, "GetIndexStats request failed.");
+                        }
+                    }
+                }
+            }
+            catch (Exception e)
+            {
+                return e;
+            }
+        }
+
+        #endregion
+
         #region USER
 
         public async Task<object> GetUsers()

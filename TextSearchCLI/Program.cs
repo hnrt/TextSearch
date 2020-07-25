@@ -18,6 +18,7 @@ namespace com.hideakin.textsearch
             new FileCommand(),
             new SearchCommand(),
             new ConfigurationCommand(),
+            new DiagnosticsCommand(),
             new DebugCommand()
         };
 

@@ -1,5 +1,6 @@
 package com.hideakin.textsearch.index.repository;
 
+import java.util.Collection;
 import java.util.List;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -17,9 +18,13 @@ public interface FileRepository extends JpaRepository<FileEntity,Integer> {
 	List<FileEntity> findAllByGidAndStaleTrue(int gid);
 	List<FileEntity> findAllByGidAndStaleFalse(int gid);
 	void deleteByFid(int fid);
+	void deleteByFidIn(Collection<Integer> fids);
 	void deleteByGid(int gid);
 
 	@Query("SELECT MAX(f.fid) FROM files f")
 	Integer getMaxFid();
+
+	@Query("SELECT f FROM files f WHERE f.gid NOT IN (SELECT g.gid FROM file_groups g)")
+	List<FileEntity> findUnused();
 
 }

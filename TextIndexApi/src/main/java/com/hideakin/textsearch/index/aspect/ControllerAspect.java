@@ -67,6 +67,11 @@ public class ControllerAspect {
 	    verifyAccessToken(userReadOnly);
 	}
 	
+	@Before("within(com.hideakin.textsearch.index.controller.DiagnosticsController)")
+	public void beforeDiagnosticsController() {
+	    verifyAccessToken(administratorOnly);
+	}
+	
 	@Before("within(com.hideakin.textsearch.index.controller.UserController)")
 	public void beforeUserController() {
 		verifyServiceAvailability();

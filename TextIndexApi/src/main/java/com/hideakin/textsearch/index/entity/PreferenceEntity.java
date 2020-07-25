@@ -31,6 +31,11 @@ public class PreferenceEntity {
 		this.value = value;
 	}
 	
+	public PreferenceEntity(String name, int value) {
+		this.name = name;
+		this.value = String.format("%d", value);
+	}
+	
 	public String getName() {
 		return name;
 	}

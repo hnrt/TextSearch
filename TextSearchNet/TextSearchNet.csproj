@@ -107,6 +107,8 @@
     <Compile Include="model\FileStats.cs" />
     <Compile Include="model\HitRanges.cs" />
     <Compile Include="model\HitRowColumns.cs" />
+    <Compile Include="model\IdStatus.cs" />
+    <Compile Include="model\IndexStats.cs" />
     <Compile Include="model\RowColumns.cs" />
     <Compile Include="model\TextDistribution.cs" />
     <Compile Include="model\TextToken.cs" />
