@@ -9,5 +9,11 @@ namespace com.hideakin.textsearch.model
 
         [JsonProperty("path")]
         public string Path { get; set; }
+
+        [JsonProperty("url")]
+        public string Url { get; set; }
+
+        [JsonProperty("urls")]
+        public string[] Urls { get; set; }
     }
 }

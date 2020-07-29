@@ -16,6 +16,9 @@
         <Style TargetType="ListViewItem">
             <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
         </Style>
+        <DataTemplate x:Key="FileNameItemTemplate">
+            <TextBlock HorizontalAlignment="Left" Text="{Binding Path=FileName}" ToolTip="{Binding Path=Path}"/>
+        </DataTemplate>
         <DataTemplate x:Key="LineItemTemplate">
             <TextBlock HorizontalAlignment="Right" Text="{Binding Path=Line}"/>
         </DataTemplate>
@@ -58,6 +61,8 @@
         </Grid.ColumnDefinitions>
         <Menu Name="Menubar" Grid.Row="0">
             <MenuItem Name="FileMenuItem" Header="{x:Static p:Resources.FileMenuItemHeader}">
+                <MenuItem Name="FileUrlMenuItem" Header="{x:Static p:Resources.FileUrlMenuItemHeader}" Click="OnFileUrl"/>
+                <Separator/>
                 <MenuItem Name="FileAuthMenuItem" Header="{x:Static p:Resources.FileAuthMenuItemHeader}" Click="OnFileAuth"/>
                 <Separator/>
                 <MenuItem Name="FileExitMenuItem" Header="{x:Static p:Resources.FileExitMenuItemHeader}" Click="OnFileExit"/>
@@ -102,7 +107,7 @@
             <ListView Name="HitListView" ItemsSource="{Binding Path=HitItems,Mode=OneWay,UpdateSourceTrigger=PropertyChanged}" SelectionChanged="OnHitListViewSelectionChanged">
                 <ListView.View>
                     <GridView>
-                        <GridViewColumn x:Name="HitListViewNameColumn" Header="{x:Static p:Resources.FileNameColumnHeader}" Width="200" DisplayMemberBinding="{Binding Path=FileName}"/>
+                        <GridViewColumn x:Name="HitListViewNameColumn" Header="{x:Static p:Resources.FileNameColumnHeader}" Width="200" CellTemplate="{StaticResource FileNameItemTemplate}"/>
                         <GridViewColumn x:Name="HitListViewLineColumn" Header="{x:Static p:Resources.LineColumnHeader}" Width="50" CellTemplate="{StaticResource LineItemTemplate}"/>
                         <GridViewColumn x:Name="HitListViewTextColumn" Header="{x:Static p:Resources.TextColumnHeader}" Width="Auto" CellTemplate="{StaticResource TextItemTemplate}"/>
                     </GridView>

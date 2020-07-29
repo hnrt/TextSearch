@@ -223,6 +223,15 @@ namespace com.hideakin.textsearch.Properties {
         }
         
         /// <summary>
+        ///   Change API URL... に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        public static string FileUrlMenuItemHeader {
+            get {
+                return ResourceManager.GetString("FileUrlMenuItemHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Group to indicate a set of files for searching/browsing に類似しているローカライズされた文字列を検索します。
         /// </summary>
         public static string GroupComboBoxTooltip {
@@ -408,6 +417,15 @@ namespace com.hideakin.textsearch.Properties {
         public static string UpdateGroupsFailure {
             get {
                 return ResourceManager.GetString("UpdateGroupsFailure", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   TextSearch - Index API URL に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        public static string UrlWindowTitle {
+            get {
+                return ResourceManager.GetString("UrlWindowTitle", resourceCulture);
             }
         }
         

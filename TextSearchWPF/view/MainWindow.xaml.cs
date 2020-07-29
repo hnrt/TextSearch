@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
@@ -30,6 +31,8 @@ namespace com.hideakin.textsearch.view
 
         private bool CanStartQuery => GroupComboBox.SelectedItem != null && QueryTextBox.Text.Trim().Length > 0;
 
+        private readonly List<string> Urls = new List<string>();
+
         #endregion
 
         #region CONSTRUCTOR
@@ -51,6 +54,7 @@ namespace com.hideakin.textsearch.view
 
         private async void OnLoaded(object sender, RoutedEventArgs e)
         {
+            var state = LoadLastState();
             EditCancelRequestMenuItem.IsEnabled = false;
             (new GridViewColumnWidthAdjuster(HitListView, HitListViewTextColumn, HitListViewNameColumn, HitListViewLineColumn)).Adjust();
             (new GridViewColumnWidthAdjuster(FileListView, FileListViewPathColumn, FileListViewCheckColumn, FileListViewSizeColumn)).Adjust();
@@ -64,13 +68,13 @@ namespace com.hideakin.textsearch.view
                     QueryButton.IsEnabled = CanStartQuery;
                     wip.SetFinalContent(null);
                     UpdateStatusBar();
+                    ApplyLastState(state);
                 }
                 else
                 {
                     wip.SetFinalContent(Properties.Resources.InitializationFailure);
                 }
             }
-            LoadLastState();
             GroupComboBox.SelectionChanged += OnGroupComboBoxSelectionChanged;
         }
 
@@ -79,11 +83,34 @@ namespace com.hideakin.textsearch.view
             SaveLastState();
         }
 
-        private async void LoadLastState()
+        private LastState LoadLastState()
         {
             if (File.Exists(STATE_PATH))
             {
                 var state = JsonConvert.DeserializeObject<LastState>(File.ReadAllText(STATE_PATH));
+                if (state.Url != null)
+                {
+                    IndexApiClient.Url = state.Url;
+                }
+                if (state.Urls != null)
+                {
+                    foreach (var url in state.Urls)
+                    {
+                        Urls.Add(url);
+                    }
+                }
+                return state;
+            }
+            else
+            {
+                return null;
+            }
+        }
+
+        private async void ApplyLastState(LastState state)
+        {
+            if (state != null)
+            {
                 if (state.Group != null && GroupComboBox.HasItems && GroupComboBox.Items.Contains(state.Group))
                 {
                     GroupComboBox.SelectedItem = state.Group;
@@ -118,8 +145,10 @@ namespace com.hideakin.textsearch.view
             var state = new LastState()
             {
                 Group = GroupComboBox.SelectedItem is string s ? s : null,
-                Path = FileListView.SelectedItem is FileItem f ? f.Path : null
+                Path = FileListView.SelectedItem is FileItem f ? f.Path : null,
+                Url = IndexApiClient.Url
             };
+            state.Urls = Urls.ToArray();
             File.WriteAllText(STATE_PATH, JsonConvert.SerializeObject(state));
         }
 
@@ -134,6 +163,29 @@ namespace com.hideakin.textsearch.view
         private void OnFileExit(object sender, RoutedEventArgs e)
         {
             Close();
+        }
+
+        private void OnFileUrl(object sender, RoutedEventArgs e)
+        {
+            var dialogBox = new UrlWindow()
+            {
+                Owner = this
+            };
+            dialogBox.Add(IndexApiClient.Url, true);
+            foreach (var url in Urls.Where(x => x != IndexApiClient.Url))
+            {
+                dialogBox.Add(url);
+            }
+            var result = dialogBox.ShowDialog();
+            if (result == true)
+            {
+                var url = dialogBox.Url;
+                IndexApiClient.Url = url;
+                if (!Urls.Contains(url))
+                {
+                    Urls.Add(url);
+                }
+            }
         }
 
         private async void OnFileAuth(object sender, RoutedEventArgs e)
