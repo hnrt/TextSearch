@@ -95,6 +95,7 @@
     <Compile Include="exception\UploadFileException.cs" />
     <Compile Include="exception\UserNotExistException.cs" />
     <Compile Include="exception\UserNotFoundException.cs" />
+    <Compile Include="model\AndExpression.cs" />
     <Compile Include="model\ApiCreadentialsCollection.cs" />
     <Compile Include="model\ApiCredentials.cs" />
     <Compile Include="model\AuthenticateResponse.cs" />
@@ -109,7 +110,10 @@
     <Compile Include="model\HitRowColumns.cs" />
     <Compile Include="model\IdStatus.cs" />
     <Compile Include="model\IndexStats.cs" />
+    <Compile Include="model\OrExpression.cs" />
+    <Compile Include="model\QueryExpression.cs" />
     <Compile Include="model\RowColumns.cs" />
+    <Compile Include="model\SequenceExpression.cs" />
     <Compile Include="model\TextDistribution.cs" />
     <Compile Include="model\TextToken.cs" />
     <Compile Include="model\UpdateIndexRequest.cs" />
@@ -132,6 +136,7 @@
     <Compile Include="utility\AppData.cs" />
     <Compile Include="utility\Debug.cs" />
     <Compile Include="utility\HitRangesListExtension.cs" />
+    <Compile Include="utility\QueryExpressionParser.cs" />
     <Compile Include="utility\StringExtension.cs" />
     <Compile Include="utility\StringListExtension.cs" />
     <Compile Include="utility\TextDistributionListExtension.cs" />

@@ -2,12 +2,17 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 
 namespace com.hideakin.textsearch.utility
 {
     internal class TextTokenizer
     {
+        public const int DEFAULT_MODE = 0;
+
+        public const int QUERY_MODE = 1;
+
         public const int MAX_LEN = 255;
 
         public static readonly string NEW_LINE = "\n";
@@ -15,6 +20,8 @@ namespace com.hideakin.textsearch.utility
         private const int EOF = -1;
 
         public List<TextToken> Tokens { get; }
+
+        private int mode;
 
         private StringBuilder buf;
 
@@ -30,26 +37,16 @@ namespace com.hideakin.textsearch.utility
 
         private int tCol;
 
-        public TextTokenizer()
+        public TextTokenizer(int mode = DEFAULT_MODE)
         {
+            this.mode = mode;
             Tokens = new List<TextToken>();
             buf = new StringBuilder();
             row = 0;
             col = 0;
         }
 
-        public string[] Texts
-        {
-            get
-            {
-                var texts = new string[Tokens.Count];
-                for (int index = 0; index < texts.Length; index++)
-                {
-                    texts[index] = Tokens[index].Text;
-                }
-                return texts;
-            }
-        }
+        public string[] Texts => Tokens.Select(x => x.Text).ToArray();
 
         public void Run(string[] lines)
         {
@@ -109,6 +106,12 @@ namespace com.hideakin.textsearch.utility
                         Read();
                     }
                     EndAsUpper();
+                }
+                else if (mode == QUERY_MODE && (c == '&' || c == '|' || c == '(' || c == ')'))
+                {
+                    Start();
+                    Read();
+                    EndAsIs();
                 }
                 else 
                 {
