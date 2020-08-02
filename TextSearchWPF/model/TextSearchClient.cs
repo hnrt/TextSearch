@@ -23,7 +23,7 @@ namespace com.hideakin.textsearch.model
 
         public ObservableCollection<HitItem> HitItems { get; } = new ObservableCollection<HitItem>();
 
-        private HitRowColumns[] QueryResults { get; set; }
+        private List<HitFile> QueryResults { get; set; }
 
         private ISet<int> Unchecked { get; } = new HashSet<int>();
 
@@ -135,7 +135,8 @@ namespace com.hideakin.textsearch.model
             {
                 QueryResults = null;
                 HitItems.Clear();
-                Path = string.Empty;
+                Fid = -1;
+                Path = " ";
                 NotifyOfChange("Path");
                 Contents.Clear();
                 var svc = new IndexService(cts.Token);
@@ -185,7 +186,7 @@ namespace com.hideakin.textsearch.model
 
         private async void ProcessQueryResults()
         {
-            var m = new List<(HitRowColumns Hit, FileContents Contents)>();
+            var m = new List<(HitFile Hit, FileContents Contents)>();
             foreach (var hit in QueryResults)
             {
                 var f = FileItems.Where(x => x.Fid == hit.Fid).FirstOrDefault();
@@ -204,7 +205,7 @@ namespace com.hideakin.textsearch.model
             {
                 foreach (var entry in hit.Rows)
                 {
-                    var item = new HitItem(contents.Fid, contents.Path, entry.Row + 1, contents.Lines[entry.Row], entry.Columns);
+                    var item = new HitItem(contents.Fid, contents.Path, entry.Row + 1, contents.Lines[entry.Row], entry.Matches.Select(x => (x.StartCol, x.EndCol)).ToList());
                     HitItems.Add(item);
                     if (d.TryGetValue(item.Fid, out var hitRows))
                     {
@@ -319,7 +320,7 @@ namespace com.hideakin.textsearch.model
                     Unchecked.Add(f.Fid);
                 }
             }
-            if (QueryResults == null || QueryResults.Length == 0)
+            if (QueryResults == null || QueryResults.Count == 0)
             {
                 return;
             }

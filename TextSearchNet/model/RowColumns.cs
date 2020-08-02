@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 
 namespace com.hideakin.textsearch.model
 {
@@ -6,110 +7,271 @@ namespace com.hideakin.textsearch.model
     {
         public int Row { get; }
 
-        public List<(int Start, int End)> Columns { get; }
+        public MatchList Matches { get; }
 
-        public RowColumns(int row, List<(int Start, int End)> columns)
+        public RowColumns(int row, MatchList matches)
         {
             Row = row;
-            Columns = columns;
+            Matches = matches;
         }
 
-        public RowColumns(int row, List<(int Start, int End)> columns1, List<(int Start, int End)> columns2)
+        public RowColumns(int row, MatchList matches1, MatchList matches2)
         {
             Row = row;
-            Columns = new List<(int Start, int End)>();
-            int index1 = 0;
-            int index2 = 0;
-            if (columns1.Count == 0)
+            Matches = new MatchList();
+            if (matches1 == null)
             {
-                while (index2 < columns2.Count)
+                if (matches2 != null)
                 {
-                    Columns.Add(columns2[index2++]);
+                    Matches.AddRange(matches2);
                 }
             }
-            else if (columns2.Count == 0)
+            else if (matches2 == null)
             {
-                do
-                {
-                    Columns.Add(columns1[index1++]);
-                }
-                while (index1 < columns1.Count);
+                Matches.AddRange(matches1);
             }
             else
             {
+                int index1 = 0;
+                int index2 = 0;
                 while (true)
                 {
-                    if (columns1[index1].Start < columns2[index2].Start)
+                    if (matches1[index1].StartCol < matches2[index2].StartCol)
                     {
-                        Columns.Add(columns1[index1++]);
-                        if (index1 >= columns1.Count)
+                        Matches.Add(matches1[index1++]);
+                        if (index1 >= matches1.Count)
                         {
-                            do
-                            {
-                                Columns.Add(columns2[index2++]);
-                            }
-                            while (index2 < columns2.Count);
+                            Matches.AddRange(matches2, index2);
                             break;
                         }
                     }
-                    else if (columns1[index1].Start > columns2[index2].Start)
+                    else if (matches1[index1].StartCol > matches2[index2].StartCol)
                     {
-                        Columns.Add(columns2[index2++]);
-                        if (index2 >= columns2.Count)
+                        Matches.Add(matches2[index2++]);
+                        if (index2 >= matches2.Count)
                         {
-                            do
-                            {
-                                Columns.Add(columns1[index1++]);
-                            }
-                            while (index1 < columns1.Count);
+                            Matches.AddRange(matches1, index1);
                             break;
                         }
                     }
-                    else if (columns1[index1].End >= columns2[index2].End)
+                    else if (matches1[index1].EndCol >= matches2[index2].EndCol)
                     {
-                        Columns.Add(columns1[index1++]);
-                        if (index1 >= columns1.Count)
-                        {
-                            index2++;
-                            while (index2 < columns2.Count)
-                            {
-                                Columns.Add(columns2[index2++]);
-                            }
-                            break;
-                        }
+                        Matches.Add(matches1[index1++]);
                         index2++;
-                        if (index2 >= columns2.Count)
+                        if (index1 >= matches1.Count)
                         {
-                            do
-                            {
-                                Columns.Add(columns1[index1++]);
-                            }
-                            while (index1 < columns1.Count);
+                            Matches.AddRange(matches2, index2);
+                            break;
+                        }
+                        if (index2 >= matches2.Count)
+                        {
+                            Matches.AddRange(matches1, index1);
                             break;
                         }
                     }
-                    else //if (columns1[index1].End < columns2[index2].End)
+                    else //if (matches1[index1].EndCol < matches2[index2].EndCol)
                     {
-                        Columns.Add(columns2[index2++]);
-                        if (index2 >= columns2.Count)
-                        {
-                            index1++;
-                            while (index1 < columns1.Count)
-                            {
-                                Columns.Add(columns1[index1++]);
-                            }
-                            break;
-                        }
                         index1++;
-                        if (index1 >= columns1.Count)
+                        Matches.Add(matches2[index2++]);
+                        if (index1 >= matches1.Count)
                         {
-                            do
-                            {
-                                Columns.Add(columns2[index2++]);
-                            }
-                            while (index2 < columns2.Count);
+                            Matches.AddRange(matches2, index2);
                             break;
                         }
+                        if (index2 >= matches2.Count)
+                        {
+                            Matches.AddRange(matches1, index1);
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+
+        public static List<RowColumns> Append(IEnumerable<RowColumns> c1, IEnumerable<RowColumns> c2)
+        {
+            var c = new List<RowColumns>();
+            foreach (var e1 in c1)
+            {
+                var row = e1.Row;
+                var e2 = c2.Where(x => x.Row == row).FirstOrDefault();
+                if (e2 != null)
+                {
+                    var matches = MatchList.Append(e1.Matches, e2.Matches);
+                    if (matches.Count > 0)
+                    {
+                        c.Add(new RowColumns(row, matches));
+                    }
+                }
+            }
+            return c;
+        }
+
+        public static List<RowColumns> And(IEnumerable<RowColumns> c1, IEnumerable<RowColumns> c2)
+        {
+            var c = new List<RowColumns>();
+            var e1 = c1.GetEnumerator();
+            var e2 = c2.GetEnumerator();
+            RowColumns v1;
+            if (e1.MoveNext())
+            {
+                v1 = e1.Current;
+            }
+            else
+            {
+                return c;
+            }
+            RowColumns v2;
+            if (e2.MoveNext())
+            {
+                v2 = e2.Current;
+            }
+            else
+            {
+                return c;
+            }
+            while (true)
+            {
+                if (v1.Row < v2.Row)
+                {
+                    if (e1.MoveNext())
+                    {
+                        v1 = e1.Current;
+                    }
+                    else
+                    {
+                        return c;
+                    }
+                }
+                else if (v1.Row > v2.Row)
+                {
+                    if (e2.MoveNext())
+                    {
+                        v2 = e2.Current;
+                    }
+                    else
+                    {
+                        return c;
+                    }
+                }
+                else
+                {
+                    c.Add(new RowColumns(v1.Row, v1.Matches, v2.Matches));
+                    if (e1.MoveNext())
+                    {
+                        v1 = e1.Current;
+                    }
+                    else
+                    {
+                        return c;
+                    }
+                    if (e2.MoveNext())
+                    {
+                        v2 = e2.Current;
+                    }
+                    else
+                    {
+                        return c;
+                    }
+                }
+            }
+        }
+
+        public static List<RowColumns> Or(IEnumerable<RowColumns> c1, IEnumerable<RowColumns> c2)
+        {
+            var c = new List<RowColumns>();
+            var e1 = c1.GetEnumerator();
+            var e2 = c2.GetEnumerator();
+            RowColumns v1;
+            if (e1.MoveNext())
+            {
+                v1 = e1.Current;
+            }
+            else
+            {
+                while (e2.MoveNext())
+                {
+                    c.Add(e2.Current);
+                }
+                return c;
+            }
+            RowColumns v2;
+            if (e2.MoveNext())
+            {
+                v2 = e2.Current;
+            }
+            else
+            {
+                c.Add(v1);
+                while (e1.MoveNext())
+                {
+                    c.Add(e1.Current);
+                }
+                return c;
+            }
+            while (true)
+            {
+                if (v1.Row < v2.Row)
+                {
+                    c.Add(v1);
+                    if (e1.MoveNext())
+                    {
+                        v1 = e1.Current;
+                    }
+                    else
+                    {
+                        c.Add(v2);
+                        while (e2.MoveNext())
+                        {
+                            c.Add(e2.Current);
+                        }
+                        return c;
+                    }
+                }
+                else if (v1.Row > v2.Row)
+                {
+                    c.Add(v2);
+                    if (e2.MoveNext())
+                    {
+                        v2 = e2.Current;
+                    }
+                    else
+                    {
+                        c.Add(v1);
+                        while (e1.MoveNext())
+                        {
+                            c.Add(e1.Current);
+                        }
+                        return c;
+                    }
+                }
+                else
+                {
+                    c.Add(new RowColumns(v1.Row, v1.Matches, v2.Matches));
+                    if (e1.MoveNext())
+                    {
+                        v1 = e1.Current;
+                    }
+                    else
+                    {
+                        while (e2.MoveNext())
+                        {
+                            c.Add(e2.Current);
+                        }
+                        return c;
+                    }
+                    if (e2.MoveNext())
+                    {
+                        v2 = e2.Current;
+                    }
+                    else
+                    {
+                        c.Add(v1);
+                        while (e1.MoveNext())
+                        {
+                            c.Add(e1.Current);
+                        }
+                        return c;
                     }
                 }
             }

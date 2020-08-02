@@ -33,15 +33,33 @@ namespace com.hideakin.textsearch.utility
             return list;
         }
 
-        public static List<HitRanges> AddNext(this List<HitRanges> list, IEnumerable<TextDistribution> collection)
+        public static List<HitRanges> Merge(this List<HitRanges> list, IEnumerable<HitRanges> collection)
+        {
+            foreach (var entry in collection)
+            {
+                var found = list.Where(x => x.Fid == entry.Fid).FirstOrDefault();
+                if (found != null)
+                {
+                    found.Merge(entry);
+                }
+                else
+                {
+                    list.Add(entry);
+                }
+            }
+            return list;
+        }
+
+        public static List<HitRanges> Append(this List<HitRanges> list, IEnumerable<TextDistribution> collection)
         {
             int index = 0;
             while(index < list.Count)
             {
-                var found = collection.Where(x => x.Fid == list[index].Fid).FirstOrDefault();
-                if (found != null)
+                var current = list[index];
+                var found = collection.Where(x => x.Fid == current.Fid).FirstOrDefault();
+                if (found != null && current.Append(found).Ranges.Count > 0)
                 {
-                    list[index++].AddNext(found);
+                    index++;
                 }
                 else
                 {

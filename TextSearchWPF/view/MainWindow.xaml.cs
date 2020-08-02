@@ -14,6 +14,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using System.Windows.Threading;
 using Newtonsoft.Json;
 using com.hideakin.textsearch.model;
 using com.hideakin.textsearch.net;
@@ -46,6 +47,7 @@ namespace com.hideakin.textsearch.view
             Loaded += OnLoaded;
             Closed += OnClosed;
             SizeChanged += OnWindowSizeChanged;
+            statusBarDelay = new Delay<string>(ExecuteUpdateStatusBar);
         }
 
         #endregion
@@ -66,9 +68,9 @@ namespace com.hideakin.textsearch.view
                 if (await client.Initialize())
                 {
                     QueryButton.IsEnabled = CanStartQuery;
-                    wip.SetFinalContent(null);
-                    UpdateStatusBar();
-                    ApplyLastState(state);
+                    wip.SetFinalContent(Properties.Resources.InitializationSuccess);
+                    UpdateStatusBar(new TimeSpan(0, 0, 10));
+                    ApplyLastState(state, wip);
                 }
                 else
                 {
@@ -107,7 +109,7 @@ namespace com.hideakin.textsearch.view
             }
         }
 
-        private async void ApplyLastState(LastState state)
+        private async void ApplyLastState(LastState state, WorkInProgress wip)
         {
             if (state != null)
             {
@@ -115,29 +117,25 @@ namespace com.hideakin.textsearch.view
                 {
                     GroupComboBox.SelectedItem = state.Group;
                 }
-                using (var wip = RequestInProgress(Properties.Resources.Initializing))
+                if (await client.UpdateFiles())
                 {
-                    if (await client.UpdateFiles())
+                    if (state.Path != null && FileListView.ItemsSource is ObservableCollection<FileItem> ff)
                     {
-                        if (state.Path != null && FileListView.ItemsSource is ObservableCollection<FileItem> ff)
+                        var f = ff.Where(x => x.Path == state.Path).FirstOrDefault();
+                        if (f != null)
                         {
-                            var f = ff.Where(x => x.Path == state.Path).FirstOrDefault();
-                            if (f != null)
-                            {
-                                FileListView.SelectedItem = f;
-                                FileListView.ScrollIntoView(f);
-                            }
+                            FileListView.SelectedItem = f;
+                            FileListView.ScrollIntoView(f);
                         }
-                        UpdateViewMenus();
-                        wip.SetFinalContent(null);
-                        UpdateStatusBar();
                     }
-                    else
-                    {
-                        wip.SetFinalContent(Properties.Resources.InitializationFailure);
-                    }
+                    UpdateViewMenus();
+                }
+                else
+                {
+                    wip.SetFinalContent(Properties.Resources.InitializationFailure);
                 }
             }
+            UpdateStatusBar(new TimeSpan(0, 0, 10));
         }
 
         private void SaveLastState()
@@ -226,14 +224,20 @@ namespace com.hideakin.textsearch.view
             {
                 if (await client.UpdateGroups()) // may fire OnGroupComboBoxSelectionChanged if group selection is changed
                 {
-                    wip.SetFinalContent(null);
-                    UpdateStatusBar();
+                    if (wip.IsRoot)
+                    {
+                        wip.SetFinalContent(Properties.Resources.UpdateGroupsSuccess);
+                    }
                 }
                 else
                 {
                     wip.SetFinalContent(Properties.Resources.UpdateGroupsFailure);
                 }
                 QueryButton.IsEnabled = CanStartQuery;
+                if (wip.IsRoot)
+                {
+                    UpdateStatusBar(new TimeSpan(0, 0, 10));
+                }
             }
         }
 
@@ -352,12 +356,14 @@ namespace com.hideakin.textsearch.view
         {
             using (var wip = RequestInProgress(Properties.Resources.Processing))
             {
+                wip.SetFinalContent(null);
                 client.Clear();
                 FileListView.SelectedItem = null;
                 if (FileListView.Visibility == Visibility.Visible)
                 {
                     CollectionViewSource.GetDefaultView(FileListView.ItemsSource).Refresh();
                 }
+                UpdateStatusBar();
             }
         }
 
@@ -388,12 +394,19 @@ namespace com.hideakin.textsearch.view
                 if (await client.UpdateFiles())
                 {
                     UpdateViewMenus();
-                    wip.SetFinalContent(null);
-                    UpdateStatusBar();
+                    if (wip.IsRoot)
+                    {
+                        wip.SetFinalContent(null);
+                        UpdateStatusBar();
+                    }
                 }
                 else
                 {
                     wip.SetFinalContent(Properties.Resources.UpdateFilesFailure);
+                    if (wip.IsRoot)
+                    {
+                        UpdateStatusBar(new TimeSpan(0, 0, 10));
+                    }
                 }
             }
         }
@@ -572,7 +585,19 @@ namespace com.hideakin.textsearch.view
 
         #region STATUS BAR
 
+        private Delay<string> statusBarDelay;
+
         private void UpdateStatusBar(string message = null)
+        {
+            statusBarDelay.RunImmediately(message);
+        }
+
+        private void UpdateStatusBar(TimeSpan delay, string message = null)
+        {
+            statusBarDelay.Schedule(delay, message);
+        }
+
+        private void ExecuteUpdateStatusBar(string message)
         {
             if (message != null)
             {
@@ -608,7 +633,8 @@ namespace com.hideakin.textsearch.view
 
         private WorkInProgress RequestInProgress(string message = null)
         {
-            return WorkInProgress.Create()
+            var wip = WorkInProgress.Create()
+                    .DisableControl(FileUrlMenuItem)
                     .DisableControl(FileAuthMenuItem)
                     .DisableControl(EditReloadGroupsMenuItem)
                     .EnableControl(EditCancelRequestMenuItem)
@@ -616,9 +642,13 @@ namespace com.hideakin.textsearch.view
                     .DisableControl(ViewUncheckMenuItem)
                     .DisableControl(ViewClearMenuItem)
                     .DisableControl(QueryTextBox)
-                    .DisableControl(QueryButton)
-                    .SetContentControl(StatusBarLabel)
+                    .DisableControl(QueryButton);
+            if (!statusBarDelay.IsScheduled)
+            {
+                wip.SetContentControl(StatusBarLabel)
                     .SetContent(message ?? Properties.Resources.WaitingForResponse);
+            }
+            return wip;
         }
 
         #endregion

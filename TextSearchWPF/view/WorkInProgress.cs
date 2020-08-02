@@ -10,7 +10,6 @@ namespace com.hideakin.textsearch.view
     {
         private static volatile int recursion = 0;
         private bool disposed;
-        private readonly bool cursorChanged;
         private readonly Cursor cursorLast;
         private ContentControl cc;
         private string textFinal;
@@ -19,31 +18,25 @@ namespace com.hideakin.textsearch.view
 
         private WorkInProgress()
         {
-            disposed = false;
-            cursorChanged = Interlocked.Increment(ref recursion) == 1;
-            cursorLast = Mouse.OverrideCursor;
-            if (cursorChanged)
+            disposed = Interlocked.Increment(ref recursion) != 1;
+            if (!disposed)
             {
+                cursorLast = Mouse.OverrideCursor;
                 Mouse.OverrideCursor = Cursors.Wait;
+                enabledControls = new List<Control>();
+                disabledControls = new List<Control>();
             }
-            cc = null;
-            textFinal = null;
-            enabledControls = new List<Control>();
-            disabledControls = new List<Control>();
         }
 
         public void Dispose()
         {
+            Interlocked.Decrement(ref recursion);
             if (disposed)
             {
                 return;
             }
             disposed = true;
-            Interlocked.Decrement(ref recursion);
-            if (cursorChanged)
-            {
-                Mouse.OverrideCursor = cursorLast;
-            }
+            Mouse.OverrideCursor = cursorLast;
             if (cc != null && textFinal != null)
             {
                 cc.Content = textFinal;
@@ -58,8 +51,14 @@ namespace com.hideakin.textsearch.view
             }
         }
 
+        public bool IsRoot => !disposed;
+
         public WorkInProgress SetContentControl(ContentControl cc)
         {
+            if (disposed)
+            {
+                return this;
+            }
             this.cc = cc;
             textFinal = " ";
             return this;
@@ -112,6 +111,10 @@ namespace com.hideakin.textsearch.view
 
         public WorkInProgress EnableControl(Control c)
         {
+            if (disposed)
+            {
+                return this;
+            }
             c.IsEnabled = true;
             enabledControls.Add(c);
             return this;
@@ -119,6 +122,10 @@ namespace com.hideakin.textsearch.view
 
         public WorkInProgress DisableControl(Control c)
         {
+            if (disposed)
+            {
+                return this;
+            }
             c.IsEnabled = false;
             disabledControls.Add(c);
             return this;

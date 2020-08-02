@@ -189,6 +189,9 @@
   <data name="InitializationFailure" xml:space="preserve">
     <value>Failed to initialize.</value>
   </data>
+  <data name="InitializationSuccess" xml:space="preserve">
+    <value>Initialized successfully.</value>
+  </data>
   <data name="Initializing" xml:space="preserve">
     <value>Initializing...</value>
   </data>
@@ -236,6 +239,9 @@
   </data>
   <data name="UpdateGroupsFailure" xml:space="preserve">
     <value>Failed to update groups.</value>
+  </data>
+  <data name="UpdateGroupsSuccess" xml:space="preserve">
+    <value>Groups updated successfully.</value>
   </data>
   <data name="UrlWindowTitle" xml:space="preserve">
     <value>TextSearch - Index API URL</value>

@@ -1,6 +1,7 @@
 ﻿using com.hideakin.textsearch.model;
 using com.hideakin.textsearch.service;
 using System;
+using System.Collections.Generic;
 using System.Text;
 using System.Threading;
 
@@ -78,24 +79,24 @@ namespace com.hideakin.textsearch.command
             }
         }
 
-        private void FormatQueryResults(HitRowColumns[] results)
+        private void FormatQueryResults(IEnumerable<HitFile> results)
         {
-            foreach (var prc in results)
+            foreach (var f in results)
             {
-                var contents = FileContents.Find(prc.Fid);
+                var contents = FileContents.Find(f.Fid);
                 if (contents == null)
                 {
-                    contents = file.DownloadFile(prc.Fid);
+                    contents = file.DownloadFile(f.Fid);
                 }
                 Console.WriteLine("{0}", contents.Path);
-                foreach (var entry in prc.Rows)
+                foreach (var entry in f.Rows)
                 {
                     Console.WriteLine("{0,6}: {1}", entry.Row + 1, contents.Lines[entry.Row]);
                 }
             }
         }
 
-        private void FormatQueryResultsInHtml(HitRowColumns[] results)
+        private void FormatQueryResultsInHtml(IEnumerable<HitFile> results)
         {
             var sb = new StringBuilder();
             Console.WriteLine("<!doctype html>");
@@ -128,14 +129,14 @@ namespace com.hideakin.textsearch.command
                     int v = 0;
                     for (int i = 0; i < line.Length; i++)
                     {
-                        if (u < entry.Columns.Count && i == entry.Columns[u].Start)
+                        if (u < entry.Matches.Count && i == entry.Matches[u].StartCol)
                         {
                             if (u++ == v)
                             {
                                 sb.Append("<font class=\"match\">");
                             }
                         }
-                        if (v < entry.Columns.Count && i == entry.Columns[v].End)
+                        if (v < entry.Matches.Count && i == entry.Matches[v].EndCol)
                         {
                             if (++v == u)
                             {

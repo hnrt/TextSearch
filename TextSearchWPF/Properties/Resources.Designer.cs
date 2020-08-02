@@ -277,6 +277,15 @@ namespace com.hideakin.textsearch.Properties {
         }
         
         /// <summary>
+        ///   Initialized successfully. に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        public static string InitializationSuccess {
+            get {
+                return ResourceManager.GetString("InitializationSuccess", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Initializing... に類似しているローカライズされた文字列を検索します。
         /// </summary>
         public static string Initializing {
@@ -417,6 +426,15 @@ namespace com.hideakin.textsearch.Properties {
         public static string UpdateGroupsFailure {
             get {
                 return ResourceManager.GetString("UpdateGroupsFailure", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Groups updated successfully. に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        public static string UpdateGroupsSuccess {
+            get {
+                return ResourceManager.GetString("UpdateGroupsSuccess", resourceCulture);
             }
         }
         
