@@ -25,7 +25,11 @@ namespace com.hideakin.textsearch.service
         {
             var task = client.GetPreference(name);
             task.Wait();
-            if (task.Result is string value)
+            if (task.Result == null)
+            {
+                return null;
+            }
+            else if (task.Result is string value)
             {
                 return value;
             }

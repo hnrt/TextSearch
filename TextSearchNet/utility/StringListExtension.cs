@@ -13,6 +13,10 @@ namespace com.hideakin.textsearch.utility
                 var ss = items.Split(new char[] { ',' });
                 foreach (string s in ss)
                 {
+                    if (s.Length == 0)
+                    {
+                        continue;
+                    }
                     if (!list.Contains(s))
                     {
                         list.Add(s);

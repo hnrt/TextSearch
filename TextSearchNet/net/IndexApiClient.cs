@@ -881,6 +881,10 @@ namespace com.hideakin.textsearch.net
                         {
                             return JsonConvert.DeserializeObject<ValueResponse>(responseBody).Value;
                         }
+                        else if (response.StatusCode == HttpStatusCode.NotFound)
+                        {
+                            return null;
+                        }
                         else
                         {
                             return new UnrecognizedResponseException(response.StatusCode, responseBody, "GetPreference request failed.");
