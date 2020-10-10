@@ -328,6 +328,18 @@ namespace com.hideakin.textsearch.model
             ProcessQueryResults();
         }
 
+        public void SetFileCheckByDirectory(string dirPath, bool value)
+        {
+            foreach (var x in FileItems)
+            {
+                var y = x.Path;
+                if (y.StartsWith(dirPath) && (y[dirPath.Length] == '\\' || y[dirPath.Length] == '/'))
+                {
+                    x.Check = value;
+                }
+            }
+        }
+
         public int ChangeFileCheck(bool value)
         {
             int changed = 0;

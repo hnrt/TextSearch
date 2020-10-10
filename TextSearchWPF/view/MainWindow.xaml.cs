@@ -501,6 +501,16 @@ namespace com.hideakin.textsearch.view
 
         private void OnFileCheckBoxChanged(object sender, RoutedEventArgs e)
         {
+            if (Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift))
+            {
+                if (sender is CheckBox cb)
+                {
+                    if (cb.DataContext is FileItem item)
+                    {
+                        client.SetFileCheckByDirectory(System.IO.Path.GetDirectoryName(item.Path), item.Check);
+                    }
+                }
+            }
             client.OnFileCheckChanged();
             CollectionViewSource.GetDefaultView(FileListView.ItemsSource).Refresh();
         }
