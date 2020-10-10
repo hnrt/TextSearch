@@ -117,6 +117,13 @@ public class IndexServiceImpl implements IndexService {
 	public int delete(int gid, Set<Integer> fids, int limit, int offset) {
 		List<String> texts = textExRepository.findTextByGid(gid, limit, offset);
 		for (String text : texts) {
+			if (text.equals("*")) {
+				// The asterisk entry just serves the locking trick for the exclusive indexing operation.
+				// The text entity for this entry will have null for the distribution data,
+				// which causes NullPointerException in the subsequent TextEntity.removeDist call.
+				// That's the reason why this entry needs to be skipped.
+				continue;
+			}
 			TextEntity entity = textRepository.findByTextAndGid(text, gid);
 			entity.removeDist(fids);
 			textRepository.save(entity);
