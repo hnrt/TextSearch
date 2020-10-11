@@ -73,8 +73,13 @@
                 <MenuItem Name="EditCancelRequestMenuItem" Header="{x:Static p:Resources.EditCancelRequestMenuItemHeader}" Click="OnEditCancelRequest"/>
             </MenuItem>
             <MenuItem Name="ViewMenuItem" Header="{x:Static p:Resources.ViewMenuItemHeader}">
-                <MenuItem Name="ViewCheckMenuItem" Header="Check"/>
-                <MenuItem Name="ViewUncheckMenuItem" Header="Uncheck"/>
+                <MenuItem Name="ViewUncheckByNoHitMenuItem" Header="{x:Static p:Resources.ViewUncheckByNoHitMenuItemHeader}" Click="OnViewUncheckByNoHitClick"/>
+                <Separator/>
+                <MenuItem Name="ViewCheckAllMenuItem" Header="{x:Static p:Resources.ViewCheckAllMenuItemHeader}" Click="OnViewCheckAllClick"/>
+                <MenuItem Name="ViewCheckMenuItem" Header="{x:Static p:Resources.ViewCheckByExtMenuItemHeader}"/>
+                <Separator/>
+                <MenuItem Name="ViewUncheckAllMenuItem" Header="{x:Static p:Resources.ViewUncheckAllMenuItemHeader}" Click="OnViewUncheckAllClick"/>
+                <MenuItem Name="ViewUncheckMenuItem" Header="{x:Static p:Resources.ViewUncheckByExtMenuItemHeader}"/>
                 <Separator/>
                 <MenuItem Name="ViewClearMenuItem" Header="{x:Static p:Resources.ViewClearMenuItemHeader}" Click="OnViewClear"/>
             </MenuItem>

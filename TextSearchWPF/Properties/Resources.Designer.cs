@@ -70,15 +70,6 @@ namespace com.hideakin.textsearch.Properties {
         }
         
         /// <summary>
-        ///   All files に類似しているローカライズされた文字列を検索します。
-        /// </summary>
-        public static string AllFiles {
-            get {
-                return ResourceManager.GetString("AllFiles", resourceCulture);
-            }
-        }
-        
-        /// <summary>
         ///   TextSearch に類似しているローカライズされた文字列を検索します。
         /// </summary>
         public static string AppCaption {
@@ -466,6 +457,24 @@ namespace com.hideakin.textsearch.Properties {
         }
         
         /// <summary>
+        ///   Check _all files に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        public static string ViewCheckAllMenuItemHeader {
+            get {
+                return ResourceManager.GetString("ViewCheckAllMenuItemHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Check by _extension に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        public static string ViewCheckByExtMenuItemHeader {
+            get {
+                return ResourceManager.GetString("ViewCheckByExtMenuItemHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   _Clear all views に類似しているローカライズされた文字列を検索します。
         /// </summary>
         public static string ViewClearMenuItemHeader {
@@ -480,6 +489,33 @@ namespace com.hideakin.textsearch.Properties {
         public static string ViewMenuItemHeader {
             get {
                 return ResourceManager.GetString("ViewMenuItemHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   _Uncheck all files に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        public static string ViewUncheckAllMenuItemHeader {
+            get {
+                return ResourceManager.GetString("ViewUncheckAllMenuItemHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Uncheck by extensio_n に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        public static string ViewUncheckByExtMenuItemHeader {
+            get {
+                return ResourceManager.GetString("ViewUncheckByExtMenuItemHeader", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Uncheck files with no hit に類似しているローカライズされた文字列を検索します。
+        /// </summary>
+        public static string ViewUncheckByNoHitMenuItemHeader {
+            get {
+                return ResourceManager.GetString("ViewUncheckByNoHitMenuItemHeader", resourceCulture);
             }
         }
         

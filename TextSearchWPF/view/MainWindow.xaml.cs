@@ -254,22 +254,10 @@ namespace com.hideakin.textsearch.view
         {
             ViewCheckMenuItem.Items.Clear();
             ViewUncheckMenuItem.Items.Clear();
-            var menu = new MenuItem()
-            {
-                Header = Properties.Resources.AllFiles,
-            };
-            menu.Click += OnViewCheckClick;
-            ViewCheckMenuItem.Items.Add(menu);
-            menu = new MenuItem()
-            {
-                Header = Properties.Resources.AllFiles
-            };
-            menu.Click += OnViewUncheckClick;
-            ViewUncheckMenuItem.Items.Add(menu);
             var exts = client.GetExtensions();
             foreach (var ext in exts)
             {
-                menu = new MenuItem()
+                var menu = new MenuItem()
                 {
                     Header = string.Format(Properties.Resources.FileExtFormat, ext)
                 };
@@ -284,6 +272,38 @@ namespace com.hideakin.textsearch.view
             }
         }
 
+        private void OnViewCheckAllClick(object sender, RoutedEventArgs e)
+        {
+            using (var wip = RequestInProgress(Properties.Resources.Processing))
+            {
+                if (sender is MenuItem menu)
+                {
+                    if (client.ChangeFileCheck(true) > 0)
+                    {
+                        CollectionViewSource.GetDefaultView(FileListView.ItemsSource).Refresh();
+                    }
+                }
+                wip.SetFinalContent(null);
+                UpdateStatusBar();
+            }
+        }
+
+        private void OnViewUncheckAllClick(object sender, RoutedEventArgs e)
+        {
+            using (var wip = RequestInProgress(Properties.Resources.Processing))
+            {
+                if (sender is MenuItem menu)
+                {
+                    if (client.ChangeFileCheck(false) > 0)
+                    {
+                        CollectionViewSource.GetDefaultView(FileListView.ItemsSource).Refresh();
+                    }
+                }
+                wip.SetFinalContent(null);
+                UpdateStatusBar();
+            }
+        }
+
         private void OnViewCheckClick(object sender, RoutedEventArgs e)
         {
             using (var wip = RequestInProgress(Properties.Resources.Processing))
@@ -292,20 +312,10 @@ namespace com.hideakin.textsearch.view
                 {
                     if (menu.Header is string h)
                     {
-                        if (h == Properties.Resources.AllFiles)
+                        var ext = ParseExtension(h);
+                        if (client.ChangeFileCheckByExt(ext, true) > 0)
                         {
-                            if (client.ChangeFileCheck(true) > 0)
-                            {
-                                CollectionViewSource.GetDefaultView(FileListView.ItemsSource).Refresh();
-                            }
-                        }
-                        else
-                        {
-                            var ext = ParseExtension(h);
-                            if (client.ChangeFileCheckByExt(ext, true) > 0)
-                            {
-                                CollectionViewSource.GetDefaultView(FileListView.ItemsSource).Refresh();
-                            }
+                            CollectionViewSource.GetDefaultView(FileListView.ItemsSource).Refresh();
                         }
                     }
                 }
@@ -322,20 +332,10 @@ namespace com.hideakin.textsearch.view
                 {
                     if (menu.Header is string h)
                     {
-                        if (h == Properties.Resources.AllFiles)
+                        var ext = ParseExtension(h);
+                        if (client.ChangeFileCheckByExt(ext, false) > 0)
                         {
-                            if (client.ChangeFileCheck(false) > 0)
-                            {
-                                CollectionViewSource.GetDefaultView(FileListView.ItemsSource).Refresh();
-                            }
-                        }
-                        else
-                        {
-                            var ext = ParseExtension(h);
-                            if (client.ChangeFileCheckByExt(ext, false) > 0)
-                            {
-                                CollectionViewSource.GetDefaultView(FileListView.ItemsSource).Refresh();
-                            }
+                            CollectionViewSource.GetDefaultView(FileListView.ItemsSource).Refresh();
                         }
                     }
                 }
@@ -350,6 +350,22 @@ namespace com.hideakin.textsearch.view
             var fmt = Properties.Resources.FileExtFormat;
             var off = fmt.IndexOf(ph);
             return header.Substring(off, header.Length - (fmt.Length - ph.Length));
+        }
+
+        private void OnViewUncheckByNoHitClick(object sender, RoutedEventArgs e)
+        {
+            using (var wip = RequestInProgress(Properties.Resources.Processing))
+            {
+                if (sender is MenuItem menu)
+                {
+                    if (client.UnsetFileCheckByHitRows() > 0)
+                    {
+                        CollectionViewSource.GetDefaultView(FileListView.ItemsSource).Refresh();
+                    }
+                }
+                wip.SetFinalContent(null);
+                UpdateStatusBar();
+            }
         }
 
         private void OnViewClear(object sender, RoutedEventArgs e)

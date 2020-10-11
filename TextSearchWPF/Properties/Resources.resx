@@ -120,9 +120,6 @@
   <data name="AboutCaption" xml:space="preserve">
     <value>TextSearch - About</value>
   </data>
-  <data name="AllFiles" xml:space="preserve">
-    <value>All files</value>
-  </data>
   <data name="AppCaption" xml:space="preserve">
     <value>TextSearch</value>
   </data>
@@ -252,11 +249,26 @@
   <data name="VersionFormat" xml:space="preserve">
     <value>Version {0}</value>
   </data>
+  <data name="ViewCheckAllMenuItemHeader" xml:space="preserve">
+    <value>Check _all files</value>
+  </data>
+  <data name="ViewCheckByExtMenuItemHeader" xml:space="preserve">
+    <value>Check by _extension</value>
+  </data>
   <data name="ViewClearMenuItemHeader" xml:space="preserve">
     <value>_Clear all views</value>
   </data>
   <data name="ViewMenuItemHeader" xml:space="preserve">
     <value>_View</value>
+  </data>
+  <data name="ViewUncheckAllMenuItemHeader" xml:space="preserve">
+    <value>_Uncheck all files</value>
+  </data>
+  <data name="ViewUncheckByExtMenuItemHeader" xml:space="preserve">
+    <value>Uncheck by extensio_n</value>
+  </data>
+  <data name="ViewUncheckByNoHitMenuItemHeader" xml:space="preserve">
+    <value>Uncheck files with no hit</value>
   </data>
   <data name="WaitingForResponse" xml:space="preserve">
     <value>Waiting for response...</value>

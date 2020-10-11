@@ -340,6 +340,20 @@ namespace com.hideakin.textsearch.model
             }
         }
 
+        public int UnsetFileCheckByHitRows()
+        {
+            int count = 0;
+            foreach (var x in FileItems)
+            {
+                if (x.HitRows == 0 && x.Check)
+                {
+                    x.Check = false;
+                    count++;
+                }
+            }
+            return count;
+        }
+
         public int ChangeFileCheck(bool value)
         {
             int changed = 0;
